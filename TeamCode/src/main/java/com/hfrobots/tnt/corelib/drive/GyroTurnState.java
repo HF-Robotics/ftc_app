@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 
-public class TurnState extends TimeoutSafetyState {
+public class GyroTurnState extends TimeoutSafetyState {
     private static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
     private static final double     P_TURN_COEFF            = 0.1;     // Larger is more responsive, but also less stable
 
@@ -17,12 +17,12 @@ public class TurnState extends TimeoutSafetyState {
     private final Turn turn;
     private final double initialPower;
 
-    protected TurnState(TankDrive drive,
-                        ModernRoboticsI2cGyro gyro,
-                        Turn turn,
-                        Telemetry telemetry,
-                        double initialPower,
-                        long safetyTimeoutMillis) {
+    protected GyroTurnState(TankDrive drive,
+                            ModernRoboticsI2cGyro gyro,
+                            Turn turn,
+                            Telemetry telemetry,
+                            double initialPower,
+                            long safetyTimeoutMillis) {
         super(telemetry, safetyTimeoutMillis);
         this.drive = drive;
         this.gyro = gyro;
