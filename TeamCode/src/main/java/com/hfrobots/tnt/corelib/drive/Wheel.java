@@ -20,7 +20,7 @@
 package com.hfrobots.tnt.corelib.drive;
 
 /**
- * Created by Lauren on 8/15/16.
+ * Simply holds diameters and computes circumferences of wheels that we commonly use.
  */
 public class Wheel {
 

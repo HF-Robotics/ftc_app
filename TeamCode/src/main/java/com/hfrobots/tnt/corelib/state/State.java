@@ -20,8 +20,13 @@
 package com.hfrobots.tnt.corelib.state;
 
 
+import android.util.Log;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+/**
+ * Base class for all state machine states
+ */
 public abstract class State {
     protected State nextState;
     protected final Telemetry telemetry;
@@ -38,5 +43,14 @@ public abstract class State {
 
     public void setNextState(State state) {
         nextState = state;
+    }
+
+    protected void debugMsg(String message) {
+        telemetry.addData("01-State", message);
+        Log.d("TNT State", message);
+    }
+
+    protected void errorMsg(String message) {
+        Log.e("TNT State", message);
     }
 }

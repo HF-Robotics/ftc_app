@@ -34,4 +34,7 @@ SOFTWARE.
         <Motor name="collectorMotor" port="1" />
         <Motor name="liftMotor" port="2" />
     </MotorController>
+    <DeviceInterfaceModule name="Device Interface Module 1" serialNumber="AL00VEZR">
+        <Gyro name="gyro" port="0"/>
+    </DeviceInterfaceModule>
 </Robot>

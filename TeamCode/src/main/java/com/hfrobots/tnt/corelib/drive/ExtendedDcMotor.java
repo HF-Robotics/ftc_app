@@ -22,6 +22,10 @@ package com.hfrobots.tnt.corelib.drive;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+/**
+ * Additions to the DcMotor class that allow us to more easily use it
+ * with drive trains
+ */
 public interface ExtendedDcMotor extends DcMotor {
 
     /**
@@ -40,8 +44,10 @@ public interface ExtendedDcMotor extends DcMotor {
     /**
      * Sets a target position to run to relative to
      * the current absolute target position
+     *
+     * @return the absolute target position for the given relative position
      */
-    void setRelativeTargetPosition(int position);
+    int setRelativeTargetPosition(int position);
 
     /**
      * Returns the motor's current target position relative to the position

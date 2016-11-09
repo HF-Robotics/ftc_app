@@ -1,4 +1,25 @@
+/**
+ Copyright (c) 2016 HF Robotics (http://www.hfrobots.com)
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ **/
+
 package com.hfrobots.tnt.corelib.drive;
+
+import android.util.Log;
 
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
@@ -8,6 +29,10 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 
+/**
+ * State machine state that will turn a TankDrive a relative number of degrees
+ * (based on code from the FTC SDK Pushbot example)
+ */
 public class GyroTurnState extends TimeoutSafetyState {
     private static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
     private static final double     P_TURN_COEFF            = 0.1;     // Larger is more responsive, but also less stable
@@ -17,7 +42,9 @@ public class GyroTurnState extends TimeoutSafetyState {
     private final Turn turn;
     private final double initialPower;
 
-    protected GyroTurnState(TankDrive drive,
+    private int targetHeading = Integer.MIN_VALUE;
+
+    public GyroTurnState(TankDrive drive,
                             ModernRoboticsI2cGyro gyro,
                             Turn turn,
                             Telemetry telemetry,
@@ -32,16 +59,26 @@ public class GyroTurnState extends TimeoutSafetyState {
 
     @Override
     public State doStuffAndGetNextState() {
-        // our implementation is based on relative angles, so we need to compute that here, how?
 
-        // this is a linear op mode example, how do we change this to fit into our state machine?
-        // keep looping while we are still active, and not on heading.
-        while (/* opModeIsActive() */ !onHeading(initialPower, 0 /* angle */)) {
-            // Update telemetry & Allow time for other processes to run.
-            //telemetry.update();
+        if (targetHeading == Integer.MIN_VALUE) {
+            // not-yet initialized
+            int currentHeading = gyro.getIntegratedZValue();
+            int turnHeading = turn.getHeading();
+            targetHeading = currentHeading + turnHeading;
+            Log.d("VV", "Gyro turn: current heading: " + currentHeading + ", relative turn heading: " + turnHeading + ", target heading: " + targetHeading);
         }
 
-        return null;
+        if (onHeading(initialPower, targetHeading)) {
+            Log.d("VV", "Gyro turn heading reached - stopping drive");
+
+            return nextState;
+        } else if (isTimedOut()) {
+            Log.e("VV", "Gyro turn timeout reached - stopping drive");
+
+            drive.drivePower(0, 0);
+        }
+
+        return this;
     }
 
     // re-use of Pushbot gyro steer
@@ -75,6 +112,12 @@ public class GyroTurnState extends TimeoutSafetyState {
             steer = getSteer(error);
             rightSpeed  = speed * steer;
             leftSpeed   = -rightSpeed;
+
+            if (Math.abs(rightSpeed) < 0.2) { // cutoff for our robot right now, it won't move
+                leftSpeed = 0.0;
+                rightSpeed = 0.0;
+                onTarget = true;
+            }
         }
 
         // Send desired speeds to motors.

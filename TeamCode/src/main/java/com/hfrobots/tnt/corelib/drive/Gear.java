@@ -20,7 +20,7 @@
 package com.hfrobots.tnt.corelib.drive;
 
 /**
- * Created by Lauren on 8/15/16.
+ * Holds number of teeth on a gear, used to compute gear ratios in DriveTrain.
  */
 public class Gear {
     private final int numTeeth;

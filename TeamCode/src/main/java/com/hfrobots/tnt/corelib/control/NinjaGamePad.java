@@ -21,6 +21,9 @@ package com.hfrobots.tnt.corelib.control;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 
+/**
+ * A more usable/adaptable game pad class
+ */
 public class NinjaGamePad {
     private final Gamepad gamepad;
 

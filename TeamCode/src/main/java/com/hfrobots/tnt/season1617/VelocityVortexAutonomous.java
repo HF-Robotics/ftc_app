@@ -19,7 +19,13 @@
 
 package com.hfrobots.tnt.season1617;
 
+import android.util.Log;
+
+import com.hfrobots.tnt.corelib.drive.DriveInchesState;
+import com.hfrobots.tnt.corelib.drive.GyroTurnState;
+import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.state.State;
+import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -27,40 +33,165 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 @SuppressWarnings("unused")
 public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
-    private State currentState;
+    private static final String LOG_TAG = "TNT Auto";
+    private State currentState = null;
 
-    private State DoneState = new State(telemetry) {
-        private boolean issuedStop = false;
+    // The routes our robot knows how to do
+    private enum Routes { PARK_ON_RAMP_1, PARK_ON_RAMP_2, PARK_ON_RAMP_DANGEROUS,
+        PARK_ON_VORTEX_1, PARK_ON_VORTEX_2, PARK_ON_VORTEX_3}
 
-        @Override
-        public State doStuffAndGetNextState() {
-            if (!issuedStop) {
-                drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                drive.drivePower(0, 0);
+    private int selectedRoutesIndex = 0;
 
-                issuedStop = true;
-            }
+    private Routes[] possibleRoutes = Routes.values();
 
-            return this;
-        }
-    };
+    private enum Alliance { RED, BLUE };
+
+    // Which alliance are we? (the robot is programmed from the point-of-view of the red alliance
+    // but we can also have it run the blue one if selected
+
+    private Alliance currentAlliance = Alliance.RED;
+
+    private int initialDelaySeconds = 0;
 
     @Override
     public void init() {
         super.init();
+        gyro.calibrate();
+        setDefaults();
     }
 
+    private void setDefaults() {
+        currentAlliance = Alliance.RED;
+        selectedRoutesIndex = 0;
+        initialDelaySeconds = 0;
+    }
+
+    // Called repeatedly after init button has been pressed and init() has completed (we think)
+    @Override
+    public void init_loop() {
+        if (ninjaGamepad == null) { // safety, need to double check whether we actually need this
+            // not ready yet init() hasn't been called
+            return;
+        }
+
+        // Use driver dpad up/down to select which route to run
+        if (driverDpadDown.getRise()) {
+            selectedRoutesIndex--;
+            if (selectedRoutesIndex < 0) {
+                selectedRoutesIndex = possibleRoutes.length - 1; // why?
+            }
+        } else if (driverDpadUp.getRise()) {
+            selectedRoutesIndex++;
+
+            if (selectedRoutesIndex > possibleRoutes.length - 1) { // why -1?
+                selectedRoutesIndex = 0;
+            }
+        }
+
+        // use left/right bumper to decrease/increase delay
+
+        if (leftBumper.getRise()) {
+            initialDelaySeconds -= 1;
+
+            if (initialDelaySeconds < 0) {
+                initialDelaySeconds = 0;
+            }
+        } else if (rightBumper.getRise()) {
+            initialDelaySeconds += 1;
+
+            if (initialDelaySeconds > 10) {
+                initialDelaySeconds = 10;
+            }
+        }
+
+        // Alliance selection
+        if (bRedButton.getRise()) {
+            currentAlliance = Alliance.RED;
+        } else if (xBlueButton.getRise()) {
+            currentAlliance = Alliance.BLUE;
+        }
+
+        // Force gyro recal
+        if (aGreenButton.getRise()) {
+            gyro.calibrate();
+        }
+
+        telemetry.addData("01", "Alliance: %s", currentAlliance);
+        telemetry.addData("02", "Route: %s", possibleRoutes[selectedRoutesIndex]);
+        telemetry.addData("03", "Delay %d sec", initialDelaySeconds);
+        telemetry.addData("04", "Gyro calibrating: %s", Boolean.toString(gyro.isCalibrating()));
+
+        updateTelemetry(telemetry);
+    }
 
     @Override
     public void loop() {
-        State nextState = currentState.doStuffAndGetNextState();
+        try {
+            if (currentState == null) {
+                /* TODO we have no configured the state machine yet, do so from the options
+                 selected during init_loop() */
 
-        if (nextState != currentState) {
-            // log and/or telemetry?
+                currentState = parkOnRamp1(); // not correct
+            }
+
+            State nextState = currentState.doStuffAndGetNextState();
+
+            if (nextState != currentState) {
+                // We've changed states alert the driving team, log for post-match analysis
+                telemetry.addData("00-State", "From %s to %s", currentState, nextState);
+                Log.d(LOG_TAG, String.format("State transition from %s to %s", currentState, nextState));
+            }
+
+            currentState = nextState;
+            telemetry.update(); // send all telemetry to the drivers' station
+        } catch (Throwable t) {
+            // Better logging than the FTC SDK provides :(
+            Log.e("VV", "Exception during state machine", t);
+
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException)t;
+            }
+
+            RuntimeException rte = new RuntimeException();
+            rte.initCause(t);
+
+            throw rte;
+        }
+    }
+
+    /**
+     * Turns are relative to being in the red alliance. Because this game is exactly
+     * mirror image, to get our routes working for the blue alliance we simply need to
+     * reverse the direction of the turn
+     */
+    private Turn adjustTurnForAlliance(Turn origTurn) {
+        if (currentAlliance == Alliance.RED) {
+            return origTurn;
         }
 
-        currentState = nextState;
-        telemetry.update(); // send all telemetry to the drivers' station
+        return origTurn.invert();
+    }
+
+    /**
+     * Creates an instance of the "done" state which stops the robot and should be the
+     * "end" state of all of our robot's state machines
+     */
+    private State newDoneState() {
+        return new State(telemetry) {
+            private boolean issuedStop = false;
+
+            @Override
+            public State doStuffAndGetNextState() {
+                if (!issuedStop) {
+                    drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    drive.drivePower(0, 0);
+
+                    issuedStop = true;
+                }
+
+                return this;
+            }
+        };
     }
 
     /*
@@ -73,7 +204,45 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         (7) Done
      */
     private State parkOnRamp1() {
-        return null;
+        double powerLevel = 0.4;
+
+        // (2) drive forward 25 inches
+        DriveInchesState drive25State = new DriveInchesState(drive, telemetry, 25, powerLevel, 8000L);
+
+        // (3) turn 77.5 deg ccw
+        Turn turnStep3 = adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 78));
+
+        State turnStep3State = new GyroTurnState(drive,
+                gyro,
+                turnStep3,
+                telemetry,
+                powerLevel,
+                20000L);
+        drive25State.setNextState(turnStep3State);
+
+        // (4) drive forward 13 inches
+        DriveInchesState drive13State = new DriveInchesState(drive, telemetry, 13, powerLevel, 8000L);
+        turnStep3State.setNextState(drive13State);
+
+        // (5) turn 40 deg ccw
+        Turn turnStep5 = adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 40));
+
+        State turnStep5State = new GyroTurnState(drive,
+                gyro,
+                turnStep5,
+                telemetry,
+                powerLevel,
+                20000L);
+        drive13State.setNextState(turnStep5State);
+
+        // (6) drive forward 38.5 inches
+        DriveInchesState drive39State = new DriveInchesState(drive, telemetry, 39, powerLevel, 8000L);
+        turnStep5State.setNextState(drive39State);
+
+        // (7) Done!
+        drive39State.setNextState(newDoneState());
+
+        return drive25State;
     }
 
     /*
@@ -126,7 +295,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
     /*
         (1) Start at position #3
         (2) Move forward 3.5 inches
-        (3) Rotate 45deg CCW
+        (3) Rotate 45º CCW
         (4) Move forward 58.5 inches
         (5) Done
      */

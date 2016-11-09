@@ -29,10 +29,10 @@ import com.hfrobots.tnt.corelib.units.RotationalDirection;
  */
 public class Turn {
     private final RotationalDirection direction;
-    private final double degrees;
-    private final double asHeading;
+    private int degrees;
+    private int asHeading;
 
-    public Turn(RotationalDirection direction, double degrees) {
+    public Turn(RotationalDirection direction, int degrees) {
         this.direction = direction;
         this.degrees = degrees;
 
@@ -51,7 +51,7 @@ public class Turn {
         asHeading = headingSign * degrees;
     }
 
-    public double getHeading() {
+    public int getHeading() {
         return asHeading;
     }
 

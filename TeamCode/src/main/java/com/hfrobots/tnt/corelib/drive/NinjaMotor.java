@@ -19,6 +19,8 @@
 
 package com.hfrobots.tnt.corelib.drive;
 
+import android.util.Log;
+
 import static com.hfrobots.tnt.corelib.units.RotationalDirection.CLOCKWISE;
 import static com.hfrobots.tnt.corelib.units.RotationalDirection.COUNTER_CLOCKWISE;
 
@@ -26,6 +28,12 @@ import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 
+/**
+ * A DcMotor wrapper implementing our ExtendedDcMotor interface that
+ * adds required functionality (such as knowing the encoder counts). Factory methods
+ * exist for the motor models/brands we use that allow programmers to "forget" which
+ * way the motors rotate and how many PPR each motor has.
+ */
 public class NinjaMotor implements ExtendedDcMotor {
 
     private final int encoderCountsPerRevolution;
@@ -33,47 +41,90 @@ public class NinjaMotor implements ExtendedDcMotor {
     private int absoluteTargetPosition;
     private final RotationalDirection motorNativeDirection;
 
+    /**
+     * Creates an ExtendedDcMotor from the given FTC SDK Motor with Neverest 20 behavior
+     */
     public static ExtendedDcMotor asNeverest20(DcMotor dcMotor) {
+        Log.d("VV", "asNeverest20(" + (dcMotor == null ? "null" : dcMotor) + ")");
+
         //Fix me rotates backwards compared to other motors
-        return new NinjaMotor(dcMotor, CLOCKWISE, 140);
+        return new NinjaMotor(dcMotor, CLOCKWISE, 560);
     }
 
+    /**
+     * Creates an ExtendedDcMotor from the given FTC SDK Motor with Neverest 40 behavior
+     */
     public static ExtendedDcMotor asNeverest40(DcMotor dcMotor) {
+
+        Log.d("VV", "asNeverest40(" + (dcMotor == null ? "null" : dcMotor) + ")");
+
 
         return new NinjaMotor(dcMotor, COUNTER_CLOCKWISE, 280);
     }
 
+    /**
+     * Creates an ExtendedDcMotor from the given FTC SDK Motor with Neverest 60 behavior
+     */
     public static ExtendedDcMotor asNeverest60(DcMotor dcMotor) {
+
+        Log.d("VV", "asNeverest60(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
         return new NinjaMotor(dcMotor, COUNTER_CLOCKWISE, 420);
     }
 
+    /**
+     * Creates an ExtendedDcMotor from the given FTC SDK Motor with Tetrix gear motor behavior
+     */
     public static ExtendedDcMotor asTetrix(DcMotor dcMotor) {
+
+        Log.d("VV", "asTetrix20(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
         return new NinjaMotor(dcMotor, CLOCKWISE, 1440);
     }
 
+    /**
+     * Private because we want to have code only use the factory methods
+     */
     private NinjaMotor(DcMotor dcMotor, RotationalDirection motorNativeDirection, int encoderCountsPerRevolution) {
         this.encoderCountsPerRevolution = encoderCountsPerRevolution;
         this.dcMotor = dcMotor;
         this.motorNativeDirection = motorNativeDirection;
     }
 
+    /**
+     * Which way does the motor shaft rotate when plugged directly into power?
+     */
     @Override
     public RotationalDirection getMotorNativeDirection() {
-        return null;
+        return motorNativeDirection;
     }
 
+    /**
+     * How many PPR does this motor produce?
+     */
     @Override
     public int getEncoderCountsPerRevolution() {
         return encoderCountsPerRevolution;
     }
 
+    /**
+     * Sets the absolute target position for this motor to current position + relativePosition
+     */
     @Override
-    public void setRelativeTargetPosition(int position) {
+    public int setRelativeTargetPosition(int relativePosition) {
+        int currentMotorPosition = dcMotor.getCurrentPosition();
+        int absolutePosition = currentMotorPosition + relativePosition;
+        dcMotor.setTargetPosition(absolutePosition);
+        Log.d("VV", "NinjaMotor sRTP() - r/c/a" + relativePosition + "/" + currentMotorPosition + "/" + absolutePosition);
 
+        return absolutePosition;
     }
 
+    /**
+     * Returns the current relative position from the last time setRelativeTargetPosition() was
+     * called. If setRelativeTargetPosition() has never been called, this will return the same
+     * value as calling getCurrentPosition().
+     */
     @Override
     public int getCurrentRelativePosition() {
         return dcMotor.getCurrentPosition() - absoluteTargetPosition;

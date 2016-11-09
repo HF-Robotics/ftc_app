@@ -19,6 +19,9 @@
 
 package com.hfrobots.tnt.corelib.control;
 
+/**
+ * Represents a digital (on/off) input on the gamepad
+ */
 public interface OnOffButton {
     public boolean isPressed();
 }

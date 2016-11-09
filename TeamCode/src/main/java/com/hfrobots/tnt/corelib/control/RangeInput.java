@@ -19,6 +19,9 @@
 
 package com.hfrobots.tnt.corelib.control;
 
+/**
+ * Represents an analog (joystick, trigger) input on the gamepad
+ */
 public interface RangeInput {
     float getPosition();
 

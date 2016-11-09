@@ -19,30 +19,91 @@
 
 package com.hfrobots.tnt.corelib.drive;
 
+import android.util.Log;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+/**
+ * Given a left and right drive train, treat it as a tank drive
+ */
 public class TankDrive {
     private final DriveTrain leftDriveTrain;
 
     private final DriveTrain rightDriveTrain;
 
+    /**
+     * Creates a TankDrive with the given drive trains (which already have their rotations directions
+     * set)
+     */
     public TankDrive(DriveTrain leftDriveTrain, DriveTrain rightDriveTrain) {
+        // TODO - this class could figure out which directions the wheels need to rotate...
         this.leftDriveTrain = leftDriveTrain;
         this.rightDriveTrain = rightDriveTrain;
     }
 
+    /**
+     * Are any motors powering this drive busy with PID control?
+     */
+    public boolean isBusy() {
+        return leftDriveTrain.isBusy() || rightDriveTrain.isBusy();
+    }
+
+    /**
+     * Sets the power levels for the motors on both sides simultaneously
+     */
     public void drivePower(double leftPower, double rightPower) {
         leftDriveTrain.setPower(leftPower);
         rightDriveTrain.setPower(rightPower);
     }
 
-    public void driveInches(double linearInchesToDrive, double power) {
-        leftDriveTrain.driveInches(linearInchesToDrive, power);
-        rightDriveTrain.driveInches(linearInchesToDrive, power);
+    /**
+     * What encoder counts are required (from both sides) to drive the given number of inches.
+     */
+    public SidedTargetPositions getTargetPositionsForInchesTravel(double linearInchesToDrive) {
+        int leftTargetPosition = leftDriveTrain.getAbsolutePositionForInchesTravel(linearInchesToDrive);
+        int rightTargetPosition = rightDriveTrain.getAbsolutePositionForInchesTravel(linearInchesToDrive);
+
+        return new SidedTargetPositions(leftTargetPosition, rightTargetPosition);
     }
 
+    /**
+     * Sets the RunMode for motors powering both sides of this TankDrive
+     * @param runMode
+     */
     public void setRunMode(DcMotor.RunMode runMode) {
         leftDriveTrain.setRunMode(runMode);
         rightDriveTrain.setRunMode(runMode);
+    }
+
+    /**
+     * Return the encoder counts for the left and right side drive trains simultaneously.
+     */
+    public SidedTargetPositions getCurrentPositions() {
+        int leftPosition = leftDriveTrain.getCurrentPosition();
+        int rightPosition = rightDriveTrain.getCurrentPosition();
+
+        return new SidedTargetPositions(leftPosition, rightPosition);
+    }
+
+    /**
+     * Encoder values for two sides at once
+     */
+    public static class SidedTargetPositions {
+        private final long leftTargetPosition;
+
+        private final long rightTargetPosition;
+
+        public SidedTargetPositions(long leftTargetPosition, long rightTargetPosition) {
+            this.leftTargetPosition = leftTargetPosition;
+            this.rightTargetPosition = rightTargetPosition;
+        }
+
+        public long getLeftTargetPosition() {
+            return leftTargetPosition;
+        }
+
+        public long getRightTargetPosition() {
+            return rightTargetPosition;
+        }
     }
 }

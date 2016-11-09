@@ -29,9 +29,9 @@ import com.qualcomm.robotcore.util.Range;
 /**
  * Provide a basic manual operational mode that controls the tank drive.
  */
-@TeleOp(name="Tank drive")
+@TeleOp(name="00-VV Teleop")
 @SuppressWarnings("unused")
-public class VelocityVortexTeleop extends VelocityVortexTelemetry
+public class VelocityVortexTeleop extends VelocityVortexHardware
 
 {
     protected boolean useEncoders = false;
@@ -90,20 +90,21 @@ public class VelocityVortexTeleop extends VelocityVortexTelemetry
     {
         steeringPriorityDrive();
         handleCollector();
-        handleParticleShooter();
+        //handleParticleShooter();
 
-        //
-        // Send telemetry data to the driver station.
-        //
-        updateTelemetry(); // Update common telemetry
         updateGamepadTelemetry();
-
     }
 
+    /**
+     * Runs the state machine for the particle shooter
+     */
     private void handleParticleShooter() {
         particleShooterState = particleShooterState.doStuffAndGetNextState();
     }
 
+    /**
+     * Runs the state machine for the collector mechanism
+     */
     private void handleCollector() {
         collectorToggleState = collectorToggleState.doStuffAndGetNextState();
     }
@@ -142,5 +143,10 @@ public class VelocityVortexTeleop extends VelocityVortexTelemetry
 
         //set the power of the motors with the gamepad values
         drive.drivePower(leftPower, rightPower);
+    }
+
+    private void updateGamepadTelemetry() {
+        telemetry.addData ("06", "GP1 Left x: " + -leftStickX.getPosition());
+        telemetry.addData ("07", "GP1 Left y: " + -leftStickY.getPosition());
     }
 }

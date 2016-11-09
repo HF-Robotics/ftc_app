@@ -19,6 +19,8 @@
 
 package com.hfrobots.tnt.season1617;
 
+import android.util.Log;
+
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.hfrobots.tnt.corelib.control.RangeInput;
@@ -31,8 +33,10 @@ import com.hfrobots.tnt.corelib.drive.TankDrive;
 import com.hfrobots.tnt.corelib.drive.Wheel;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.ftccommon.DbgLog;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
@@ -52,39 +56,97 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected DebouncedButton collectorToggleButton;
 
+    protected DebouncedButton driverDpadUp;
+
+    protected DebouncedButton driverDpadDown;
+
+    protected DebouncedButton driverDpadLeft;
+
+    protected DebouncedButton driverDpadRight;
+
+    protected DebouncedButton xBlueButton;
+
+    protected DebouncedButton bRedButton;
+
+    protected DebouncedButton yYellowButton;
+
+    protected DebouncedButton aGreenButton;
+
+    protected DebouncedButton rightBumper;
+
+    protected DebouncedButton leftBumper;
+
     protected ExtendedDcMotor collectorMotor;
 
     protected TankDrive drive;
 
+    protected DcMotor topParticleShooter;
+
+    protected DcMotor bottomParticleShooter;
+
+    protected ModernRoboticsI2cGyro gyro;
+
     /**
-     * Perform any actions that are necessary when the OpMode is enabled.
-     * <p/>
-     * The system calls this member once when the OpMode is enabled.
+     * Initialize the hardware ... this class requires the following hardware map names
+     *
+     * DcMotor name="topParticleShooter"
+     * DcMotor name="bottomParticleShooter"
+     *
+     * DcMotor name="leftDrive1"
+     * DcMotor name="leftDrive2"
+     *
+     * DcMotor name="rightDrive1"
+     * DcMotor name="rightDrive2"
+     *
+     * DcMotor name="collectorMotor"
+     * DcMotor name="liftMotor"
      */
     @Override
     public void init() {
 
-        // Build an instance of our more advanced gamepad class
+        try {
+            // Build an instance of our more advanced gamepad class
 
-        ninjaGamepad = new NinjaGamePad(gamepad1);
-        leftStickX = ninjaGamepad.getLeftStickX();
-        leftStickY = ninjaGamepad.getLeftStickY();
-        collectorToggleButton = new DebouncedButton(ninjaGamepad.getAButton());
-        collectorMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("collectorMotor"));
+            ninjaGamepad = new NinjaGamePad(gamepad1);
+            leftStickX = ninjaGamepad.getLeftStickX();
+            leftStickY = ninjaGamepad.getLeftStickY();
+            collectorToggleButton = new DebouncedButton(ninjaGamepad.getAButton());
+            driverDpadDown = new DebouncedButton(ninjaGamepad.getDpadDown());
+            driverDpadUp = new DebouncedButton(ninjaGamepad.getDpadUp());
+            driverDpadLeft = new DebouncedButton(ninjaGamepad.getDpadLeft());
+            driverDpadRight = new DebouncedButton(ninjaGamepad.getDpadRight());
+            aGreenButton = new DebouncedButton(ninjaGamepad.getAButton());
+            bRedButton = new DebouncedButton(ninjaGamepad.getBButton());
+            xBlueButton = new DebouncedButton(ninjaGamepad.getXButton());
+            yYellowButton = new DebouncedButton(ninjaGamepad.getYButton());
+            leftBumper = new DebouncedButton(ninjaGamepad.getLeftBumper());
+            rightBumper = new DebouncedButton(ninjaGamepad.getRightBumper());
 
-        ExtendedDcMotor leftMotor1 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("leftDrive1"));
-        ExtendedDcMotor leftMotor2 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("leftDrive2"));
-        ExtendedDcMotor rightMotor1 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("rightDrive1"));
-        ExtendedDcMotor rightMotor2 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("rightDrive2"));
-        DualDcMotor leftMotor = new DualDcMotor(leftMotor1, leftMotor2);
-        DualDcMotor rightMotor = new DualDcMotor(rightMotor1, rightMotor2);
+            collectorMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("collectorMotor"));
 
-        Wheel stealthWheel = Wheel.andyMarkStealth();
-        Gear dummyGear = new Gear(1);
-        DriveTrain leftDriveTrain = new DriveTrain(stealthWheel, RotationalDirection.COUNTER_CLOCKWISE, leftMotor, new Gear[] {dummyGear, dummyGear});
-        DriveTrain rightDriveTrain = new DriveTrain(stealthWheel, RotationalDirection.CLOCKWISE, rightMotor, new Gear[] {dummyGear, dummyGear});
+            ExtendedDcMotor leftMotor1 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("leftDrive1"));
+            ExtendedDcMotor leftMotor2 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("leftDrive2"));
+            ExtendedDcMotor rightMotor1 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("rightDrive1"));
+            ExtendedDcMotor rightMotor2 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("rightDrive2"));
+            DualDcMotor leftMotor = new DualDcMotor(leftMotor1, leftMotor2);
+            DualDcMotor rightMotor = new DualDcMotor(rightMotor1, rightMotor2);
 
-        drive = new TankDrive(leftDriveTrain, rightDriveTrain);
+            Wheel stealthWheel = Wheel.andyMarkStealth();
+            Gear dummyGear = new Gear(1);
+
+            DriveTrain leftDriveTrain = new DriveTrain("leftDrive", stealthWheel, RotationalDirection.COUNTER_CLOCKWISE, leftMotor, new Gear[]{dummyGear, dummyGear});
+            DriveTrain rightDriveTrain = new DriveTrain("rightDrive", stealthWheel, RotationalDirection.CLOCKWISE, rightMotor, new Gear[]{dummyGear, dummyGear});
+            drive = new TankDrive(leftDriveTrain, rightDriveTrain);
+
+            topParticleShooter = hardwareMap.dcMotor.get("topParticleShooter");
+            bottomParticleShooter = hardwareMap.dcMotor.get("bottomParticleShooter");
+            bottomParticleShooter.setDirection(DcMotorSimple.Direction.REVERSE); // rotates opposite top
+
+            gyro = hardwareMap.get(ModernRoboticsI2cGyro.class, "gyro");
+        } catch (NullPointerException npe) {
+            Log.d("VV", "NPE", npe);
+            throw npe;
+        }
     }
 
     /**

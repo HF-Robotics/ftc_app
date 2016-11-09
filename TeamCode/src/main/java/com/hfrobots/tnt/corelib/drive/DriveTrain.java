@@ -19,19 +19,24 @@
 
 package com.hfrobots.tnt.corelib.drive;
 
+import android.util.Log;
+
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
+/**
+ * Represents a drive train that hides the complexity of gear ratios and changes in direction
+ * to allow callers to essentially treat the output shaft as if it is the motor shaft.
+ */
 public class DriveTrain {
 
     private final Wheel wheel;
-    private final ExtendedDcMotor motor;
+    private final ExtendedDcMotor driveMotor;
     private final double gearRatio;
     private final int direction;
     private final RotationalDirection wheelRotatingForwardDirection;
-
+    private final String name;
 
     /**
      * Creates a drive train for the given wheel and gear train.
@@ -39,12 +44,16 @@ public class DriveTrain {
      * @param wheel The wheel used in the drive train
      * @param wheelRotatingForwardDirection The direction the wheel rotates for forward motion
      * @param motor The ExtendedDcMotor used to power the drive train
-     * @param gearTrain Array of Gear in the train in the order of motor, ..., wheel
+     * @param gearTrain Array of Gear in the train in the order of driveMotor, ..., wheel
      */
-    public DriveTrain(Wheel wheel, RotationalDirection wheelRotatingForwardDirection, ExtendedDcMotor motor, Gear[] gearTrain){
+    public DriveTrain(String name, Wheel wheel, RotationalDirection wheelRotatingForwardDirection, ExtendedDcMotor motor, Gear[] gearTrain){
+        this.name = name;
+        Log.d("VV", this.name + " driveMotor is " + motor);
+
+
         this.wheel = wheel;
         this.wheelRotatingForwardDirection = wheelRotatingForwardDirection;
-        this.motor = motor;
+        this.driveMotor = motor;
 
         if (gearTrain == null){
             throw new IllegalArgumentException("gear train needed");
@@ -57,10 +66,10 @@ public class DriveTrain {
 
         gearRatio = wheelGear.getNumTeeth() / motorGear.getNumTeeth();
 
-        // adjust for motor vs. forward direction mismatch
+        // adjust for driveMotor vs. forward direction mismatch
         final boolean invertRotationalDirection;
 
-        if (!motor.getMotorNativeDirection().equals(wheelRotatingForwardDirection)) {
+        if (!driveMotor.getMotorNativeDirection().equals(wheelRotatingForwardDirection)) {
             invertRotationalDirection = true;
         } else {
             invertRotationalDirection = false;
@@ -73,32 +82,63 @@ public class DriveTrain {
             direction = invertRotationalDirection ? -1 : 1;
         }
 
+        Log.d("VV", this.name + " invertRotate=" + invertRotationalDirection + ", direction=" + direction);
+
         if (direction == -1) {
+            Log.d("VV", this.name + " setting motor " + motor + " to REVERSE");
+
             // Do this instead of inverting power ... it handles encoders for us
             motor.setDirection(DcMotorSimple.Direction.REVERSE);
         }
     }
 
-    public void setPower(double power) {
-        motor.setPower(power);
+    /**
+     * Returns the current encoder count (position) of the motor that powers the drive train
+     */
+    public int getCurrentPosition() {
+        return driveMotor.getCurrentPosition();
     }
 
-    public void driveInches(double linearInchesToDrive, double power) {
+    /**
+     * Sets the power for the motor that powers the drive train
+     */
+    public void setPower(double power) {
+        driveMotor.setPower(power);
+    }
+
+    /**
+     * Returns the encoder count required to move the given number of inches (needed for external
+     * P(ID) control.
+     */
+    public int getAbsolutePositionForInchesTravel(double linearInchesToDrive) {
         int requiredEncoderCounts = getEncoderCountsForDriveInches(linearInchesToDrive);
 
-        motor.setRelativeTargetPosition(requiredEncoderCounts);
-        motor.setPower(power);
+
+        int absoluteTargetPosition = driveMotor.setRelativeTargetPosition(requiredEncoderCounts);
+
+        Log.d("VV", name + " drive train - requiredEncoder " + requiredEncoderCounts + ", absoluteTargetPosition: " + absoluteTargetPosition);
+        return absoluteTargetPosition;
     }
 
+    /**
+     * Sets the RunMode for the motor powering this drive train.
+     */
     public void setRunMode(DcMotor.RunMode runMode) {
-        motor.setMode(runMode);
+        driveMotor.setMode(runMode);
+    }
+
+    /**
+     * Is the motor powering this drive train busy operating under PID control?
+     */
+    public boolean isBusy() {
+        return driveMotor.isBusy();
     }
 
     private int getEncoderCountsForDriveInches(double linearInchesToDrive) {
         double wheelRevolutions = linearInchesToDrive / wheel.circumference;
         double motorRevolutions = wheelRevolutions * gearRatio;
         // this cast is safe will never have an encoder count that will reach beyond the max of an int
-        int encoderCounts = (int)Math.round(motor.getEncoderCountsPerRevolution() * motorRevolutions);
+        int encoderCounts = (int)Math.round(driveMotor.getEncoderCountsPerRevolution() * motorRevolutions);
 
         return encoderCounts;
     }

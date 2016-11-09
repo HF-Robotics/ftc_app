@@ -19,10 +19,22 @@
 
 package com.hfrobots.tnt.corelib.drive;
 
+import android.util.Log;
+
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+/**
+ * An implementation of ExtendedDcMotor that lets us treat two motors as one. There is an assumption
+ * that both motors are of the exact same make and model.
+ *
+ * There are some shortcomings, because of PID controller interactions between two motors this
+ * class does not support RUN_TO_POSITION or RUN_WITH_ENCODERS run modes (you must provide your
+ * own external PID control code), and this class also disables braking on the 2nd motor (for the
+ * same reason). When some value is retrieved (currentPosition for example) it is only from the
+ * first motor.
+ */
 public class DualDcMotor implements ExtendedDcMotor {
     private final ExtendedDcMotor firstMotor;
 
@@ -36,8 +48,11 @@ public class DualDcMotor implements ExtendedDcMotor {
     }
 
     public DualDcMotor(ExtendedDcMotor primaryMotor, ExtendedDcMotor secondaryMotor) {
+        Log.d("VV", "Primary Motor: " + (primaryMotor == null ? "null" : primaryMotor) + " secondary motor: " + (secondaryMotor == null ? "null" : secondaryMotor));
         this.firstMotor = primaryMotor;
         this.secondMotor = secondaryMotor;
+        // By default, we setup the second motor to just track first motor power/direction, not brake
+        this.secondMotor.setZeroPowerBehavior(ZeroPowerBehavior.FLOAT);
     }
 
     @Override
@@ -61,10 +76,22 @@ public class DualDcMotor implements ExtendedDcMotor {
         return 0; // what do we do here?
     }
 
+    /**
+     * Same as DcMotor except that if setting braking mode, this class
+     * will set the second motor to float to avoid PID control interactions
+     */
     @Override
     public void setZeroPowerBehavior(ZeroPowerBehavior zeroPowerBehavior) {
+
         firstMotor.setZeroPowerBehavior(zeroPowerBehavior);
-        secondMotor.setZeroPowerBehavior(zeroPowerBehavior);
+
+        // If we're using braking, we don't want the PIDs to fight
+        // each other so set second motor to float
+        if (ZeroPowerBehavior.BRAKE.equals(zeroPowerBehavior)) {
+            secondMotor.setZeroPowerBehavior(ZeroPowerBehavior.FLOAT);
+        } else {
+            secondMotor.setZeroPowerBehavior(zeroPowerBehavior);
+        }
     }
 
     @Override
@@ -86,27 +113,36 @@ public class DualDcMotor implements ExtendedDcMotor {
 
     @Override
     public void setTargetPosition(int position) {
-        // what do we do here, each motor will have different current positions
-
+        throw new IllegalArgumentException("Not supported");
     }
 
     @Override
     public int getTargetPosition() {
-        return 0;
+        throw new IllegalArgumentException("Not supported");
     }
 
     @Override
     public boolean isBusy() {
-        return firstMotor.isBusy() || secondMotor.isBusy();
+        throw new IllegalArgumentException("Not supported");
     }
 
     @Override
     public int getCurrentPosition() {
-        return 0; // what do we do here, each motor will have different current positions
+        return firstMotor.getCurrentPosition() ; // since we return the first motor's absolute
+                                                 // target on .setRelative(), we return the first
+                                                 // here as well
     }
 
     @Override
     public void setMode(RunMode mode) {
+        if (RunMode.RUN_USING_ENCODER.equals(mode)) {
+            throw new IllegalArgumentException("Dual motors cannot use RUN_WITH_ENCODERS");
+        }
+
+        if (RunMode.RUN_TO_POSITION.equals(mode)) {
+            throw new IllegalArgumentException("Dual motors cannot use RUN_TO_POSITION");
+        }
+
         firstMotor.setMode(mode);
         secondMotor.setMode(mode);
     }
@@ -149,22 +185,22 @@ public class DualDcMotor implements ExtendedDcMotor {
 
     @Override
     public Manufacturer getManufacturer() {
-        return null;
+        return firstMotor.getManufacturer();
     }
 
     @Override
     public String getDeviceName() {
-        return null; // what do we do here?
+        return firstMotor.getDeviceName(); // what do we do here?
     }
 
     @Override
     public String getConnectionInfo() {
-        return null; // what do we do here?
+        return firstMotor.getConnectionInfo(); // what do we do here?
     }
 
     @Override
     public int getVersion() {
-        return 0;
+        return firstMotor.getVersion();
     }
 
     @Override
@@ -181,6 +217,11 @@ public class DualDcMotor implements ExtendedDcMotor {
 
     @Override
     public RotationalDirection getMotorNativeDirection() {
+        Log.d("VV", "First motor: " + (firstMotor == null ? null : firstMotor));
+        if (firstMotor != null) {
+            Log.d("VV", "First motor native direction: " + firstMotor.getMotorNativeDirection());
+        }
+
         return firstMotor.getMotorNativeDirection();
     }
 
@@ -190,9 +231,10 @@ public class DualDcMotor implements ExtendedDcMotor {
     }
 
     @Override
-    public void setRelativeTargetPosition(int position) {
-        firstMotor.setRelativeTargetPosition(position);
-        secondMotor.setRelativeTargetPosition(position);
+    public int setRelativeTargetPosition(int position) {
+        int targetPosition = firstMotor.setRelativeTargetPosition(position);
+
+        return targetPosition;
     }
 
     @Override

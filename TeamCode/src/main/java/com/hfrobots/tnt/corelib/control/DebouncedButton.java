@@ -19,6 +19,11 @@
 
 package com.hfrobots.tnt.corelib.control;
 
+/**
+ * Turns an OnOffButton into a button which will not "bounce" for each loop cycle (calling getRise()
+ * for example will return true if the button is pressed, and it isn't the same state (pressed)
+ * since the last time getRise() has been called.
+ */
 public class DebouncedButton {
     private final OnOffButton onOffButton;
     private boolean lastState;
