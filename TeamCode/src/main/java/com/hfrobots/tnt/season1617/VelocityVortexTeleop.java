@@ -38,7 +38,13 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
 
     private State collectorToggleState;
 
+    private State collectorReverseToggleState;
+
     private State particleShooterState;
+
+    private State conveyorForwardToggleState;
+
+    private State conveyorReverseToggleState;
 
     /*
      * Construct the class.
@@ -74,6 +80,44 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
                 collectorMotor.setPower(0);
             }
         };
+
+        collectorReverseToggleState = new ToggleState(telemetry, collectorReverseToggleButton) {
+            @Override
+            protected void toggledOn() {
+                collectorMotor.setPower(-1);
+            }
+
+            @Override
+            protected void toggledOff() {
+                collectorMotor.setPower(0);
+            }
+        };
+
+        //continuous rotation, 0.5 is stop,
+        // 0 is one direction, 1 the other
+        conveyorForwardToggleState  = new ToggleState(telemetry, conveyorForwardToggleButton) {
+            @Override
+            protected void toggledOn() {
+                conveyorServo.setPosition(0);
+            }
+
+            @Override
+            protected void toggledOff() {
+                conveyorServo.setPosition(0.5);
+            }
+        };
+
+        conveyorReverseToggleState  = new ToggleState(telemetry, conveyorReverseToggleButton) {
+            @Override
+            protected void toggledOn() {
+               conveyorServo.setPosition(1);
+            }
+
+            @Override
+            protected void toggledOff() {
+                conveyorServo.setPosition(0.5);
+            }
+        };
     }
 
 
@@ -88,9 +132,9 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     public void loop()
 
     {
-        steeringPriorityDrive();
+        handleDrive();
         handleCollector();
-        //handleParticleShooter();
+        handleParticleShooter();
 
         updateGamepadTelemetry();
     }
@@ -99,7 +143,17 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
      * Runs the state machine for the particle shooter
      */
     private void handleParticleShooter() {
-        particleShooterState = particleShooterState.doStuffAndGetNextState();
+        // TODO: Currently, not a state machine :(
+        conveyorForwardToggleState.doStuffAndGetNextState();
+        conveyorReverseToggleState.doStuffAndGetNextState();
+
+        if (shooterTrigger.isPressed()) {
+            topParticleShooter.setPower(1);
+            bottomParticleShooter.setPower(1);
+        } else {
+            topParticleShooter.setPower(0);
+            bottomParticleShooter.setPower(0);
+        }
     }
 
     /**
@@ -107,9 +161,10 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
      */
     private void handleCollector() {
         collectorToggleState = collectorToggleState.doStuffAndGetNextState();
+        collectorReverseToggleState = collectorReverseToggleState.doStuffAndGetNextState();
     }
 
-    private void steeringPriorityDrive() {
+    private void handleDrive() {
         //----------------------------------------------------------------------
         //
         // DC Motors
@@ -129,8 +184,8 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         //
 
         // these scale the motor power based on the amount of input on the drive stick
-        float xValue = -scaleMotorPower(leftStickX.getPosition());
-        float yValue = -scaleMotorPower(leftStickY.getPosition());
+        float xValue = scaleMotorPower(driverLeftStickX.getPosition());
+        float yValue = -scaleMotorPower(driverLeftStickY.getPosition());
 
         //calculate the power needed for each motor
         float leftPower = yValue + xValue;
@@ -146,7 +201,7 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     }
 
     private void updateGamepadTelemetry() {
-        telemetry.addData ("06", "GP1 Left x: " + -leftStickX.getPosition());
-        telemetry.addData ("07", "GP1 Left y: " + -leftStickY.getPosition());
+        telemetry.addData ("06", "GP1 Left x: " + -driverLeftStickX.getPosition());
+        telemetry.addData ("07", "GP1 Left y: " + -driverLeftStickY.getPosition());
     }
 }
