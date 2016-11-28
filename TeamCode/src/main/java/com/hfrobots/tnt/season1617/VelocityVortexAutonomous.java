@@ -70,6 +70,8 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         initialDelaySeconds = 0;
     }
 
+    private boolean configLocked = false;
+
     // Called repeatedly after init button has been pressed and init() has completed (we think)
     @Override
     public void init_loop() {
@@ -78,6 +80,33 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
             return;
         }
 
+        if (!configLocked) {
+            doAutoConfig();
+
+            if (lockButton.getRise()) {
+                configLocked = true;
+            }
+        } else {
+            if (unlockButton.getRise()) {
+                configLocked = false;
+            }
+        }
+
+        if (configLocked) {
+            telemetry.addData("00", "LOCKED: Press Rt stick unlock");
+        } else {
+            telemetry.addData("00", "UNLOCKED: Press Lt stick lock");
+        }
+        
+        telemetry.addData("01", "Alliance: %s", currentAlliance);
+        telemetry.addData("02", "Route: %s", possibleRoutes[selectedRoutesIndex]);
+        telemetry.addData("03", "Delay %d sec", initialDelaySeconds);
+        telemetry.addData("04", "Gyro calibrating: %s", Boolean.toString(gyro.isCalibrating()));
+
+        updateTelemetry(telemetry);
+    }
+
+    private void doAutoConfig() {
         // Use driver dpad up/down to select which route to run
         if (driverDpadDown.getRise()) {
             selectedRoutesIndex--;
@@ -119,13 +148,6 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         if (driverAGreenButton.getRise()) {
             gyro.calibrate();
         }
-
-        telemetry.addData("01", "Alliance: %s", currentAlliance);
-        telemetry.addData("02", "Route: %s", possibleRoutes[selectedRoutesIndex]);
-        telemetry.addData("03", "Delay %d sec", initialDelaySeconds);
-        telemetry.addData("04", "Gyro calibrating: %s", Boolean.toString(gyro.isCalibrating()));
-
-        updateTelemetry(telemetry);
     }
 
     @Override

@@ -106,6 +106,10 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected OnOffButton halfSpeed;
 
+    protected DebouncedButton lockButton;
+
+    protected DebouncedButton unlockButton;
+
     /**
      * Initialize the hardware ... this class requires the following hardware map names
      *
@@ -186,6 +190,8 @@ public abstract class VelocityVortexHardware extends OpMode {
         driverYYellowButton = new DebouncedButton(driversGamepad.getYButton());
         driverLeftBumper = new DebouncedButton(driversGamepad.getLeftBumper());
         driverRightBumper = new DebouncedButton(driversGamepad.getRightBumper());
+        lockButton = new DebouncedButton(driversGamepad.getLeftStickButton());
+        unlockButton = new DebouncedButton(driversGamepad.getRightStickButton());
         brakeNoBrake = driversGamepad.getRightBumper();
         halfSpeed = new RangeInputButton(driversGamepad.getLeftTrigger(), 0.65f);
     }
