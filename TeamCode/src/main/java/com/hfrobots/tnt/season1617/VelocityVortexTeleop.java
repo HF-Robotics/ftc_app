@@ -101,32 +101,6 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
                 collectorMotor.setPower(0);
             }
         };
-
-        //continuous rotation, 0.5 is stop,
-        // 0 is one direction, 1 the other
-        conveyorForwardToggleState  = new ToggleState(telemetry, conveyorForwardToggleButton) {
-            @Override
-            protected void toggledOn() {
-                conveyorServo.setPosition(0);
-            }
-
-            @Override
-            protected void toggledOff() {
-                conveyorServo.setPosition(0.5);
-            }
-        };
-
-        conveyorReverseToggleState  = new ToggleState(telemetry, conveyorReverseToggleButton) {
-            @Override
-            protected void toggledOn() {
-               conveyorServo.setPosition(1);
-            }
-
-            @Override
-            protected void toggledOff() {
-                conveyorServo.setPosition(0.5);
-            }
-        };
     }
 
 

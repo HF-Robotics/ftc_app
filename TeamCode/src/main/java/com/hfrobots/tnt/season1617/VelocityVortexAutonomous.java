@@ -97,7 +97,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         } else {
             telemetry.addData("00", "UNLOCKED: Press Lt stick lock");
         }
-        
+
         telemetry.addData("01", "Alliance: %s", currentAlliance);
         telemetry.addData("02", "Route: %s", possibleRoutes[selectedRoutesIndex]);
         telemetry.addData("03", "Delay %d sec", initialDelaySeconds);

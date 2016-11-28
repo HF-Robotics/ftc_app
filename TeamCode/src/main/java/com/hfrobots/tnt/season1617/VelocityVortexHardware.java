@@ -86,12 +86,6 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected ModernRoboticsI2cGyro gyro;
 
-    protected Servo conveyorServo;
-
-    protected DebouncedButton conveyorForwardToggleButton;
-
-    protected DebouncedButton conveyorReverseToggleButton;
-
     protected OnOffButton shooterTrigger;
     protected ExtendedDcMotor leftMotor1;
     protected ExtendedDcMotor rightMotor1;
@@ -154,8 +148,6 @@ public abstract class VelocityVortexHardware extends OpMode {
 
             gyro = hardwareMap.get(ModernRoboticsI2cGyro.class, "gyro");
 
-            conveyorServo = hardwareMap.get(Servo.class, "conveyorServo");
-
             liftMotor = hardwareMap.dcMotor.get("liftMotor");
         } catch (NullPointerException npe) {
             Log.d("VV", "NPE", npe);
@@ -168,8 +160,6 @@ public abstract class VelocityVortexHardware extends OpMode {
         operatorsGamepad = new NinjaGamePad(gamepad2);
         collectorToggleButton = new DebouncedButton(operatorsGamepad.getAButton());
         collectorReverseToggleButton = new DebouncedButton(operatorsGamepad.getBButton());
-        conveyorForwardToggleButton = new DebouncedButton(operatorsGamepad.getXButton());
-        conveyorReverseToggleButton = new DebouncedButton(operatorsGamepad.getYButton());
         shooterTrigger = operatorsGamepad.getRightBumper();
         liftSafety = new RangeInputButton(operatorsGamepad.getLeftTrigger(), 0.65f);
         liftThrottle = operatorsGamepad.getLeftStickY();
