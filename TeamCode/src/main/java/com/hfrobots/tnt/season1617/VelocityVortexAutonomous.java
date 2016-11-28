@@ -41,8 +41,23 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
     private State currentState = null;
 
     // The routes our robot knows how to do
-    private enum Routes { PARK_ON_RAMP_1, PARK_ON_RAMP_2, PARK_ON_RAMP_DANGEROUS,
-        PARK_ON_VORTEX_1, PARK_ON_VORTEX_2, PARK_ON_VORTEX_3}
+    private enum Routes { PARK_ON_RAMP_1("Park on ramp 1"),
+        PARK_ON_RAMP_2("Park on ramp 2"),
+        PARK_ON_RAMP_DANGEROUS("Park on ramp 'danger' "),
+        PARK_ON_VORTEX_1("Park on center vortex 1"),
+        PARK_ON_VORTEX_2("Park on center vortex 2"),
+        PARK_ON_VORTEX_3("Park on center vortex 3");
+
+        final String description;
+
+        Routes(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
 
     private int selectedRoutesIndex = 0;
 
@@ -99,7 +114,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         }
 
         telemetry.addData("01", "Alliance: %s", currentAlliance);
-        telemetry.addData("02", "Route: %s", possibleRoutes[selectedRoutesIndex]);
+        telemetry.addData("02", "Route: %s", possibleRoutes[selectedRoutesIndex].getDescription());
         telemetry.addData("03", "Delay %d sec", initialDelaySeconds);
         telemetry.addData("04", "Gyro calibrating: %s", Boolean.toString(gyro.isCalibrating()));
 
