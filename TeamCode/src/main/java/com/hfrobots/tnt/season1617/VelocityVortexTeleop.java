@@ -20,6 +20,8 @@
 package com.hfrobots.tnt.season1617;
 
 
+import android.util.Log;
+
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.ToggleState;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -62,6 +64,13 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     @Override
     public void init() {
         super.init();
+
+        // No "runaway robot"
+        drive.drivePower(0, 0);
+        liftMotor.setPower(0);
+        topParticleShooter.setPower(0);
+        bottomParticleShooter.setPower(0);
+
 
         if (!useEncoders) {
             drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -135,7 +144,7 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         handleDrive();
         handleCollector();
         handleParticleShooter();
-
+        handleLift();
         updateGamepadTelemetry();
     }
 
@@ -164,6 +173,15 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         collectorReverseToggleState = collectorReverseToggleState.doStuffAndGetNextState();
     }
 
+    private void handleLift() {
+        if (liftSafety.isPressed()) {
+            liftMotor.setPower(liftThrottle.getPosition());
+        } else {
+            liftMotor.setPower(0);
+        }
+
+    }
+
     private void handleDrive() {
         //----------------------------------------------------------------------
         //
@@ -183,6 +201,18 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         // class, but the power levels aren't applied until the loop() method ends.
         //
 
+        final boolean isFloat;
+
+        if (brakeNoBrake.isPressed()) {
+            isFloat = true;
+            drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        } else {
+            isFloat = false;
+            drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+
+        updateThrottleParameters();
+
         // these scale the motor power based on the amount of input on the drive stick
         float xValue = scaleMotorPower(driverLeftStickX.getPosition());
         float yValue = -scaleMotorPower(driverLeftStickY.getPosition());
@@ -196,6 +226,13 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         leftPower = Range.clip(leftPower, -1, 1);
         rightPower = Range.clip(rightPower, -1, 1);
 
+        if (halfSpeed.isPressed()) {
+            leftPower = leftPower / 2;
+            rightPower = rightPower / 2;
+        }
+
+        telemetry.addData("08", "Power (%s) G: %1.2f L/R: %5.2f / %5.2f", isFloat ? "F" : "B", gain, leftPower, rightPower);
+
         //set the power of the motors with the gamepad values
         drive.drivePower(leftPower, rightPower);
     }
@@ -203,5 +240,17 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     private void updateGamepadTelemetry() {
         telemetry.addData ("06", "GP1 Left x: " + -driverLeftStickX.getPosition());
         telemetry.addData ("07", "GP1 Left y: " + -driverLeftStickY.getPosition());
+    }
+
+    private void updateThrottleParameters() {
+        if (driverDpadUp.getRise() && gain < 1) {
+            gain += .1F;
+            Log.d("VV", "Gain is " + gain);
+        }
+
+        if (driverDpadDown.getRise() && gain > 0) {
+            gain -= .1F;
+            Log.d("VV", "Gain is " + gain);
+        }
     }
 }

@@ -25,6 +25,7 @@ import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.hfrobots.tnt.corelib.control.OnOffButton;
 import com.hfrobots.tnt.corelib.control.RangeInput;
+import com.hfrobots.tnt.corelib.control.RangeInputButton;
 import com.hfrobots.tnt.corelib.drive.DriveTrain;
 import com.hfrobots.tnt.corelib.drive.DualDcMotor;
 import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
@@ -95,6 +96,16 @@ public abstract class VelocityVortexHardware extends OpMode {
     protected ExtendedDcMotor leftMotor1;
     protected ExtendedDcMotor rightMotor1;
 
+    protected OnOffButton liftSafety;
+
+    protected RangeInput liftThrottle;
+
+    protected DcMotor liftMotor;
+
+    protected OnOffButton brakeNoBrake;
+
+    protected OnOffButton halfSpeed;
+
     /**
      * Initialize the hardware ... this class requires the following hardware map names
      *
@@ -114,30 +125,8 @@ public abstract class VelocityVortexHardware extends OpMode {
     public void init() {
 
         try {
-            // Build an instance of our more advanced gamepad class
-
-            driversGamepad = new NinjaGamePad(gamepad1);
-            driverLeftStickX = driversGamepad.getLeftStickX();
-            driverLeftStickY = driversGamepad.getLeftStickY();
-
-            driverDpadDown = new DebouncedButton(driversGamepad.getDpadDown());
-            driverDpadUp = new DebouncedButton(driversGamepad.getDpadUp());
-            driverDpadLeft = new DebouncedButton(driversGamepad.getDpadLeft());
-            driverDpadRight = new DebouncedButton(driversGamepad.getDpadRight());
-            driverAGreenButton = new DebouncedButton(driversGamepad.getAButton());
-            driverBRedButton = new DebouncedButton(driversGamepad.getBButton());
-            driverXBlueButton = new DebouncedButton(driversGamepad.getXButton());
-            driverYYellowButton = new DebouncedButton(driversGamepad.getYButton());
-            driverLeftBumper = new DebouncedButton(driversGamepad.getLeftBumper());
-            driverRightBumper = new DebouncedButton(driversGamepad.getRightBumper());
-
-            // Operator controls
-            operatorsGamepad = new NinjaGamePad(gamepad2);
-            collectorToggleButton = new DebouncedButton(operatorsGamepad.getAButton());
-            collectorReverseToggleButton = new DebouncedButton(operatorsGamepad.getBButton());
-            conveyorForwardToggleButton = new DebouncedButton(operatorsGamepad.getXButton());
-            conveyorReverseToggleButton = new DebouncedButton(operatorsGamepad.getYButton());
-            shooterTrigger = operatorsGamepad.getRightBumper();
+            setupDriverControls();
+            setupOperatorControls();
 
             collectorMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("collectorMotor"));
 
@@ -162,10 +151,43 @@ public abstract class VelocityVortexHardware extends OpMode {
             gyro = hardwareMap.get(ModernRoboticsI2cGyro.class, "gyro");
 
             conveyorServo = hardwareMap.get(Servo.class, "conveyorServo");
+
+            liftMotor = hardwareMap.dcMotor.get("liftMotor");
         } catch (NullPointerException npe) {
             Log.d("VV", "NPE", npe);
             throw npe;
         }
+    }
+
+    private void setupOperatorControls() {
+        // Operator controls
+        operatorsGamepad = new NinjaGamePad(gamepad2);
+        collectorToggleButton = new DebouncedButton(operatorsGamepad.getAButton());
+        collectorReverseToggleButton = new DebouncedButton(operatorsGamepad.getBButton());
+        conveyorForwardToggleButton = new DebouncedButton(operatorsGamepad.getXButton());
+        conveyorReverseToggleButton = new DebouncedButton(operatorsGamepad.getYButton());
+        shooterTrigger = operatorsGamepad.getRightBumper();
+        liftSafety = new RangeInputButton(operatorsGamepad.getLeftTrigger(), 0.65f);
+        liftThrottle = operatorsGamepad.getLeftStickY();
+    }
+
+    private void setupDriverControls() {
+        driversGamepad = new NinjaGamePad(gamepad1);
+        driverLeftStickX = driversGamepad.getLeftStickX();
+        driverLeftStickY = driversGamepad.getLeftStickY();
+
+        driverDpadDown = new DebouncedButton(driversGamepad.getDpadDown());
+        driverDpadUp = new DebouncedButton(driversGamepad.getDpadUp());
+        driverDpadLeft = new DebouncedButton(driversGamepad.getDpadLeft());
+        driverDpadRight = new DebouncedButton(driversGamepad.getDpadRight());
+        driverAGreenButton = new DebouncedButton(driversGamepad.getAButton());
+        driverBRedButton = new DebouncedButton(driversGamepad.getBButton());
+        driverXBlueButton = new DebouncedButton(driversGamepad.getXButton());
+        driverYYellowButton = new DebouncedButton(driversGamepad.getYButton());
+        driverLeftBumper = new DebouncedButton(driversGamepad.getLeftBumper());
+        driverRightBumper = new DebouncedButton(driversGamepad.getRightBumper());
+        brakeNoBrake = driversGamepad.getRightBumper();
+        halfSpeed = new RangeInputButton(driversGamepad.getLeftTrigger(), 0.65f);
     }
 
     /**
@@ -199,10 +221,21 @@ public abstract class VelocityVortexHardware extends OpMode {
         warningMessage += exceptionMessage;
     }
 
+    protected float gain = 0;
+    protected float deadband = 0;
+
+    float scaleMotorPower(float unscaledPower) {
+        if (unscaledPower >= 0) {
+            return deadband + (1-deadband)*(gain * (float)Math.pow(unscaledPower, 3) + (1 - gain) * unscaledPower);
+        } else {
+    return  -1 * deadband + (1-deadband)*(gain * (float)Math.pow(unscaledPower, 3) + (1 - gain) * unscaledPower);
+        }
+    }
+
     /**
      * Scale the joystick input using a nonlinear algorithm.
      */
-    float scaleMotorPower(float unscaledPower) {
+    float scaleMotorPowerOld(float unscaledPower) {
 
         //
         // Ensure the values are legal.

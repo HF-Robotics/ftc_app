@@ -134,6 +134,10 @@ public class DriveTrain {
         return driveMotor.isBusy();
     }
 
+    public void setZeroPowerBehavior(DcMotor.ZeroPowerBehavior zeroPowerBehavior) {
+        driveMotor.setZeroPowerBehavior(zeroPowerBehavior);
+    }
+
     private int getEncoderCountsForDriveInches(double linearInchesToDrive) {
         double wheelRevolutions = linearInchesToDrive / wheel.circumference;
         double motorRevolutions = wheelRevolutions * gearRatio;

@@ -226,4 +226,42 @@ public class NinjaGamePad {
             }
         };
     }
+
+    public RangeInput getLeftTrigger(){
+        return new RangeInput() {
+            @Override
+            public float getPosition() {
+                return gamepad.left_trigger;
+            }
+
+            @Override
+            public float getMaxPosition() {
+                return 1.0f;
+            }
+
+            @Override
+            public float getMinPosition() {
+                return 0.0f;
+            }
+        };
+    }
+
+    public RangeInput getRightTrigger(){
+        return new RangeInput() {
+            @Override
+            public float getPosition() {
+                return gamepad.right_trigger;
+            }
+
+            @Override
+            public float getMaxPosition() {
+                return 1.0f;
+            }
+
+            @Override
+            public float getMinPosition() {
+                return 0.0f;
+            }
+        };
+    }
 }

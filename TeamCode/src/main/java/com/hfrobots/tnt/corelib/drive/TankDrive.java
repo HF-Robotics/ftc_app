@@ -75,6 +75,11 @@ public class TankDrive {
         rightDriveTrain.setRunMode(runMode);
     }
 
+    public void setZeroPowerBehavior(DcMotor.ZeroPowerBehavior zeroPowerBehavior) {
+        leftDriveTrain.setZeroPowerBehavior(zeroPowerBehavior);
+        rightDriveTrain.setZeroPowerBehavior(zeroPowerBehavior);
+    }
+
     /**
      * Return the encoder counts for the left and right side drive trains simultaneously.
      */
