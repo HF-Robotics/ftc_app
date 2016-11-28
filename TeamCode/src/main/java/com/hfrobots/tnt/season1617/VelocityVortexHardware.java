@@ -278,4 +278,15 @@ public abstract class VelocityVortexHardware extends OpMode {
      */
     private String warningMessage;
 
+    protected void particleCollectorOff() {
+        collectorMotor.setPower(0);
+    }
+
+    protected void runParticleCollectorOutwards() {
+        collectorMotor.setPower(-1);
+    }
+
+    protected void runParticleCollectorInwards() {
+        collectorMotor.setPower(1);
+    }
 }

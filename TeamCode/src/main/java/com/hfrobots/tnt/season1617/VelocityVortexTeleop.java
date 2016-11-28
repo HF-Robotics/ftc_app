@@ -81,24 +81,24 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         collectorToggleState = new ToggleState(telemetry, collectorToggleButton) {
             @Override
             protected void toggledOn() {
-                collectorMotor.setPower(1);
+                runParticleCollectorInwards();
             }
 
             @Override
             protected void toggledOff() {
-                collectorMotor.setPower(0);
+                particleCollectorOff();
             }
         };
 
         collectorReverseToggleState = new ToggleState(telemetry, collectorReverseToggleButton) {
             @Override
             protected void toggledOn() {
-                collectorMotor.setPower(-1);
+                runParticleCollectorOutwards();
             }
 
             @Override
             protected void toggledOff() {
-                collectorMotor.setPower(0);
+                particleCollectorOff();
             }
         };
     }
