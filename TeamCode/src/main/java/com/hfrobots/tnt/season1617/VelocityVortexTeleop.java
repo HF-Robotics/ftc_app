@@ -43,11 +43,7 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     private State collectorReverseToggleState;
 
     private State particleShooterState;
-
-    private State conveyorForwardToggleState;
-
-    private State conveyorReverseToggleState;
-
+    
     /*
      * Construct the class.
      *
@@ -126,10 +122,6 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
      * Runs the state machine for the particle shooter
      */
     private void handleParticleShooter() {
-        // TODO: Currently, not a state machine :(
-        conveyorForwardToggleState.doStuffAndGetNextState();
-        conveyorReverseToggleState.doStuffAndGetNextState();
-
         if (shooterTrigger.isPressed()) {
             topParticleShooter.setPower(1);
             bottomParticleShooter.setPower(1);

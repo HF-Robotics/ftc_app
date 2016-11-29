@@ -331,12 +331,14 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                 20000L);
         step4DriveState.setNextState(step5TurnState);
 
+        step5TurnState.setNextState(newDoneState()); // FIXME FIXME FIXME
+
         // (6) Move forward 38.5 inches (44)
-        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 44, POWER_LEVEL, 8000L);
-        step5TurnState.setNextState(step6DriveState);
+        //DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 44, POWER_LEVEL, 8000L);
+        //step5TurnState.setNextState(step6DriveState);
 
         // (7) Done!
-        step6DriveState.setNextState(newDoneState());
+        //step6DriveState.setNextState(newDoneState());
 
         return step2DriveState;
     }
@@ -372,14 +374,16 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                 20000L);
         step4DriveState.setNextState(step5TurnState);
 
+        step5TurnState.setNextState(newDoneState()); // FIXME FIXME FIXME
+
         // (6) Move forward 40.5 inches
 
-        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 40.5, POWER_LEVEL, 8000L);
-        step5TurnState.setNextState(step6DriveState);
+        //DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 40.5, POWER_LEVEL, 8000L);
+        //step5TurnState.setNextState(step6DriveState);
 
         // (7) Done
 
-        step6DriveState.setNextState(newDoneState());
+        //step6DriveState.setNextState(newDoneState());
 
         return step2DriveState;
     }
@@ -432,14 +436,17 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                 20000L);
         step6DriveState.setNextState(step7TurnState);
 
+
+        step7TurnState.setNextState(newDoneState()); // FIXME FIXME FIXME
+
         // (8) Move forward 34 inches
 
-        DriveInchesState step8DriveState = new DriveInchesState(drive, telemetry, 34, POWER_LEVEL, 8000L);
-        step7TurnState.setNextState(step8DriveState);
+        //DriveInchesState step8DriveState = new DriveInchesState(drive, telemetry, 34, POWER_LEVEL, 8000L);
+        //step7TurnState.setNextState(step8DriveState);
 
         // (9) end
 
-        step8DriveState.setNextState(newDoneState());
+        //step8DriveState.setNextState(newDoneState());
 
         return step2DriveState;
     }
