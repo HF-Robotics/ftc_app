@@ -212,6 +212,11 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
             rightPower = rightPower / 2;
         }
 
+        if (directionFlip.isPressed()) {
+            leftPower = -leftPower;
+            rightPower = -rightPower;
+        }
+
         telemetry.addData("08", "Power (%s) G: %1.2f L/R: %5.2f / %5.2f", isFloat ? "F" : "B", gain, leftPower, rightPower);
 
         //set the power of the motors with the gamepad values

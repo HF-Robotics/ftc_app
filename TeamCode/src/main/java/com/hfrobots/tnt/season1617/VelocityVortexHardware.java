@@ -104,6 +104,8 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected OnOffButton halfSpeed;
 
+    protected OnOffButton directionFlip;
+
     protected DebouncedButton lockButton;
 
     protected DebouncedButton unlockButton;
@@ -204,6 +206,7 @@ public abstract class VelocityVortexHardware extends OpMode {
         unlockButton = new DebouncedButton(driversGamepad.getRightStickButton());
         brakeNoBrake = driversGamepad.getRightBumper();
         halfSpeed = new RangeInputButton(driversGamepad.getLeftTrigger(), 0.65f);
+        directionFlip = new RangeInputButton(driversGamepad.getRightTrigger(), 0.65f);
     }
 
     /**
