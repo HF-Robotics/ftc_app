@@ -76,6 +76,10 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected DebouncedButton driverLeftBumper;
 
+    protected DebouncedButton liftUnlockButton;
+
+    protected DebouncedButton liftLockButton;
+
     protected ExtendedDcMotor collectorMotor;
 
     protected TankDrive drive;
@@ -104,6 +108,14 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected DebouncedButton unlockButton;
 
+    protected Servo liftLockServo;
+
+    protected Servo forkTiltServo;
+
+    protected final double FORK_TILT_SERVO_REST_POSITION = 0.89;
+
+    protected double forkTiltServoPosition = FORK_TILT_SERVO_REST_POSITION;
+
     /**
      * Initialize the hardware ... this class requires the following hardware map names
      *
@@ -125,6 +137,11 @@ public abstract class VelocityVortexHardware extends OpMode {
         try {
             setupDriverControls();
             setupOperatorControls();
+
+            liftLockServo = hardwareMap.servo.get("liftLockServo");
+            forkTiltServo = hardwareMap.servo.get("forkTiltServo");
+            lockForks();
+            forkTiltServo.setPosition(forkTiltServoPosition);
 
             collectorMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("collectorMotor"));
 
@@ -159,10 +176,13 @@ public abstract class VelocityVortexHardware extends OpMode {
         // Operator controls
         operatorsGamepad = new NinjaGamePad(gamepad2);
         collectorToggleButton = new DebouncedButton(operatorsGamepad.getAButton());
+        liftLockButton = new DebouncedButton(operatorsGamepad.getXButton());
+        liftUnlockButton = new DebouncedButton(operatorsGamepad.getYButton());
         collectorReverseToggleButton = new DebouncedButton(operatorsGamepad.getBButton());
         shooterTrigger = operatorsGamepad.getRightBumper();
         liftSafety = new RangeInputButton(operatorsGamepad.getLeftTrigger(), 0.65f);
         liftThrottle = operatorsGamepad.getLeftStickY();
+
     }
 
     private void setupDriverControls() {
@@ -217,7 +237,7 @@ public abstract class VelocityVortexHardware extends OpMode {
         warningMessage += exceptionMessage;
     }
 
-    protected float gain = 0;
+    protected float gain = 0.3F;
     protected float deadband = 0;
 
     float scaleMotorPower(float unscaledPower) {
@@ -288,5 +308,33 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected void runParticleCollectorInwards() {
         collectorMotor.setPower(1);
+    }
+
+    protected void unlockForks() {
+        liftLockServo.setPosition(0.09);
+    }
+
+    protected void lockForks() {
+        liftLockServo.setPosition(0.647);
+    }
+
+    protected void tiltForksBack(double amountMore) {
+        forkTiltServoPosition -= amountMore;
+
+        if (forkTiltServoPosition <= 0) {
+            forkTiltServoPosition = 0;
+        }
+
+        forkTiltServo.setPosition(forkTiltServoPosition);
+    }
+
+    protected void tiltForksForward(double amountMore) {
+        forkTiltServoPosition -= amountMore;
+
+        if (forkTiltServoPosition >= FORK_TILT_SERVO_REST_POSITION) {
+            forkTiltServoPosition = FORK_TILT_SERVO_REST_POSITION;
+        }
+
+        forkTiltServo.setPosition(forkTiltServoPosition);
     }
 }

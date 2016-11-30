@@ -43,7 +43,7 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     private State collectorReverseToggleState;
 
     private State particleShooterState;
-    
+
     /*
      * Construct the class.
      *
@@ -142,9 +142,24 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     private void handleLift() {
         if (liftSafety.isPressed()) {
             liftMotor.setPower(liftThrottle.getPosition());
+
+            if (liftUnlockButton.getRise()) {
+                unlockForks();
+            } else if (liftLockButton.getRise()) {
+                lockForks();
+            }
+
+            float rightStickYPosition = operatorsGamepad.getRightStickY().getPosition();
+
+            if (rightStickYPosition < 0) {
+                tiltForksBack(rightStickYPosition * .025);
+            } else if (rightStickYPosition > 0) {
+                tiltForksForward(rightStickYPosition * 0.25);
+            }
         } else {
             liftMotor.setPower(0);
         }
+
 
     }
 
@@ -170,14 +185,14 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         final boolean isFloat;
 
         if (brakeNoBrake.isPressed()) {
-            isFloat = true;
-            drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        } else {
             isFloat = false;
             drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        } else {
+            isFloat = true;
+            drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         }
 
-        updateThrottleParameters();
+        //updateThrottleParameters();
 
         // these scale the motor power based on the amount of input on the drive stick
         float xValue = scaleMotorPower(driverLeftStickX.getPosition());
