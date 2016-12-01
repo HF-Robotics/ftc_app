@@ -305,7 +305,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // - no-op -
 
         // (2) Move forward 25 inches (15)
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 15, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 7, POWER_LEVEL, 8000L);
 
         // (3) Rotate 47.5 deg CCW
 
@@ -318,7 +318,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         step2DriveState.setNextState(step3TurnState);
 
         // (4) Move forward 13 inches (6)
-        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 6, POWER_LEVEL, 8000L);
+        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 15, POWER_LEVEL, 8000L);
         step3TurnState.setNextState(step4DriveState);
 
         // (5) Rotate 90 deg CCW
@@ -331,14 +331,16 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                 20000L);
         step4DriveState.setNextState(step5TurnState);
 
-        step5TurnState.setNextState(newDoneState()); // FIXME FIXME FIXME
-
         // (6) Move forward 38.5 inches (44)
-        //DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 44, POWER_LEVEL, 8000L);
-        //step5TurnState.setNextState(step6DriveState);
+        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 28, POWER_LEVEL, 8000L);
+        step5TurnState.setNextState(step6DriveState);
 
-        // (7) Done!
-        //step6DriveState.setNextState(newDoneState());
+        // Here is where we could shoot particles into the ramp
+
+        DriveInchesState step7DriveState = new DriveInchesState(drive, telemetry, 10, POWER_LEVEL, 2000L);
+        step7DriveState.setNextState(step7DriveState);
+
+        step7DriveState.setNextState(newDoneState());
 
         return step2DriveState;
     }
@@ -368,22 +370,21 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // (5) Rotate 70 deg CCW
         State step5TurnState = new GyroTurnState(drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 70)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 95)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
         step4DriveState.setNextState(step5TurnState);
 
-        step5TurnState.setNextState(newDoneState()); // FIXME FIXME FIXME
 
         // (6) Move forward 40.5 inches
 
-        //DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 40.5, POWER_LEVEL, 8000L);
-        //step5TurnState.setNextState(step6DriveState);
+        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 40.5 + 8 /* oomph */, POWER_LEVEL, 8000L);
+        step5TurnState.setNextState(step6DriveState);
 
         // (7) Done
 
-        //step6DriveState.setNextState(newDoneState());
+        step6DriveState.setNextState(newDoneState());
 
         return step2DriveState;
     }
@@ -458,11 +459,16 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (2) Move forward 51 inches
 
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 51, POWER_LEVEL, 8000L);
-        step2DriveState.setNextState(newDoneState());
+        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 35, POWER_LEVEL, 8000L);
 
-        // (3) Done
-
+        State step3TurnState = new GyroTurnState(drive,
+                gyro,
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 180)),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        step2DriveState.setNextState(step3TurnState);
+        step3TurnState.setNextState(newDoneState());
         return step2DriveState;
     }
 
@@ -476,9 +482,21 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (2) Move forward 48.5 inches
 
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 48.5, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 38.5, POWER_LEVEL, 8000L);
         step1DelayState.setNextState(step2DriveState);
-        step2DriveState.setNextState(newDoneState());
+
+        State step3TurnState = new GyroTurnState(drive,
+                gyro,
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 68)),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        step2DriveState.setNextState(step3TurnState);
+
+        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 18, POWER_LEVEL, 8000L);
+
+        step3TurnState.setNextState(step4DriveState);
+        step4DriveState.setNextState(newDoneState());
 
         // (3) Done
 
