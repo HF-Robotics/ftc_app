@@ -198,10 +198,13 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         float xValue = scaleMotorPower(driverLeftStickX.getPosition());
         float yValue = -scaleMotorPower(driverLeftStickY.getPosition());
 
+        if (directionFlip.isPressed()) {
+            yValue = -yValue;
+        }
+
         //calculate the power needed for each motor
         float leftPower = yValue + xValue;
         float rightPower = yValue - xValue;
-
 
         //clip the power values so that it only goes from -1 to 1
         leftPower = Range.clip(leftPower, -1, 1);
@@ -210,11 +213,6 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         if (halfSpeed.isPressed()) {
             leftPower = leftPower / 2;
             rightPower = rightPower / 2;
-        }
-
-        if (directionFlip.isPressed()) {
-            leftPower = -leftPower;
-            rightPower = -rightPower;
         }
 
         telemetry.addData("08", "Power (%s) G: %1.2f L/R: %5.2f / %5.2f", isFloat ? "F" : "B", gain, leftPower, rightPower);
