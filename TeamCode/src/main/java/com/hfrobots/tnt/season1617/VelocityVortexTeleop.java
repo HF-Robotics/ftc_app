@@ -99,6 +99,17 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         };
     }
 
+    @Override
+    public void start() {
+        super.start();
+        logBatteryState("Teleop.start()");
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+        logBatteryState("Teleop.stop()");
+    }
 
     /**
      * Implement a state machine that controls the robot during

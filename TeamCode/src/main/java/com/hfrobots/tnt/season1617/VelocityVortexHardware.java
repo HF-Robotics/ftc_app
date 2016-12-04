@@ -40,7 +40,10 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.Range;
+
+import java.util.Iterator;
 
 public abstract class VelocityVortexHardware extends OpMode {
 
@@ -118,6 +121,8 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected double forkTiltServoPosition = FORK_TILT_SERVO_REST_POSITION;
 
+    protected VoltageSensor voltageSensor;
+
     /**
      * Initialize the hardware ... this class requires the following hardware map names
      *
@@ -168,6 +173,11 @@ public abstract class VelocityVortexHardware extends OpMode {
             gyro = hardwareMap.get(ModernRoboticsI2cGyro.class, "gyro");
 
             liftMotor = hardwareMap.dcMotor.get("liftMotor");
+
+            Iterator<VoltageSensor> voltageSensors = hardwareMap.voltageSensor.iterator();
+            if (voltageSensors.hasNext()) {
+                voltageSensor = voltageSensors.next();
+            }
         } catch (NullPointerException npe) {
             Log.d("VV", "NPE", npe);
             throw npe;
@@ -339,5 +349,15 @@ public abstract class VelocityVortexHardware extends OpMode {
         }
 
         forkTiltServo.setPosition(forkTiltServoPosition);
+    }
+
+    protected void logBatteryState(String opModeMethod) {
+        if (voltageSensor == null) {
+            Log.e("VV", String.format("No voltage sensor when logging voltage for %s"));
+
+            return;
+        }
+
+        Log.d("VV", String.format("Robot battery voltage %5.2f at method %s()",voltageSensor.getVoltage(), opModeMethod));
     }
 }

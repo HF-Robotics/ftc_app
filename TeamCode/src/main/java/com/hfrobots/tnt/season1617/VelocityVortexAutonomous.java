@@ -81,6 +81,18 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         setDefaults();
     }
 
+    @Override
+    public void start() {
+        super.start();
+        logBatteryState("Auto.start()");
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+        logBatteryState("Auto.stop()");
+    }
+
     private void setDefaults() {
         currentAlliance = Alliance.RED;
         selectedRoutesIndex = 0;
