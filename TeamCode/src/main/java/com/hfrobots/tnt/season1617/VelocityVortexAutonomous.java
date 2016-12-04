@@ -29,6 +29,8 @@ import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 import java.util.concurrent.TimeUnit;
 
 @Autonomous(name="VV Auto")
@@ -335,12 +337,18 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 28, POWER_LEVEL, 8000L);
         step5TurnState.setNextState(step6DriveState);
 
-        // Here is where we could shoot particles into the ramp
+        // (7) Shoot any loaded particles
+        CollectorRunningOutwardsState step7ShootParticlesState = new CollectorRunningOutwardsState(telemetry);
+        step6DriveState.setNextState(step7ShootParticlesState);
 
-        DriveInchesState step7DriveState = new DriveInchesState(drive, telemetry, 10, POWER_LEVEL, 2000L);
-        step7DriveState.setNextState(step7DriveState);
+        // (8) Continue to drive up the ramp
+        DriveInchesState step8DriveState = new DriveInchesState(drive, telemetry, 10, POWER_LEVEL, 2000L);
+        step7ShootParticlesState.setNextState(step8DriveState);
 
-        step7DriveState.setNextState(newDoneState());
+        // (9) Stop particle collector
+        CollectorStopState step9StopCollectorState = new CollectorStopState(telemetry);
+        step8DriveState.setNextState(step9StopCollectorState);
+        step9StopCollectorState.setNextState(newDoneState());
 
         return step2DriveState;
     }
@@ -376,15 +384,25 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                 20000L);
         step4DriveState.setNextState(step5TurnState);
 
-
         // (6) Move forward 40.5 inches
 
-        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 40.5 + 8 /* oomph */, POWER_LEVEL, 8000L);
+        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 40.5, POWER_LEVEL, 8000L);
         step5TurnState.setNextState(step6DriveState);
 
-        // (7) Done
+        // (7) Shoot any loaded particles
+        CollectorRunningOutwardsState step7ShootParticlesState = new CollectorRunningOutwardsState(telemetry);
+        step6DriveState.setNextState(step7ShootParticlesState);
 
-        step6DriveState.setNextState(newDoneState());
+        // (8) Continue to drive up ramp
+        DriveInchesState step8DriveState = new DriveInchesState(drive, telemetry, 8 /* oomph */, POWER_LEVEL, 2000L);
+        step7ShootParticlesState.setNextState(step8DriveState);
+
+        // (9) Stop particle collector
+        CollectorStopState step9StopCollectorState = new CollectorStopState(telemetry);
+        step8DriveState.setNextState(step9StopCollectorState);
+        step9StopCollectorState.setNextState(newDoneState());
+
+        // (10) Done
 
         return step2DriveState;
     }
@@ -531,5 +549,30 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // (5) Done
 
         return step2DriveState;
+    }
+
+    class CollectorRunningOutwardsState extends State {
+
+        public CollectorRunningOutwardsState(Telemetry telemetry) {
+            super(telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            runParticleCollectorOutwards();
+            return nextState;
+        }
+    }
+
+    class CollectorStopState extends State {
+        public CollectorStopState(Telemetry telemetry) {
+            super(telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            particleCollectorOff();
+            return nextState;
+        }
     }
 }
