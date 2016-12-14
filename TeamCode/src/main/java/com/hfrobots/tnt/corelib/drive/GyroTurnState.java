@@ -21,6 +21,7 @@ package com.hfrobots.tnt.corelib.drive;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
@@ -44,13 +45,13 @@ public class GyroTurnState extends TimeoutSafetyState {
 
     private int targetHeading = Integer.MIN_VALUE;
 
-    public GyroTurnState(TankDrive drive,
+    public GyroTurnState(String name, TankDrive drive,
                             ModernRoboticsI2cGyro gyro,
                             Turn turn,
                             Telemetry telemetry,
                             double initialPower,
                             long safetyTimeoutMillis) {
-        super(telemetry, safetyTimeoutMillis);
+        super(name, telemetry, safetyTimeoutMillis);
         this.drive = drive;
         this.gyro = gyro;
         this.turn = turn;
@@ -79,6 +80,16 @@ public class GyroTurnState extends TimeoutSafetyState {
         }
 
         return this;
+    }
+
+    @Override
+    public void resetToStart() {
+        super.resetToStart();
+    }
+
+    @Override
+    public void liveConfigure(DebouncedGamepadButtons buttons) {
+
     }
 
     // re-use of Pushbot gyro steer

@@ -21,6 +21,7 @@ package com.hfrobots.tnt.season1617;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.drive.DriveInchesState;
 import com.hfrobots.tnt.corelib.drive.GyroTurnState;
 import com.hfrobots.tnt.corelib.drive.Turn;
@@ -209,7 +210,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                         selectedState = parkOnVortex3();
                         break;
                     default:
-                        selectedState = newDoneState();
+                        selectedState = newDoneState("Default done");
                 }
 
                 if (initialDelaySeconds != 0) {
@@ -262,8 +263,8 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
      * Creates an instance of the "done" state which stops the robot and should be the
      * "end" state of all of our robot's state machines
      */
-    private State newDoneState() {
-        return new State(telemetry) {
+    private State newDoneState(String name) {
+        return new State(name, telemetry) {
             private boolean issuedStop = false;
 
             @Override
@@ -278,6 +279,16 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
                 return this;
             }
+
+            @Override
+            public void resetToStart() {
+                issuedStop = false;
+            }
+
+            @Override
+            public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+            }
         };
     }
 
@@ -286,13 +297,24 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
      * "end" state of all of our robot's state machines
      */
     private State newDelayState() {
-        return newDelayState(initialDelaySeconds);
+        return newDelayState("start delay", initialDelaySeconds);
     }
 
-    private State newDelayState(final int numberOfSeconds) {
-        return new State(telemetry) {
+    private State newDelayState(String name, final int numberOfSeconds) {
+        return new State(name, telemetry) {
+
             private long startTime = 0;
             private long thresholdTimeMs = TimeUnit.SECONDS.toMillis(numberOfSeconds);
+
+            @Override
+            public void resetToStart() {
+                startTime = 0;
+            }
+
+            @Override
+            public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+            }
 
             @Override
             public State doStuffAndGetNextState() {
@@ -319,11 +341,11 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // - no-op -
 
         // (2) Move forward 25 inches (15)
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 7, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState("Step 2 drive", drive, telemetry, 7, POWER_LEVEL, 8000L);
 
         // (3) Rotate 47.5 deg CCW
 
-        State step3TurnState = new GyroTurnState(drive,
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 48)),
                 telemetry,
@@ -332,12 +354,12 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         step2DriveState.setNextState(step3TurnState);
 
         // (4) Move forward 13 inches (6)
-        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 15, POWER_LEVEL, 8000L);
+        DriveInchesState step4DriveState = new DriveInchesState("Step 4 drive", drive, telemetry, 15, POWER_LEVEL, 8000L);
         step3TurnState.setNextState(step4DriveState);
 
         // (5) Rotate 90 deg CCW
 
-        State step5TurnState = new GyroTurnState(drive,
+        State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 90)),
                 telemetry,
@@ -346,7 +368,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         step4DriveState.setNextState(step5TurnState);
 
         // (6) Move forward 38.5 inches (44)
-        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 28, POWER_LEVEL, 8000L);
+        DriveInchesState step6DriveState = new DriveInchesState("Step 6 drive", drive, telemetry, 28, POWER_LEVEL, 8000L);
         step5TurnState.setNextState(step6DriveState);
 
         // (7) Shoot any loaded particles
@@ -354,13 +376,13 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         step6DriveState.setNextState(step7ShootParticlesState);
 
         // (8) Continue to drive up the ramp
-        DriveInchesState step8DriveState = new DriveInchesState(drive, telemetry, 10, POWER_LEVEL, 2000L);
+        DriveInchesState step8DriveState = new DriveInchesState("Step 8 drive", drive, telemetry, 10, POWER_LEVEL, 2000L);
         step7ShootParticlesState.setNextState(step8DriveState);
 
         // (9) Stop particle collector
         CollectorStopState step9StopCollectorState = new CollectorStopState(telemetry);
         step8DriveState.setNextState(step9StopCollectorState);
-        step9StopCollectorState.setNextState(newDoneState());
+        step9StopCollectorState.setNextState(newDoneState("Park on ramp 1 done"));
 
         return step2DriveState;
     }
@@ -370,11 +392,11 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // - no-op -
 
         // (2) Move forward 14.5 inches
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 14.5, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState("Step 2 drive", drive, telemetry, 14.5, POWER_LEVEL, 8000L);
 
         // (3) Rotate 57.5 deg CCW
 
-        State step3TurnState = new GyroTurnState(drive,
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 58)),
                 telemetry,
@@ -384,11 +406,11 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (4) Move forward 39 inches
 
-        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 39, POWER_LEVEL, 8000L);
+        DriveInchesState step4DriveState = new DriveInchesState("Step 4 drive", drive, telemetry, 39, POWER_LEVEL, 8000L);
         step3TurnState.setNextState(step4DriveState);
 
         // (5) Rotate 70 deg CCW
-        State step5TurnState = new GyroTurnState(drive,
+        State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 95)),
                 telemetry,
@@ -398,7 +420,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (6) Move forward 40.5 inches
 
-        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 40.5, POWER_LEVEL, 8000L);
+        DriveInchesState step6DriveState = new DriveInchesState("Step 6 drive", drive, telemetry, 40.5, POWER_LEVEL, 8000L);
         step5TurnState.setNextState(step6DriveState);
 
         // (7) Shoot any loaded particles
@@ -406,13 +428,13 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         step6DriveState.setNextState(step7ShootParticlesState);
 
         // (8) Continue to drive up ramp
-        DriveInchesState step8DriveState = new DriveInchesState(drive, telemetry, 8 /* oomph */, POWER_LEVEL, 2000L);
+        DriveInchesState step8DriveState = new DriveInchesState("Step 8 drive", drive, telemetry, 8 /* oomph */, POWER_LEVEL, 2000L);
         step7ShootParticlesState.setNextState(step8DriveState);
 
         // (9) Stop particle collector
         CollectorStopState step9StopCollectorState = new CollectorStopState(telemetry);
         step8DriveState.setNextState(step9StopCollectorState);
-        step9StopCollectorState.setNextState(newDoneState());
+        step9StopCollectorState.setNextState(newDoneState("Park on ramp 2 done"));
 
         // (10) Done
 
@@ -424,11 +446,11 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // - no-op -
 
         // (2) Move forward 3.5 inches
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 3.5, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState("Step 2 drive", drive, telemetry, 3.5, POWER_LEVEL, 8000L);
 
         // (3) Rotate 45 degrees CCW
 
-        State step3TurnState = new GyroTurnState(drive,
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
                 telemetry,
@@ -438,12 +460,12 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (4) Move forward 18 inches (13)
 
-        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 13, POWER_LEVEL, 8000L);
+        DriveInchesState step4DriveState = new DriveInchesState("Step 4 drive", drive, telemetry, 13, POWER_LEVEL, 8000L);
         step3TurnState.setNextState(step4DriveState);
 
         // (5) Rotate 22.5 degrees CCW
 
-        State step5TurnState = new GyroTurnState(drive,
+        State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 23)),
                 telemetry,
@@ -454,12 +476,12 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (6) Move forward 52 inches
 
-        DriveInchesState step6DriveState = new DriveInchesState(drive, telemetry, 52, POWER_LEVEL, 8000L);
+        DriveInchesState step6DriveState = new DriveInchesState("Step 6 drive", drive, telemetry, 52, POWER_LEVEL, 8000L);
         step5TurnState.setNextState(step6DriveState);
 
         // (7) Rotate 67.5 degrees CCW
 
-        State step7TurnState = new GyroTurnState(drive,
+        State step7TurnState = new GyroTurnState("Step 7 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 68)),
                 telemetry,
@@ -467,17 +489,14 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                 20000L);
         step6DriveState.setNextState(step7TurnState);
 
-
-        step7TurnState.setNextState(newDoneState()); // FIXME FIXME FIXME
-
         // (8) Move forward 34 inches
 
-        //DriveInchesState step8DriveState = new DriveInchesState(drive, telemetry, 34, POWER_LEVEL, 8000L);
-        //step7TurnState.setNextState(step8DriveState);
+        DriveInchesState step8DriveState = new DriveInchesState("Step 8 drive", drive, telemetry, 34, POWER_LEVEL, 8000L);
+        step7TurnState.setNextState(step8DriveState);
 
         // (9) end
 
-        //step8DriveState.setNextState(newDoneState());
+        step8DriveState.setNextState(newDoneState("Park on ramp danger will rob. done"));
 
         return step2DriveState;
     }
@@ -489,16 +508,16 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (2) Move forward 51 inches
 
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 35, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState("Step 2 drive", drive, telemetry, 35, POWER_LEVEL, 8000L);
 
-        State step3TurnState = new GyroTurnState(drive,
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 180)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
         step2DriveState.setNextState(step3TurnState);
-        step3TurnState.setNextState(newDoneState());
+        step3TurnState.setNextState(newDoneState("Park on vortex 1 done"));
         return step2DriveState;
     }
 
@@ -508,14 +527,14 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // - no-op -
 
         // 1.5 - 15 second delay
-        State step1DelayState = newDelayState(15);
+        State step1DelayState = newDelayState("Safety delay", 15);
 
         // (2) Move forward 48.5 inches
 
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 38.5, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState("Step 2 drive", drive, telemetry, 38.5, POWER_LEVEL, 8000L);
         step1DelayState.setNextState(step2DriveState);
 
-        State step3TurnState = new GyroTurnState(drive,
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 68)),
                 telemetry,
@@ -523,10 +542,10 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
                 20000L);
         step2DriveState.setNextState(step3TurnState);
 
-        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 18, POWER_LEVEL, 8000L);
+        DriveInchesState step4DriveState = new DriveInchesState("Step 4 turn", drive, telemetry, 18, POWER_LEVEL, 8000L);
 
         step3TurnState.setNextState(step4DriveState);
-        step4DriveState.setNextState(newDoneState());
+        step4DriveState.setNextState(newDoneState("Park on vortex 2 done"));
 
         // (3) Done
 
@@ -540,11 +559,11 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (2) Move forward 3.5 inches
 
-        DriveInchesState step2DriveState = new DriveInchesState(drive, telemetry, 3.5, POWER_LEVEL, 8000L);
+        DriveInchesState step2DriveState = new DriveInchesState("Step 2 drive", drive, telemetry, 3.5, POWER_LEVEL, 8000L);
 
         // (3) Rotate 45º CCW
 
-        State step3TurnState = new GyroTurnState(drive,
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
                 telemetry,
@@ -554,9 +573,9 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         // (4) Move forward 58.5 inches
 
-        DriveInchesState step4DriveState = new DriveInchesState(drive, telemetry, 58.5, POWER_LEVEL, 8000L);
+        DriveInchesState step4DriveState = new DriveInchesState("Step 4 drive", drive, telemetry, 58.5, POWER_LEVEL, 8000L);
         step3TurnState.setNextState(step4DriveState);
-        step4DriveState.setNextState(newDoneState());
+        step4DriveState.setNextState(newDoneState("Park on vortex 3 done"));
 
         // (5) Done
 
@@ -566,7 +585,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
     class CollectorRunningOutwardsState extends State {
 
         public CollectorRunningOutwardsState(Telemetry telemetry) {
-            super(telemetry);
+            super("Collector run outwards", telemetry);
         }
 
         @Override
@@ -574,17 +593,37 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
             runParticleCollectorOutwards();
             return nextState;
         }
+
+        @Override
+        public void resetToStart() {
+            particleCollectorOff();
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
     }
 
     class CollectorStopState extends State {
         public CollectorStopState(Telemetry telemetry) {
-            super(telemetry);
+            super("Collector stop", telemetry);
         }
 
         @Override
         public State doStuffAndGetNextState() {
             particleCollectorOff();
             return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+            runParticleCollectorOutwards(); // big assumption FIXME
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
         }
     }
 }

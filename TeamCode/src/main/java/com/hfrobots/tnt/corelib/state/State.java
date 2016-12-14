@@ -22,6 +22,8 @@ package com.hfrobots.tnt.corelib.state;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /**
@@ -31,8 +33,11 @@ public abstract class State {
     protected State nextState;
     protected final Telemetry telemetry;
 
-    protected State(Telemetry telemetry) {
+    protected final String name;
+
+    protected State(String name, Telemetry telemetry) {
         this.telemetry = telemetry;
+        this.name = name;
     }
 
     /**
@@ -43,6 +48,14 @@ public abstract class State {
 
     public void setNextState(State state) {
         nextState = state;
+    }
+
+    public abstract void resetToStart();
+
+    public abstract void liveConfigure(DebouncedGamepadButtons buttons);
+
+    public String getName() {
+        return name;
     }
 
     protected void debugMsg(String message) {

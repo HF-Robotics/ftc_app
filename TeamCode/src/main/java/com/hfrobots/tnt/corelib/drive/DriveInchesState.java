@@ -21,6 +21,7 @@ package com.hfrobots.tnt.corelib.drive;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -49,12 +50,12 @@ public class DriveInchesState extends TimeoutSafetyState {
      * the distance is reached (within a threshold), or if the timeout is reached.
      */
     // TODO - would be nice to auto-calculate the timeout here based on distance/power
-    public DriveInchesState(TankDrive drive,
+    public DriveInchesState(String name, TankDrive drive,
                             Telemetry telemetry,
                             double inchesToDrive,
                             double powerLevel,
                             long safetyTimeoutMillis) {
-        super(telemetry, safetyTimeoutMillis);
+        super(name, telemetry, safetyTimeoutMillis);
         this.drive = drive;
         this.powerLevel = powerLevel;
         this.inchesToDrive = inchesToDrive;
@@ -104,6 +105,18 @@ public class DriveInchesState extends TimeoutSafetyState {
         }
 
         return this;
+    }
+
+    @Override
+    public void resetToStart() {
+        super.resetToStart();
+        driveStarted = false;
+        targetPositions = null;
+    }
+
+    @Override
+    public void liveConfigure(DebouncedGamepadButtons buttons) {
+
     }
 
     private void stopDriving() {

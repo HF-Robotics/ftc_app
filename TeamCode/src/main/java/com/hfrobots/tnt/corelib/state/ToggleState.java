@@ -20,6 +20,7 @@
 package com.hfrobots.tnt.corelib.state;
 
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -32,10 +33,20 @@ public abstract class ToggleState extends State {
 
     private final DebouncedButton button;
 
-    public ToggleState(Telemetry telemetry, DebouncedButton button) {
-        super(telemetry);
+    public ToggleState(String name, Telemetry telemetry, DebouncedButton button) {
+        super(name, telemetry);
         this.button = button;
         setNextState(this);
+    }
+
+    @Override
+    public void resetToStart() {
+        toggled = false;
+    }
+
+    @Override
+    public void liveConfigure(DebouncedGamepadButtons buttons) {
+
     }
 
     @Override

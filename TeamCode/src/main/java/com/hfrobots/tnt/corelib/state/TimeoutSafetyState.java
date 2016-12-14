@@ -32,8 +32,8 @@ public abstract class TimeoutSafetyState extends State {
     protected final long safetyTimeoutMillis;
     private long timeoutStartMillis;
 
-    protected TimeoutSafetyState(Telemetry telemetry, long safetyTimeoutMillis) {
-        super(telemetry);
+    protected TimeoutSafetyState(String name, Telemetry telemetry, long safetyTimeoutMillis) {
+        super(name, telemetry);
         this.safetyTimeoutMillis = safetyTimeoutMillis;
         timeoutStartMillis = 0;
     }
@@ -46,5 +46,10 @@ public abstract class TimeoutSafetyState extends State {
         }
 
         return System.currentTimeMillis() - timeoutStartMillis >= safetyTimeoutMillis;
+    }
+
+    @Override
+    public void resetToStart() {
+        timeoutStartMillis = 0;
     }
 }

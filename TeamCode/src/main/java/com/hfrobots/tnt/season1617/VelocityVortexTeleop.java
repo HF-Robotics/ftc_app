@@ -74,26 +74,34 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
             drive.setRunMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
-        collectorToggleState = new ToggleState(telemetry, collectorToggleButton) {
+        collectorToggleState = new ToggleState("Collector inwards", telemetry, collectorToggleButton) {
             @Override
             protected void toggledOn() {
+                Log.d("VV", "Collector toggled inwards(off->on)");
+
                 runParticleCollectorInwards();
             }
 
             @Override
             protected void toggledOff() {
+                Log.d("VV", "Collector toggled inwards(on->off)");
+
                 particleCollectorOff();
             }
         };
 
-        collectorReverseToggleState = new ToggleState(telemetry, collectorReverseToggleButton) {
+        collectorReverseToggleState = new ToggleState("Collector outwards", telemetry, collectorReverseToggleButton) {
             @Override
             protected void toggledOn() {
+                Log.d("VV", "Collector toggled outwards(off->on)");
+
                 runParticleCollectorOutwards();
             }
 
             @Override
             protected void toggledOff() {
+                Log.d("VV", "Collector toggled outwards(on->off)");
+
                 particleCollectorOff();
             }
         };
@@ -129,14 +137,24 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         updateGamepadTelemetry();
     }
 
+    private boolean shooterOn = false; // track state to not log every time through loop()
+
     /**
      * Runs the state machine for the particle shooter
      */
     private void handleParticleShooter() {
         if (shooterTrigger.isPressed()) {
+            if (!shooterOn) {
+                Log.d("VV", "Particle shooter on");
+                shooterOn = true;
+            }
             topParticleShooter.setPower(1);
             bottomParticleShooter.setPower(1);
         } else {
+            if (shooterOn) {
+                Log.d("VV", "Particle shooter on");
+                shooterOn = false;
+            }
             topParticleShooter.setPower(0);
             bottomParticleShooter.setPower(0);
         }
@@ -150,28 +168,48 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         collectorReverseToggleState = collectorReverseToggleState.doStuffAndGetNextState();
     }
 
+    private boolean liftSafetyPressed = false; // only log once on each state transition
+
     private void handleLift() {
         if (liftSafety.isPressed()) {
+            if (!liftSafetyPressed) {
+                Log.d("VV", "Lift safety trigger pressed");
+
+                liftSafetyPressed = true;
+            }
+
             liftMotor.setPower(liftThrottle.getPosition());
 
             if (liftUnlockButton.getRise()) {
+                Log.d("VV", "Unlocking forks");
+
                 unlockForks();
             } else if (liftLockButton.getRise()) {
+                Log.d("VV", "Locking forks");
+
                 lockForks();
             }
 
             float rightStickYPosition = operatorsGamepad.getRightStickY().getPosition();
 
             if (rightStickYPosition < 0) {
+                Log.d("VV", "Tilting forks back");
+
                 tiltForksBack(rightStickYPosition * .025);
             } else if (rightStickYPosition > 0) {
+                Log.d("VV", "Tilting forks forward");
+
                 tiltForksForward(rightStickYPosition * 0.25);
             }
         } else {
+            if (liftSafetyPressed) {
+                liftSafetyPressed = false;
+
+                Log.d("VV", "Lift safety trigger released");
+            }
+
             liftMotor.setPower(0);
         }
-
-
     }
 
     private void handleDrive() {
