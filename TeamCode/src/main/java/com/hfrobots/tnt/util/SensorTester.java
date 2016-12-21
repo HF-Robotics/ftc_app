@@ -23,6 +23,7 @@ import android.text.method.Touch;
 
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -32,6 +33,7 @@ import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchImpl;
+import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.Range;
@@ -52,7 +54,9 @@ import java.util.List;
 public class SensorTester extends OpMode {
     private List<NamedDeviceMap.NamedDevice<ColorSensor>> namedColorSensors;
 
-    private List<NamedDeviceMap.NamedDevice<I2cDevice>> namedI2cDevices;
+    private List<NamedDeviceMap.NamedDevice<ModernRoboticsI2cRangeSensor>> namedRangeSensors;
+
+    private List<NamedDeviceMap.NamedDevice<OpticalDistanceSensor>> namedOdsSensors;
 
     private List<NamedDeviceMap.NamedDevice<GyroSensor>> namedGyroDevices;
 
@@ -79,7 +83,8 @@ public class SensorTester extends OpMode {
         namedDeviceMap = new NamedDeviceMap(hardwareMap);
 
         namedColorSensors = namedDeviceMap.getAll(ColorSensor.class);
-        namedI2cDevices = namedDeviceMap.getAll(I2cDevice.class);
+        namedRangeSensors = namedDeviceMap.getAll(ModernRoboticsI2cRangeSensor.class);
+        namedOdsSensors = namedDeviceMap.getAll(OpticalDistanceSensor.class);
         namedGyroDevices = namedDeviceMap.getAll(GyroSensor.class);
         namedCompassDevices = namedDeviceMap.getAll(CompassSensor.class);
         namedTouchDevices = namedDeviceMap.getAll(TouchSensor.class);
@@ -100,7 +105,7 @@ public class SensorTester extends OpMode {
 
     private boolean ledEnabled = false;
 
-    private enum Mode { COLOR, RANGE, GYRO, COMPASS, TOUCH }
+    private enum Mode { COLOR, RANGE, ODS, GYRO, COMPASS, TOUCH }
 
     private Mode currentMode = Mode.COLOR;
 
@@ -112,6 +117,9 @@ public class SensorTester extends OpMode {
                     currentMode = Mode.RANGE;
                     break;
                 case RANGE:
+                    currentMode = Mode.ODS;
+                    break;
+                case ODS:
                     currentMode = Mode.GYRO;
                     break;
                 case GYRO:
@@ -133,6 +141,9 @@ public class SensorTester extends OpMode {
             case RANGE:
                 doRangeSensorLoop();
                 break;
+            case ODS:
+                doOdsSensorLoop();
+                break;
             case GYRO:
                 doGyroSensorLoop();
                 break;
@@ -145,48 +156,59 @@ public class SensorTester extends OpMode {
         }
     }
 
-    private int rangeSensorListPosition = 0;
+    private int currentOpticalDistanceSensorListPosition = 0;
 
-    private I2cAddr RANGE1ADDRESS = new I2cAddr(0x14); //Default I2C address for MR Range (7-bit)
-    private static final int RANGE1_REG_START = 0x04; //Register to start reading
-    private static final int RANGE1_READ_LENGTH = 2; //Number of byte to read
+    private void doOdsSensorLoop() {
+        namedOdsSensors = namedDeviceMap.getAll(OpticalDistanceSensor.class);
+
+        if (namedOdsSensors.isEmpty()) {
+            telemetry.addData("No optical distance sensors", "");
+            updateTelemetry(telemetry);
+            return;
+        }
+
+        if (rightBumper.getRise()) {
+            currentOpticalDistanceSensorListPosition++;
+
+            if (currentOpticalDistanceSensorListPosition == namedOdsSensors.size()) {
+                currentOpticalDistanceSensorListPosition = 0;
+            }
+        }
+
+        NamedDeviceMap.NamedDevice<OpticalDistanceSensor> currentNamedOdsSensor = namedOdsSensors.get(currentRangeSensorListPosition);
+        OpticalDistanceSensor currentOdsSensor = currentNamedOdsSensor.getDevice();
+        String sensorName = currentNamedOdsSensor.getName();
+        telemetry.addData("ODS ",  "%s", sensorName);
+        telemetry.addData("Raw cm", "%d", currentOdsSensor.getRawLightDetected());
+        telemetry.addData("Calibrated cm", "%d", currentOdsSensor.getLightDetected());
+        updateTelemetry(telemetry);
+    }
+
+    private int currentRangeSensorListPosition = 0;
 
     private void doRangeSensorLoop() {
-        if (namedI2cDevices.isEmpty()) {
+        namedRangeSensors = namedDeviceMap.getAll(ModernRoboticsI2cRangeSensor.class);
+
+        if (namedRangeSensors.isEmpty()) {
             telemetry.addData("No range sensors", "");
             updateTelemetry(telemetry);
             return;
         }
 
         if (rightBumper.getRise()) {
-            rangeSensorListPosition++;
+            currentRangeSensorListPosition++;
 
-            if (rangeSensorListPosition == namedI2cDevices.size()) {
-                rangeSensorListPosition = 0;
+            if (currentRangeSensorListPosition == namedRangeSensors.size()) {
+                currentRangeSensorListPosition = 0;
             }
         }
 
-        NamedDeviceMap.NamedDevice<I2cDevice> currentI2cDevice = namedI2cDevices.get(rangeSensorListPosition);
-
-        if (!currentI2cDevice.getName().contains("range")) {
-            telemetry.addData("Not a range sensor: ", "%s", currentI2cDevice.getName());
-            updateTelemetry(telemetry);
-            return;
-        }
-
-        I2cDevice rangeSensorRaw = currentI2cDevice.getDevice();
-        I2cDeviceSynch RANGE1Reader = new I2cDeviceSynchImpl(rangeSensorRaw, RANGE1ADDRESS, false);
-        RANGE1Reader.engage();
-
-        byte[] range1Cache; //The read will return an array of bytes.
-        range1Cache = RANGE1Reader.read(RANGE1_REG_START, RANGE1_READ_LENGTH);
-
-        int ultrasonicRange = range1Cache[0] & 0xFF;
-        int opticalDistance = range1Cache[1] & 0xFF;
-
-        telemetry.addData("range ",  "%s", currentI2cDevice.getName());
-        telemetry.addData("Ultrasonic", "%d", ultrasonicRange);
-        telemetry.addData("Optical", "%d", opticalDistance);
+        NamedDeviceMap.NamedDevice<ModernRoboticsI2cRangeSensor> currentNamedRangeSensor = namedRangeSensors.get(currentRangeSensorListPosition);
+        ModernRoboticsI2cRangeSensor currentRangeSensor = currentNamedRangeSensor.getDevice();
+        String sensorName = currentNamedRangeSensor.getName();
+        telemetry.addData("range ",  "%s", sensorName);
+        telemetry.addData("Ultrasonic cm", "%d", currentRangeSensor.cmUltrasonic());
+        telemetry.addData("Optical cm", "%d", currentRangeSensor.cmOptical());
         updateTelemetry(telemetry);
     }
 

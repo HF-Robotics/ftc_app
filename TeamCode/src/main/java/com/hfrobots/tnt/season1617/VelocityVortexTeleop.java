@@ -170,6 +170,8 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
 
     private boolean liftSafetyPressed = false; // only log once on each state transition
 
+    private boolean autoUnlocked = true;
+
     private void handleLift() {
         if (liftSafety.isPressed()) {
             if (!liftSafetyPressed) {
@@ -178,7 +180,19 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
                 liftSafetyPressed = true;
             }
 
-            liftMotor.setPower(liftThrottle.getPosition());
+
+            float liftThrottlePosition = liftThrottle.getPosition();
+
+            // If the lift is going to move, and we haven't auto-unlocked, then
+            // do so!
+            if (Math.abs(liftThrottlePosition) >= .1 && !autoUnlocked) {
+                Log.d("VV", "Auto-unlocking forks");
+
+                unlockForks();
+                autoUnlocked = true;
+            }
+
+            liftMotor.setPower(liftThrottlePosition);
 
             if (liftUnlockButton.getRise()) {
                 Log.d("VV", "Unlocking forks");
@@ -193,11 +207,11 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
             float rightStickYPosition = operatorsGamepad.getRightStickY().getPosition();
 
             if (rightStickYPosition < 0) {
-                Log.d("VV", "Tilting forks back");
+                //Log.d("VV", "Tilting forks back");
 
                 tiltForksBack(rightStickYPosition * .025);
             } else if (rightStickYPosition > 0) {
-                Log.d("VV", "Tilting forks forward");
+                //Log.d("VV", "Tilting forks forward");
 
                 tiltForksForward(rightStickYPosition * 0.25);
             }
@@ -211,6 +225,13 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
             liftMotor.setPower(0);
         }
     }
+
+    float previousX;
+    float previousY;
+    long previousSampleTime;
+
+    float maxXRate = Float.MIN_VALUE;
+    float maxYRate = Float.MIN_VALUE;
 
     private void handleDrive() {
         //----------------------------------------------------------------------
@@ -244,8 +265,36 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         //updateThrottleParameters();
 
         // these scale the motor power based on the amount of input on the drive stick
-        float xValue = scaleMotorPower(driverLeftStickX.getPosition());
-        float yValue = -scaleMotorPower(driverLeftStickY.getPosition());
+        float xStickPosition = driverLeftStickX.getPosition();
+        float yStickPosition = driverLeftStickY.getPosition();
+
+        if (previousSampleTime == 0) {
+            previousX = xStickPosition;
+            previousY = yStickPosition;
+            previousSampleTime = System.currentTimeMillis();
+        } else {
+            float deltaX = previousX - xStickPosition;
+            float deltaY = previousY - yStickPosition;
+            long timeMsNow = System.currentTimeMillis();
+            long deltaTimeMs = timeMsNow - previousSampleTime;
+
+            float xRate = deltaX / deltaTimeMs;
+            float yRate = deltaY / deltaTimeMs;
+
+            if (Math.abs(xRate) > maxXRate) {
+                maxXRate = xRate;
+                Log.d("VV", "Max xRate " + maxXRate);
+            }
+
+            if (Math.abs(yRate) > maxYRate) {
+                maxYRate = yRate;
+                Log.d("VV", "Max yRate" + maxYRate);
+            }
+
+        }
+
+        float xValue = scaleMotorPower(xStickPosition);
+        float yValue = -scaleMotorPower(yStickPosition);
 
         if (directionFlip.isPressed()) {
             yValue = -yValue;

@@ -34,12 +34,17 @@ import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.drive.TankDrive;
 import com.hfrobots.tnt.corelib.drive.Wheel;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsAnalogOpticalDistanceSensor;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.Range;
 
@@ -123,6 +128,12 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected VoltageSensor voltageSensor;
 
+    protected ModernRoboticsI2cColorSensor beaconColorSensor;
+
+    protected OpticalDistanceSensor lineOdsSensor;
+
+    protected TouchSensor beaconTouchSensor;
+
     /**
      * Initialize the hardware ... this class requires the following hardware map names
      *
@@ -144,6 +155,8 @@ public abstract class VelocityVortexHardware extends OpMode {
         try {
             setupDriverControls();
             setupOperatorControls();
+            setupBeaconSensors();
+            setupLineFollower();
 
             liftLockServo = hardwareMap.servo.get("liftLockServo");
             forkTiltServo = hardwareMap.servo.get("forkTiltServo");
@@ -182,6 +195,15 @@ public abstract class VelocityVortexHardware extends OpMode {
             Log.d("VV", "NPE", npe);
             throw npe;
         }
+    }
+
+    private void setupBeaconSensors() {
+        beaconTouchSensor = hardwareMap.touchSensor.get("beaconTouchSensor");
+        beaconColorSensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, "beaconColorSensor");
+    }
+
+    private void setupLineFollower() {
+        lineOdsSensor = hardwareMap.opticalDistanceSensor.get("lineOdsSensor");
     }
 
     private void setupOperatorControls() {

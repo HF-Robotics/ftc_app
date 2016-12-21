@@ -23,6 +23,7 @@ import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
 
@@ -62,6 +63,28 @@ public class StateMachine {
         areWeDebugging = false;
     }
 
+    public void setGoButton(DebouncedButton goButton) {
+        this.goButton = goButton;
+    }
+
+    public void setGoBackButton(DebouncedButton goBackButton) {
+        this.goBackButton = goBackButton;
+    }
+
+    public void setDoOverButton(DebouncedButton doOverButton) {
+        this.doOverButton = doOverButton;
+    }
+
+    public String getCurrentStateName() {
+        return currentState.getName();
+    }
+
+    public StateMachine(Telemetry telemetry) {
+        this.telemetry = telemetry;
+        executedStates = new Stack<>();
+        allStates = new HashSet<>();
+    }
+
     /**
      * Sets the first State the state machine will use.
      *
@@ -77,6 +100,15 @@ public class StateMachine {
 
         executedStates.push(state);
         addNewState(state);
+        currentState = state;
+    }
+
+    public void addStartDelay(long numberOfSeconds) {
+        State originalFirstState = executedStates.pop();
+        DelayState startDelay = new DelayState("Delayed start", telemetry, numberOfSeconds);
+        executedStates.push(startDelay);
+        startDelay.setNextState(originalFirstState);
+        currentState = startDelay;
     }
 
     public void doOneStateLoop() {
@@ -100,7 +132,11 @@ public class StateMachine {
             if (goButton.getRise()) {
                 isStateMachinePaused = false;
             } else if (goBackButton.getRise()) {
+                // we were paused - and haven't run the current step yet
                 currentState = executedStates.pop();
+                if (!executedStates.empty()) {
+                    currentState = executedStates.pop(); // this is the one we really want
+                }
                 currentState.resetToStart();
                 isStateMachinePaused = true;
             } else if (doOverButton.getRise()) {
@@ -115,9 +151,9 @@ public class StateMachine {
                 isStateMachinePaused = true;
             }
         }
-
         telemetry.addData("00", String.format("%s%s state %s", areWeDebugging ? "[DEBUG]" : "",
                 isStateMachinePaused ? "||" : ">", currentState.getName()));
+
     }
 
 }

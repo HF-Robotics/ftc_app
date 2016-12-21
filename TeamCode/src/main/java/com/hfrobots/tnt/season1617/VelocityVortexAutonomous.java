@@ -25,6 +25,7 @@ import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.drive.DriveInchesState;
 import com.hfrobots.tnt.corelib.drive.GyroTurnState;
 import com.hfrobots.tnt.corelib.drive.Turn;
+import com.hfrobots.tnt.corelib.sensors.I2cDeviceEnableDisable;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -78,6 +79,10 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
     @Override
     public void init() {
         super.init();
+        // FIXME: Once beacon claim route added, this becomes part of each state as needed
+        I2cDeviceEnableDisable colorSensorEnableDisable = new I2cDeviceEnableDisable(beaconColorSensor);
+        colorSensorEnableDisable.setEnabled(false); // To deal with increased latency with mult. i2c devices
+
         gyro.calibrate();
         setDefaults();
     }
