@@ -36,7 +36,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="VV Beacons")
+//@Autonomous(name="VV Beacons")
 @SuppressWarnings("unused")
 public class VelocityVortexBeacons extends VelocityVortexHardware {
 

@@ -22,11 +22,15 @@ package com.hfrobots.tnt.season1617;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.drive.CheesyDrive;
+import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.ToggleState;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provide a basic manual operational mode that controls the tank drive.
@@ -43,6 +47,8 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     private State collectorReverseToggleState;
 
     private State particleShooterState;
+
+    private CheesyDrive cheesyDrive;
 
     /*
      * Construct the class.
@@ -105,6 +111,12 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
                 particleCollectorOff();
             }
         };
+
+        particleShooterState = createShooterStateMachine();
+
+        cheesyDrive = new CheesyDrive(telemetry, drive,
+                driversGamepad.getLeftStickY(), driversGamepad.getRightStickX(),
+                driversGamepad.getAButton(), directionFlip, brakeNoBrake, halfSpeed);
     }
 
     @Override
@@ -137,27 +149,18 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         updateGamepadTelemetry();
     }
 
-    private boolean shooterOn = false; // track state to not log every time through loop()
-
     /**
      * Runs the state machine for the particle shooter
      */
     private void handleParticleShooter() {
-        if (shooterTrigger.isPressed()) {
-            if (!shooterOn) {
-                Log.d("VV", "Particle shooter on");
-                shooterOn = true;
-            }
-            topParticleShooter.setPower(1);
-            bottomParticleShooter.setPower(1);
-        } else {
-            if (shooterOn) {
-                Log.d("VV", "Particle shooter on");
-                shooterOn = false;
-            }
-            topParticleShooter.setPower(0);
-            bottomParticleShooter.setPower(0);
-        }
+        // FIXME Figure out how to make these work together
+        //if (shooterTrigger.isPressed()) {
+        //    shooterOn();
+        //} else {
+        //    shooterOff();
+        //}
+        particleShooterState = particleShooterState.doStuffAndGetNextState();
+        telemetry.addData("04", "shooter - " + particleShooterState.getName());
     }
 
     /**
@@ -226,97 +229,8 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         }
     }
 
-    float previousX;
-    float previousY;
-    long previousSampleTime;
-
-    float maxXRate = Float.MIN_VALUE;
-    float maxYRate = Float.MIN_VALUE;
-
     private void handleDrive() {
-        //----------------------------------------------------------------------
-        //
-        // DC Motors
-        //
-        // Obtain the current values of the joystick controllers.
-        //
-        // Note that x and y equal -1 when the joystick is pushed all of the way
-        // forward and all the way right (i.e. away from the human holder's body).
-        //
-        // The clip method guarantees the value never exceeds the range +-1.
-        //
-        // The DC motors are scaled to make it easier to control them at slower
-        // speeds.
-        //
-        // The setPower methods write the motor power values to the DcMotor
-        // class, but the power levels aren't applied until the loop() method ends.
-        //
-
-        final boolean isFloat;
-
-        if (brakeNoBrake.isPressed()) {
-            isFloat = false;
-            drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        } else {
-            isFloat = true;
-            drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        }
-
-        //updateThrottleParameters();
-
-        // these scale the motor power based on the amount of input on the drive stick
-        float xStickPosition = driverLeftStickX.getPosition();
-        float yStickPosition = driverLeftStickY.getPosition();
-
-        if (previousSampleTime == 0) {
-            previousX = xStickPosition;
-            previousY = yStickPosition;
-            previousSampleTime = System.currentTimeMillis();
-        } else {
-            float deltaX = previousX - xStickPosition;
-            float deltaY = previousY - yStickPosition;
-            long timeMsNow = System.currentTimeMillis();
-            long deltaTimeMs = timeMsNow - previousSampleTime;
-
-            float xRate = deltaX / deltaTimeMs;
-            float yRate = deltaY / deltaTimeMs;
-
-            if (Math.abs(xRate) > maxXRate) {
-                maxXRate = xRate;
-                Log.d("VV", "Max xRate " + maxXRate);
-            }
-
-            if (Math.abs(yRate) > maxYRate) {
-                maxYRate = yRate;
-                Log.d("VV", "Max yRate" + maxYRate);
-            }
-
-        }
-
-        float xValue = scaleMotorPower(xStickPosition);
-        float yValue = -scaleMotorPower(yStickPosition);
-
-        if (directionFlip.isPressed()) {
-            yValue = -yValue;
-        }
-
-        //calculate the power needed for each motor
-        float leftPower = yValue + xValue;
-        float rightPower = yValue - xValue;
-
-        //clip the power values so that it only goes from -1 to 1
-        leftPower = Range.clip(leftPower, -1, 1);
-        rightPower = Range.clip(rightPower, -1, 1);
-
-        if (halfSpeed.isPressed()) {
-            leftPower = leftPower / 2;
-            rightPower = rightPower / 2;
-        }
-
-        telemetry.addData("08", "Power (%s) G: %1.2f L/R: %5.2f / %5.2f", isFloat ? "F" : "B", gain, leftPower, rightPower);
-
-        //set the power of the motors with the gamepad values
-        drive.drivePower(leftPower, rightPower);
+        cheesyDrive.handleDrive();
     }
 
     private void updateGamepadTelemetry() {
@@ -324,15 +238,38 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         telemetry.addData ("07", "GP1 Left y: " + -driverLeftStickY.getPosition());
     }
 
-    private void updateThrottleParameters() {
-        if (driverDpadUp.getRise() && gain < 1) {
-            gain += .1F;
-            Log.d("VV", "Gain is " + gain);
-        }
+    private State createShooterStateMachine() {
+        State waitingForButtonPressState = new WaitForButton(particleShooterBouncy, telemetry);
+        State collectorOffState = new CollectorOffState(telemetry);
+        waitingForButtonPressState.setNextState(collectorOffState);
 
-        if (driverDpadDown.getRise() && gain > 0) {
-            gain -= .1F;
-            Log.d("VV", "Gain is " + gain);
-        }
+        DelayState waitForCollectorOffState = new DelayState("wait for collector stop", telemetry, 500, TimeUnit.MILLISECONDS);
+        collectorOffState.setNextState(waitForCollectorOffState);
+
+        // TODO: Perhaps run the collector backwards ever so slightly here to un-jam the particles?
+        State shooterOnState = new ShooterOnState(telemetry);
+        waitForCollectorOffState.setNextState(shooterOnState);
+
+        DelayState waitForShooterSpeedState = new DelayState("wait for shooter speed", telemetry, 500, TimeUnit.MILLISECONDS);
+        shooterOnState.setNextState(waitForShooterSpeedState);
+
+        State collectorOnState = new CollectorOnState(telemetry);
+        waitForShooterSpeedState.setNextState(collectorOnState);
+
+        State waitForButtonReleaseState = new WaitForButtonRelease(particleShooterBouncy, telemetry);
+        collectorOnState.setNextState(waitForButtonReleaseState);
+
+        State shooterOffState = new ShooterOffState(telemetry);
+        waitForButtonReleaseState.setNextState(shooterOffState);
+
+        State endCollectorOffState = new CollectorOffState(telemetry);
+        shooterOffState.setNextState(endCollectorOffState);
+
+        ResetDelaysState resetAllDelaysState = new ResetDelaysState(telemetry,
+                waitForCollectorOffState,  waitForShooterSpeedState);
+        endCollectorOffState.setNextState(resetAllDelaysState);
+        resetAllDelaysState.setNextState(waitingForButtonPressState); // back to the beginning!
+
+        return waitingForButtonPressState;
     }
 }

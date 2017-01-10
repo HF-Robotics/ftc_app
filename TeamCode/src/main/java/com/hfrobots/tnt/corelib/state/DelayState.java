@@ -11,6 +11,11 @@ public class DelayState extends State {
     private long startTime = 0;
     private long thresholdTimeMs;
 
+    public DelayState(String name, Telemetry telemetry, long val, TimeUnit unit) {
+        super(name, telemetry);
+        thresholdTimeMs = unit.toMillis(val);
+    }
+
     public DelayState(String name, Telemetry telemetry, long numberOfSeconds) {
         super(name, telemetry);
         thresholdTimeMs = TimeUnit.SECONDS.toMillis(numberOfSeconds);

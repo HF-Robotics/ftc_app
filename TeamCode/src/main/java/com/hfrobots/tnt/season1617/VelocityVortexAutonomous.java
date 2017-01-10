@@ -359,7 +359,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         step2DriveState.setNextState(step3TurnState);
 
         // (4) Move forward 13 inches (6)
-        DriveInchesState step4DriveState = new DriveInchesState("Step 4 drive", drive, telemetry, 15, POWER_LEVEL, 8000L);
+        DriveInchesState step4DriveState = new DriveInchesState("Step 4 drive", drive, telemetry, 13, POWER_LEVEL, 8000L);
         step3TurnState.setNextState(step4DriveState);
 
         // (5) Rotate 90 deg CCW
@@ -373,7 +373,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         step4DriveState.setNextState(step5TurnState);
 
         // (6) Move forward 38.5 inches (44)
-        DriveInchesState step6DriveState = new DriveInchesState("Step 6 drive", drive, telemetry, 28, POWER_LEVEL, 8000L);
+        DriveInchesState step6DriveState = new DriveInchesState("Step 6 drive", drive, telemetry, 34, POWER_LEVEL, 8000L);
         step5TurnState.setNextState(step6DriveState);
 
         // (7) Shoot any loaded particles

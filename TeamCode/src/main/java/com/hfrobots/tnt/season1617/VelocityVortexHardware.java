@@ -22,6 +22,7 @@ package com.hfrobots.tnt.season1617;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.hfrobots.tnt.corelib.control.OnOffButton;
 import com.hfrobots.tnt.corelib.control.RangeInput;
@@ -33,6 +34,8 @@ import com.hfrobots.tnt.corelib.drive.Gear;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.drive.TankDrive;
 import com.hfrobots.tnt.corelib.drive.Wheel;
+import com.hfrobots.tnt.corelib.state.DelayState;
+import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsAnalogOpticalDistanceSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
@@ -47,6 +50,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.Range;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.Iterator;
 
@@ -133,6 +138,11 @@ public abstract class VelocityVortexHardware extends OpMode {
     protected OpticalDistanceSensor lineOdsSensor;
 
     protected TouchSensor beaconTouchSensor;
+    protected boolean shooterOn = false; // track state to not log every time through loop()
+
+    protected OnOffButton particleShooterBouncy;
+
+    protected DebouncedButton particleShooterDebounced;
 
     /**
      * Initialize the hardware ... this class requires the following hardware map names
@@ -216,6 +226,8 @@ public abstract class VelocityVortexHardware extends OpMode {
         shooterTrigger = operatorsGamepad.getRightBumper();
         liftSafety = new RangeInputButton(operatorsGamepad.getLeftTrigger(), 0.65f);
         liftThrottle = operatorsGamepad.getLeftStickY();
+        particleShooterBouncy = new RangeInputButton(operatorsGamepad.getRightTrigger(), 0.65F);
+        particleShooterDebounced = new DebouncedButton(particleShooterBouncy);
 
     }
 
@@ -270,57 +282,6 @@ public abstract class VelocityVortexHardware extends OpMode {
         }
         warningGenerated = true;
         warningMessage += exceptionMessage;
-    }
-
-    protected float gain = 0.3F;
-    protected float deadband = 0;
-
-    float scaleMotorPower(float unscaledPower) {
-        if (unscaledPower >= 0) {
-            return deadband + (1-deadband)*(gain * (float)Math.pow(unscaledPower, 3) + (1 - gain) * unscaledPower);
-        } else {
-    return  -1 * deadband + (1-deadband)*(gain * (float)Math.pow(unscaledPower, 3) + (1 - gain) * unscaledPower);
-        }
-    }
-
-    /**
-     * Scale the joystick input using a nonlinear algorithm.
-     */
-    float scaleMotorPowerOld(float unscaledPower) {
-
-        //
-        // Ensure the values are legal.
-        //
-        float clippedPower = Range.clip(unscaledPower, -1, 1);
-
-        float[] scaleFactors =
-                {0.00f, 0.05f, 0.09f, 0.10f, 0.12f
-                        , 0.15f, 0.18f, 0.24f, 0.30f, 0.36f
-                        , 0.43f, 0.50f, 0.60f, 0.72f, 0.85f
-                        , 1.00f, 1.00f
-                };
-
-        // scale changes sensitivity of joy stick by multiplying input by numbers 0 to 1
-        //
-        // Get the corresponding index for the given unscaled power.
-        //
-        int scaleIndex = (int) (clippedPower * 16.0);
-
-        if (scaleIndex < 0) {
-            scaleIndex = -scaleIndex;
-        } else if (scaleIndex > 16) {
-            scaleIndex = 16;
-        }
-
-        final float scaledPower;
-
-        if (clippedPower < 0) {
-            scaledPower = -scaleFactors[scaleIndex];
-        } else {
-            scaledPower = scaleFactors[scaleIndex];
-        }
-
-        return scaledPower;
     }
 
     /**
@@ -382,4 +343,204 @@ public abstract class VelocityVortexHardware extends OpMode {
 
         Log.d("VV", String.format("Robot battery voltage %5.2f at method %s()",voltageSensor.getVoltage(), opModeMethod));
     }
+
+    protected void shooterOff() {
+        if (shooterOn) {
+            Log.d("VV", "Particle shooter on");
+            shooterOn = false;
+        }
+        topParticleShooter.setPower(0);
+        bottomParticleShooter.setPower(0);
+    }
+
+    protected void shooterOn() {
+        if (!shooterOn) {
+            Log.d("VV", "Particle shooter on");
+            shooterOn = true;
+        }
+        topParticleShooter.setPower(1);
+        bottomParticleShooter.setPower(1);
+    }
+
+    class WaitForButton extends State {
+        private final OnOffButton trigger;
+
+        public WaitForButton(OnOffButton trigger, Telemetry telemetry) {
+            super("Wait for button", telemetry);
+            this.trigger = trigger;
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            if (trigger.isPressed()) {
+                Log.d("VV", "Shooter trigger pressed");
+                return nextState;
+            } else {
+                return this;
+            }
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class WaitForButtonRelease extends State {
+        private final OnOffButton trigger;
+
+        public WaitForButtonRelease(OnOffButton trigger, Telemetry telemetry) {
+            super("Wait for button release", telemetry);
+            this.trigger = trigger;
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            if (trigger.isPressed()) {
+                return this;
+            } else {
+                Log.d("VV", "shooter - trigger released");
+                return nextState;
+            }
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class ShooterOnState extends State {
+        public ShooterOnState(Telemetry telemetry) {
+            super("Particle Shooter On", telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            shooterOn();
+
+            return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class ShooterOffState extends State {
+        public ShooterOffState(Telemetry telemetry) {
+            super("Particle Shooter Off", telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            shooterOff();
+
+            return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class CollectorOnState extends State {
+        public CollectorOnState(Telemetry telemetry) {
+            super("Collector Shooter On", telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            runParticleCollectorInwards();
+
+            return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class CollectorOffState extends State {
+        public CollectorOffState(Telemetry telemetry) {
+            super("Collector Shooter Off", telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            particleCollectorOff();
+            return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class ResetDelaysState extends State {
+        private final DelayState[] delayStates;
+
+        public ResetDelaysState(Telemetry telemetry, DelayState ... delayStates) {
+            super("Reset delays", telemetry);
+            this.delayStates = delayStates;
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            for (DelayState state : delayStates) {
+                state.resetToStart();
+            }
+
+            return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+
+
+
+
 }
