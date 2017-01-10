@@ -26,6 +26,7 @@ SOFTWARE.
         <Motor name="x1MotorDrive" port="1" />
         <Motor name="x2MotorDrive" port="2" />
     </MotorController>
+    <!-- Not enabled at the moment
     <MotorController name="Motor Controller 3" serialNumber="AL00UVE0">
         <Motor name="winchDrive" port="1" />
     </MotorController>
@@ -37,4 +38,5 @@ SOFTWARE.
         <Servo name="climberDumpServo" port="1" />
         <Servo name="winchAimServo" port="2" />
     </ServoController>
+    -->
 </Robot>
