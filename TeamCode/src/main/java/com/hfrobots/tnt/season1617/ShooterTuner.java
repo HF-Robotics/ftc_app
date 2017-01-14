@@ -30,7 +30,7 @@ import com.qualcomm.robotcore.util.Range;
  * Provide a basic manual operational mode that allows manual adjustment of particle shooter
  * motor power and displays the values, use dpad up/down for top motor, left/right for bottom
  */
-@TeleOp(name="Shooter Tuner")
+//@TeleOp(name="Shooter Tuner")
 @SuppressWarnings("unused")
 public class ShooterTuner extends VelocityVortexHardware
 
