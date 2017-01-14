@@ -25,10 +25,10 @@ import android.util.Log;
 import com.hfrobots.tnt.corelib.drive.CheesyDrive;
 import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
+import com.hfrobots.tnt.corelib.state.StateMachine;
 import com.hfrobots.tnt.corelib.state.ToggleState;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.Range;
 
 import java.util.concurrent.TimeUnit;
 
@@ -46,7 +46,7 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
 
     private State collectorReverseToggleState;
 
-    private State particleShooterState;
+    private StateMachine particleShooterStateMachine;
 
     private CheesyDrive cheesyDrive;
 
@@ -112,7 +112,7 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
             }
         };
 
-        particleShooterState = createShooterStateMachine();
+        particleShooterStateMachine = createShooterStateMachine();
 
         cheesyDrive = new CheesyDrive(telemetry, drive,
                 driversGamepad.getLeftStickY(), driversGamepad.getRightStickX(),
@@ -159,8 +159,7 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         //} else {
         //    shooterOff();
         //}
-        particleShooterState = particleShooterState.doStuffAndGetNextState();
-        telemetry.addData("04", "shooter - " + particleShooterState.getName());
+        particleShooterStateMachine.doOneStateLoop();
     }
 
     /**
@@ -234,44 +233,44 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         telemetry.addData ("07", "GP1 Left y: " + -driverLeftStickY.getPosition());
     }
 
-    private State createShooterStateMachine() {
+    private StateMachine createShooterStateMachine() {
+        StateMachine shooterStateMachine = new StateMachine(telemetry);
+
         State waitingForButtonPressState = new WaitForButton(particleShooterBouncy, telemetry);
-        State collectorOffState = new CollectorOffState(telemetry);
-        waitingForButtonPressState.setNextState(collectorOffState);
+
+        shooterStateMachine.addSequential(waitingForButtonPressState);
+        shooterStateMachine.addSequential(new CollectorOffState(telemetry));
 
         DelayState waitForCollectorOffState = new DelayState("wait for collector stop", telemetry, 500, TimeUnit.MILLISECONDS);
-        collectorOffState.setNextState(waitForCollectorOffState);
+        shooterStateMachine.addSequential(waitForCollectorOffState);
 
-        // TODO: Perhaps run the collector backwards ever so slightly here to un-jam the particles?
-        State shooterOnState = new ShooterOnState(telemetry);
-        waitForCollectorOffState.setNextState(shooterOnState);
+        // Unjam the loader
+        shooterStateMachine.addSequential(new ShooterReverseState(telemetry));
+        DelayState waitForReverseState = new DelayState("wait for shooter reverse", telemetry, 150, TimeUnit.MILLISECONDS);
+        shooterStateMachine.addSequential(waitForReverseState);
+        shooterStateMachine.addSequential(new ShooterOffState(telemetry));
+
+        shooterStateMachine.addSequential(new ShooterOnState(telemetry));
 
         DelayState waitForShooterSpeedState = new DelayState("wait for shooter speed", telemetry, 500, TimeUnit.MILLISECONDS);
-        shooterOnState.setNextState(waitForShooterSpeedState);
-
-        State collectorOnState = new CollectorOnState(telemetry);
-        waitForShooterSpeedState.setNextState(collectorOnState);
-
-        State waitForButtonReleaseState = new WaitForButtonRelease(particleShooterBouncy, telemetry);
-        collectorOnState.setNextState(waitForButtonReleaseState);
-
-        State shooterOffState = new ShooterOffState(telemetry);
-        waitForButtonReleaseState.setNextState(shooterOffState);
+        shooterStateMachine.addSequential(waitForShooterSpeedState);
 
 
-        State endCollectorOffState = new CollectorOffState(telemetry);
-        // FIXME: Only for practice
+        shooterStateMachine.addSequential(new CollectorOnState(telemetry));
 
-        State collectorBackOnState = new CollectorOnState(telemetry);
-        shooterOffState.setNextState(collectorBackOnState);
+        // Wait for trigger release
+        shooterStateMachine.addSequential(new WaitForButtonRelease(particleShooterBouncy, telemetry));
 
+        // Done shooting
+        shooterStateMachine.addSequential(new ShooterOffState(telemetry));
+        shooterStateMachine.addSequential(new CollectorOnState(telemetry));
+
+        // Reset all delays
         ResetDelaysState resetAllDelaysState = new ResetDelaysState(telemetry,
-                waitForCollectorOffState,  waitForShooterSpeedState);
-        endCollectorOffState.setNextState(resetAllDelaysState);
-        // FIXME: Only for practice
-        collectorBackOnState.setNextState(resetAllDelaysState);
+                waitForCollectorOffState,  waitForShooterSpeedState, waitForReverseState);
+        shooterStateMachine.addSequential(resetAllDelaysState);
         resetAllDelaysState.setNextState(waitingForButtonPressState); // back to the beginning!
 
-        return waitingForButtonPressState;
+        return shooterStateMachine;
     }
 }

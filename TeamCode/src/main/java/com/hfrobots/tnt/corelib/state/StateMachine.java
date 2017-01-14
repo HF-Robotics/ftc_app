@@ -18,6 +18,8 @@
  **/
 package com.hfrobots.tnt.corelib.state;
 
+import android.util.Log;
+
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 
@@ -37,6 +39,8 @@ public class StateMachine {
 
     private State firstState;
 
+    private State lastSequentialState;
+
     private boolean areWeDebugging = false;
 
     private boolean isStateMachinePaused = false;
@@ -52,6 +56,7 @@ public class StateMachine {
     private Telemetry telemetry;
 
     public void addNewState(State newState) {
+        Log.d("VV", "addNewState(" + newState + ")");
         allStates.add(newState);
     }
 
@@ -86,6 +91,28 @@ public class StateMachine {
     }
 
     /**
+     * Adds the "next" state in a sequential state machine setting up the
+     * transition to next state automatically. Also sets as first state if one
+     * is not already defined.
+     */
+    public void addSequential(State nextState) {
+        Log.d("VV", "addSequential(" + nextState.getName() + ")");
+        if (lastSequentialState != null) {
+            Log.d("VV", "addSequential() " + lastSequentialState.getName() + " - next -> " + nextState.getName());
+            lastSequentialState.setNextState(nextState);
+        }
+
+        if (currentState == null) {
+            Log.d("VV", "addSequential() - no current first state, setting first state");
+            setFirstState(nextState);
+        } else {
+            addNewState(nextState);
+        }
+
+        lastSequentialState = nextState;
+    }
+
+    /**
      * Sets the first State the state machine will use.
      *
      * If the state has not already been added w/ addNewState then it will added for you
@@ -94,6 +121,7 @@ public class StateMachine {
      * @throws  IllegalStateException if this method has already been called
      */
     public void setFirstState(State state) {
+        Log.d("VV", "setFirstState(" + state.getName() + ")");
         if (currentState != null) {
             throw new IllegalArgumentException("State machine already has the first state set");
         }
@@ -112,48 +140,61 @@ public class StateMachine {
     }
 
     public void doOneStateLoop() {
-        if (!isStateMachinePaused) {
-            State possibleNextState = currentState.doStuffAndGetNextState();
+        try {
+            if (!isStateMachinePaused) {
+                State possibleNextState = currentState.doStuffAndGetNextState();
 
-            if (!possibleNextState.equals(currentState)) {
-                // We've changed states, Yay time to party
-                executedStates.push(possibleNextState);
-                currentState = possibleNextState;
+                if (!possibleNextState.equals(currentState)) {
+                    // We've changed states, Yay time to party
+                    executedStates.push(possibleNextState);
+                    currentState = possibleNextState;
 
-                if (areWeDebugging) {
+                    if (areWeDebugging) {
+                        isStateMachinePaused = true;
+                    }
+                }
+            } else {
+                // we're paused, allowing live configuring and waiting for go or go back signals
+                currentState.liveConfigure(allGamePadButtons);
+
+                // check for un-pausing
+                if (goButton.getRise()) {
+                    isStateMachinePaused = false;
+                } else if (goBackButton.getRise()) {
+                    // we were paused - and haven't run the current step yet
+                    currentState = executedStates.pop();
+                    if (!executedStates.empty()) {
+                        currentState = executedStates.pop(); // this is the one we really want
+                    }
+                    currentState.resetToStart();
+                    isStateMachinePaused = true;
+                } else if (doOverButton.getRise()) {
+                    // reset all the states, set current to ??? and pause the state machine
+                    for (State resetThisState : allStates) {
+                        resetThisState.resetToStart();
+                    }
+
+                    executedStates.clear();
+
+                    currentState = firstState;
                     isStateMachinePaused = true;
                 }
             }
-        } else {
-            // we're paused, allowing live configuring and waiting for go or go back signals
-            currentState.liveConfigure(allGamePadButtons);
+            telemetry.addData("00", String.format("%s%s state %s", areWeDebugging ? "[DEBUG]" : "",
+                    isStateMachinePaused ? "||" : ">", currentState.getName()));
+        } catch (Throwable t) {
+            // Better logging than the FTC SDK provides :(
+            Log.e("VV", "Exception during state machine", t);
 
-            // check for un-pausing
-            if (goButton.getRise()) {
-                isStateMachinePaused = false;
-            } else if (goBackButton.getRise()) {
-                // we were paused - and haven't run the current step yet
-                currentState = executedStates.pop();
-                if (!executedStates.empty()) {
-                    currentState = executedStates.pop(); // this is the one we really want
-                }
-                currentState.resetToStart();
-                isStateMachinePaused = true;
-            } else if (doOverButton.getRise()) {
-                // reset all the states, set current to ??? and pause the state machine
-                for (State resetThisState : allStates) {
-                    resetThisState.resetToStart();
-                }
-
-                executedStates.clear();
-
-                currentState = firstState;
-                isStateMachinePaused = true;
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException)t;
             }
-        }
-        telemetry.addData("00", String.format("%s%s state %s", areWeDebugging ? "[DEBUG]" : "",
-                isStateMachinePaused ? "||" : ">", currentState.getName()));
 
+            RuntimeException rte = new RuntimeException();
+            rte.initCause(t);
+
+            throw rte;
+        }
     }
 
 }

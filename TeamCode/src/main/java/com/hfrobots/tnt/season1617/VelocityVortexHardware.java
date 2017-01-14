@@ -139,6 +139,7 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected TouchSensor beaconTouchSensor;
     protected boolean shooterOn = false; // track state to not log every time through loop()
+    protected boolean shooterReverse = false;
 
     protected OnOffButton particleShooterBouncy;
 
@@ -349,6 +350,7 @@ public abstract class VelocityVortexHardware extends OpMode {
         if (shooterOn) {
             Log.d("VV", "Particle shooter on");
             shooterOn = false;
+            shooterReverse = false;
         }
         topParticleShooter.setPower(0);
         bottomParticleShooter.setPower(0);
@@ -358,9 +360,19 @@ public abstract class VelocityVortexHardware extends OpMode {
         if (!shooterOn) {
             Log.d("VV", "Particle shooter on");
             shooterOn = true;
+            shooterReverse = false;
         }
         topParticleShooter.setPower(1);
         bottomParticleShooter.setPower(1);
+    }
+
+    protected void shooterReverse() {
+        if (!shooterReverse) {
+            Log.d("VV", "Particle shooter on");
+            shooterReverse = true;
+        }
+        topParticleShooter.setPower(-0.3);
+        bottomParticleShooter.setPower(-0.3);
     }
 
     class WaitForButton extends State {
@@ -408,6 +420,29 @@ public abstract class VelocityVortexHardware extends OpMode {
                 Log.d("VV", "shooter - trigger released");
                 return nextState;
             }
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class ShooterReverseState extends State {
+        public ShooterReverseState(Telemetry telemetry) {
+            super("Particle Shooter Reverse", telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            shooterReverse();
+
+            return nextState;
         }
 
         @Override
