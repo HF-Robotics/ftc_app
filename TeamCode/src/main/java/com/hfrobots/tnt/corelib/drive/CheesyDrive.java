@@ -38,7 +38,7 @@ public class CheesyDrive {
     private double quickStopAccumulator;
     public static final double throttleDeadband = 0.02;
     private static final double steerDeadband = 0.02;
-    private static final double kTurnSensitivity = 1.0; // < 2 or it turns into "quick turn"
+    private static final double kTurnSensitivity = 1.5; // < 2 or it turns into "quick turn"
 
     public CheesyDrive(final Telemetry telemetry, final TankDrive tankDrive, final RangeInput throttle, final RangeInput steer,
                        final OnOffButton quickTurnMode, final OnOffButton directionFlip,
@@ -55,8 +55,6 @@ public class CheesyDrive {
     }
 
     public void handleDrive() {
-        boolean isQuickTurn = quickTurnMode.isPressed();
-
         double steerPosition = steer.getPosition();
         double throttlePosition = throttle.getPosition();
 
@@ -66,6 +64,11 @@ public class CheesyDrive {
 
         steerPosition = handleDeadband(steerPosition, steerDeadband);
         throttlePosition = -handleDeadband(throttlePosition, throttleDeadband);
+
+        //steerPosition = scaleValue(steerPosition);
+        throttlePosition = scaleValue(throttlePosition);
+
+        boolean isQuickTurn = throttlePosition == 0.0D;
 
         double overPower;
 
@@ -134,5 +137,16 @@ public class CheesyDrive {
 
     private static double limit(double v, double limit) {
         return (Math.abs(v) < limit) ? v : limit * (v < 0 ? -1 : 1);
+    }
+
+    protected float gain = 0.3F;
+    protected float deadband = 0;
+
+    double scaleValue(double unscaledPower) {
+        if (unscaledPower >= 0) {
+            return deadband + (1-deadband)*(gain * (float)Math.pow(unscaledPower, 3) + (1 - gain) * unscaledPower);
+        } else {
+            return  -1 * deadband + (1-deadband)*(gain * (float)Math.pow(unscaledPower, 3) + (1 - gain) * unscaledPower);
+        }
     }
 }

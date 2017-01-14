@@ -201,19 +201,15 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
                 Log.d("VV", "Unlocking forks");
 
                 unlockForks();
-            } else if (liftLockButton.getRise()) {
-                Log.d("VV", "Locking forks");
-
-                lockForks();
             }
 
             float rightStickYPosition = operatorsGamepad.getRightStickY().getPosition();
 
-            if (rightStickYPosition < 0) {
+            if (rightStickYPosition > 0) {
                 //Log.d("VV", "Tilting forks back");
 
                 tiltForksBack(rightStickYPosition * .025);
-            } else if (rightStickYPosition > 0) {
+            } else if (rightStickYPosition < 0) {
                 //Log.d("VV", "Tilting forks forward");
 
                 tiltForksForward(rightStickYPosition * 0.25);
@@ -262,12 +258,18 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         State shooterOffState = new ShooterOffState(telemetry);
         waitForButtonReleaseState.setNextState(shooterOffState);
 
+
         State endCollectorOffState = new CollectorOffState(telemetry);
-        shooterOffState.setNextState(endCollectorOffState);
+        // FIXME: Only for practice
+
+        State collectorBackOnState = new CollectorOnState(telemetry);
+        shooterOffState.setNextState(collectorBackOnState);
 
         ResetDelaysState resetAllDelaysState = new ResetDelaysState(telemetry,
                 waitForCollectorOffState,  waitForShooterSpeedState);
         endCollectorOffState.setNextState(resetAllDelaysState);
+        // FIXME: Only for practice
+        collectorBackOnState.setNextState(resetAllDelaysState);
         resetAllDelaysState.setNextState(waitingForButtonPressState); // back to the beginning!
 
         return waitingForButtonPressState;

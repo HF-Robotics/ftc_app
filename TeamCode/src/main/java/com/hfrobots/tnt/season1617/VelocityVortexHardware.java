@@ -226,8 +226,7 @@ public abstract class VelocityVortexHardware extends OpMode {
         shooterTrigger = operatorsGamepad.getRightBumper();
         liftSafety = new RangeInputButton(operatorsGamepad.getLeftTrigger(), 0.65f);
         liftThrottle = operatorsGamepad.getLeftStickY();
-        particleShooterBouncy = new RangeInputButton(operatorsGamepad.getRightTrigger(), 0.65F);
-        particleShooterDebounced = new DebouncedButton(particleShooterBouncy);
+
 
     }
 
@@ -251,6 +250,8 @@ public abstract class VelocityVortexHardware extends OpMode {
         brakeNoBrake = driversGamepad.getRightBumper();
         halfSpeed = new RangeInputButton(driversGamepad.getLeftTrigger(), 0.65f);
         directionFlip = new RangeInputButton(driversGamepad.getRightTrigger(), 0.65f);
+        particleShooterBouncy = driversGamepad.getLeftBumper();
+        particleShooterDebounced = new DebouncedButton(particleShooterBouncy);
     }
 
     /**
