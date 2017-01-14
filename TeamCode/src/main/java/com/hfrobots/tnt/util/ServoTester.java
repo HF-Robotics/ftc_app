@@ -93,7 +93,7 @@ public class ServoTester extends OpMode {
 
         double currentPosition = currentServo.getPosition();
 
-        float leftStickYPosition = -gamepad1.left_stick_y * .1f;
+        float leftStickYPosition = -gamepad1.left_stick_y * .01f;
         double microAdjust;
 
         if (dpadUp.getRise()) {

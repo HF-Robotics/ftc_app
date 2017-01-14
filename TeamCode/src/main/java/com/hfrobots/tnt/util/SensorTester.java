@@ -23,22 +23,20 @@ import android.text.method.Touch;
 
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.CompassSensor;
 import com.qualcomm.robotcore.hardware.GyroSensor;
 import com.qualcomm.robotcore.hardware.I2cAddr;
-import com.qualcomm.robotcore.hardware.I2cDevice;
-import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
-import com.qualcomm.robotcore.hardware.I2cDeviceSynchImpl;
+import com.qualcomm.robotcore.hardware.I2cController;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
-import com.qualcomm.robotcore.util.Range;
 
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+
 
 /**
  * An OpMode that allows you to test any/all of the sensors on a robot
@@ -51,8 +49,8 @@ import java.util.List;
  */
 @TeleOp(name="Sensor Tester", group="Utilities")
 @SuppressWarnings("unused")
-public class SensorTester extends OpMode {
-    private List<NamedDeviceMap.NamedDevice<ColorSensor>> namedColorSensors;
+public class SensorTester extends OpMode implements I2cController.I2cPortReadyCallback {
+    private List<NamedDeviceMap.NamedDevice<ModernRoboticsI2cColorSensor>> namedColorSensors;
 
     private List<NamedDeviceMap.NamedDevice<ModernRoboticsI2cRangeSensor>> namedRangeSensors;
 
@@ -76,13 +74,17 @@ public class SensorTester extends OpMode {
 
     private DebouncedButton aButton;
 
+    private DebouncedButton xButton;
+
+    private DebouncedButton yButton;
+
     private NamedDeviceMap namedDeviceMap;
 
     @Override
     public void init() {
         namedDeviceMap = new NamedDeviceMap(hardwareMap);
 
-        namedColorSensors = namedDeviceMap.getAll(ColorSensor.class);
+        namedColorSensors = namedDeviceMap.getAll(ModernRoboticsI2cColorSensor.class);
         namedRangeSensors = namedDeviceMap.getAll(ModernRoboticsI2cRangeSensor.class);
         namedOdsSensors = namedDeviceMap.getAll(OpticalDistanceSensor.class);
         namedGyroDevices = namedDeviceMap.getAll(GyroSensor.class);
@@ -101,6 +103,8 @@ public class SensorTester extends OpMode {
         dpadUp = new DebouncedButton(ninjaGamePad.getDpadUp());
         dpadDown = new DebouncedButton(ninjaGamePad.getDpadDown());
         aButton = new DebouncedButton(ninjaGamePad.getAButton());
+        xButton = new DebouncedButton(ninjaGamePad.getXButton());
+        yButton = new DebouncedButton(ninjaGamePad.getYButton());
     }
 
     private boolean ledEnabled = false;
@@ -179,8 +183,8 @@ public class SensorTester extends OpMode {
         OpticalDistanceSensor currentOdsSensor = currentNamedOdsSensor.getDevice();
         String sensorName = currentNamedOdsSensor.getName();
         telemetry.addData("ODS ",  "%s", sensorName);
-        telemetry.addData("Raw cm", "%d", currentOdsSensor.getRawLightDetected());
-        telemetry.addData("Calibrated cm", "%d", currentOdsSensor.getLightDetected());
+        telemetry.addData("Raw cm", "%f", currentOdsSensor.getRawLightDetected());
+        telemetry.addData("Calibrated cm", "%f", currentOdsSensor.getLightDetected());
         updateTelemetry(telemetry);
     }
 
@@ -207,13 +211,13 @@ public class SensorTester extends OpMode {
         ModernRoboticsI2cRangeSensor currentRangeSensor = currentNamedRangeSensor.getDevice();
         String sensorName = currentNamedRangeSensor.getName();
         telemetry.addData("range ",  "%s", sensorName);
-        telemetry.addData("Ultrasonic cm", "%d", currentRangeSensor.cmUltrasonic());
-        telemetry.addData("Optical cm", "%d", currentRangeSensor.cmOptical());
+        telemetry.addData("Ultrasonic cm", "%f", currentRangeSensor.cmUltrasonic());
+        telemetry.addData("Optical cm", "%f", currentRangeSensor.cmOptical());
         updateTelemetry(telemetry);
     }
 
     private void doColorSensorLoop() {
-        namedColorSensors = namedDeviceMap.getAll(ColorSensor.class);
+        namedColorSensors = namedDeviceMap.getAll(ModernRoboticsI2cColorSensor.class);
 
         if (namedColorSensors.isEmpty()) {
             telemetry.addData("No color sensors", "");
@@ -229,12 +233,28 @@ public class SensorTester extends OpMode {
             }
         }
 
-        NamedDeviceMap.NamedDevice<ColorSensor> currentNamedColorSensor = namedColorSensors.get(currentListPosition);
-        ColorSensor currentColorSensor = currentNamedColorSensor.getDevice();
+        NamedDeviceMap.NamedDevice<ModernRoboticsI2cColorSensor> currentNamedColorSensor = namedColorSensors.get(currentListPosition);
+        ModernRoboticsI2cColorSensor currentColorSensor = currentNamedColorSensor.getDevice();
         String sensorName = currentNamedColorSensor.getName();
 
         if (aButton.getRise()) {
             ledEnabled = !ledEnabled;
+        }
+
+        if (xButton.getRise()) {
+            calibratingColorSensor = currentColorSensor;
+            calibratingController = currentColorSensor.getI2cController();
+            // Register the callback for portIsReady().
+            calibratingController.registerForI2cPortReadyCallback(this, calibratingColorSensor.getPort());
+
+            sendCommand(currentColorSensor, currentColorSensor.getI2cController(), COMMAND_CODE_BLACK);
+        } else if (yButton.getRise()) {
+            calibratingColorSensor = currentColorSensor;
+            calibratingController = currentColorSensor.getI2cController();
+            // Register the callback for portIsReady().
+            calibratingController.registerForI2cPortReadyCallback(this, calibratingColorSensor.getPort());
+
+            sendCommand(currentColorSensor, currentColorSensor.getI2cController(), COMMAND_CODE_WHITE);
         }
 
         currentColorSensor.enableLed(ledEnabled);
@@ -243,13 +263,105 @@ public class SensorTester extends OpMode {
         int green = currentColorSensor.green();
         int blue = currentColorSensor.blue();
 
-        telemetry.addData("color ",  "%s", sensorName);
+        telemetry.addData("color ",  "%s x blk cal, y wt cal", sensorName);
         telemetry.addData("R", "%d", red);
         telemetry.addData("G", "%d", green);
         telemetry.addData("B", "%d", blue);
         telemetry.addData("A", "%d", alpha);
         updateTelemetry(telemetry);
     }
+
+    private I2CMode controller_mode = I2CMode.READ;
+
+    // I2C address, registers, and commands
+    private I2cAddr COLOR_SENSOR_ADDR = I2cAddr.create8bit(0x3C);
+    private byte COMMAND_CODE_BLACK = 0x42;
+    private byte COMMAND_CODE_WHITE = 0x43;
+    private byte COMMAND_CODE_LED_ON = 0x00;
+    private byte COMMAND_CODE_LED_OFF = 0x01;
+    private byte WRITE_CACHE_OFFSET = 4;
+
+    /* In sendCommand(), we do the write process. Before reading or writing
+     * anything, we need to lock the relevant cache. We enable write mode,
+     * write our command code to the write cache, and then signal the
+     * controller to re-enable read mode when the port is next ready.
+     */
+    public synchronized void sendCommand(ModernRoboticsI2cColorSensor colorSensor,
+                                         I2cController controller, byte command) {
+
+        // Get a handle on the write cache and lock.
+        int port = colorSensor.getPort();
+        Lock wLock = controller.getI2cWriteCacheLock(port);
+        byte[] wCache = controller.getI2cWriteCache(port);
+
+        // Do the locking in a try/catch, in case a lock can't be made.
+        try {
+
+            // Lock the cache before anything.
+            wLock.lock();
+
+            // Enable write mode on the controller.
+            controller.enableI2cWriteMode(port, COLOR_SENSOR_ADDR, 0x03, 1);
+
+            // Write the supplied command to the relevant register.
+            wCache[WRITE_CACHE_OFFSET] = command;
+
+        } finally {
+
+            // Ensure the cache is unlocked.
+            wLock.unlock();
+
+            // Signal portIsReady() to enable read mode when we're done.
+            controller_mode = I2CMode.WRITE;
+        }
+    }
+
+
+    I2cController calibratingController;
+    ModernRoboticsI2cColorSensor calibratingColorSensor;
+
+    /* When the I2C port is ready for read/write action, we may need to take
+     * different actions depending on what we have queued. We use the
+     * controller_mode variable to track the current state.
+     */
+    public synchronized void portIsReady(int port) {
+
+        // I'm not sure why this needs to take place.
+        calibratingController.setI2cPortActionFlag(port);
+        calibratingController.readI2cCacheFromController(port);
+
+        switch (controller_mode) {
+
+            // Flush the write cache and set up a reset on next cycle.
+            case WRITE:
+                calibratingController.writeI2cCacheToController(port);
+                controller_mode = I2CMode.RESET;
+                break;
+
+            // During reset, we move back to read mode.
+            case RESET:
+                calibratingController.enableI2cReadMode(port, COLOR_SENSOR_ADDR, 0x03, 6);
+                calibratingController.writeI2cCacheToController(port);
+                controller_mode = I2CMode.READ;
+                break;
+
+            // Let ModernRoboticsI2cColorSensor handle reading.
+            case READ:
+            default:
+                break;
+        }
+
+        // Allow the ModernRoboticsI2cColorSensor class to handle the rest of
+        // the portIsReady read/write cycle.
+        calibratingColorSensor.portIsReady(port);
+    }
+
+
+    // Enum for the controller_mode variable.
+    private enum I2CMode {
+        READ, WRITE, RESET
+    }
+
 
     private int currentGyroListPosition = 0;
 
