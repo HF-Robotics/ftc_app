@@ -22,13 +22,17 @@ package com.hfrobots.tnt.season1617;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.drive.CheesyDrive;
 import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.StateMachine;
+import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.hfrobots.tnt.corelib.state.ToggleState;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +51,8 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
     private State collectorReverseToggleState;
 
     private StateMachine particleShooterStateMachine;
+
+    private StateMachine ballGrabberStateMachine;
 
     private CheesyDrive cheesyDrive;
 
@@ -112,17 +118,20 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
             }
         };
 
-        particleShooterStateMachine = createShooterStateMachine();
+        particleShooterStateMachine = createShooterStateMachineForTeleop();
 
         cheesyDrive = new CheesyDrive(telemetry, drive,
                 driversGamepad.getLeftStickY(), driversGamepad.getRightStickX(),
                 driversGamepad.getAButton(), directionFlip, brakeNoBrake, halfSpeed);
+        ballGrabberStateMachine = createBallGrabberStateMachine();
     }
 
     @Override
     public void start() {
         super.start();
         logBatteryState("Teleop.start()");
+        beaconPusherUnderColorSensor.setPosition(0);
+        beaconPusherNoColorSensor.setPosition(0);
     }
 
     @Override
@@ -145,8 +154,13 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         handleDrive();
         handleCollector();
         handleParticleShooter();
+        handleBallGrabber();
         handleLift();
         updateGamepadTelemetry();
+    }
+
+    private void handleBallGrabber() {
+        ballGrabberStateMachine.doOneStateLoop();
     }
 
     /**
@@ -204,14 +218,14 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
 
             float rightStickYPosition = operatorsGamepad.getRightStickY().getPosition();
 
-            if (rightStickYPosition > 0) {
+            if (rightStickYPosition < 0) {
                 //Log.d("VV", "Tilting forks back");
 
-                tiltForksBack(rightStickYPosition * .025);
-            } else if (rightStickYPosition < 0) {
+                tiltForksBack(Math.abs(rightStickYPosition) * .025);
+            } else if (rightStickYPosition > 0) {
                 //Log.d("VV", "Tilting forks forward");
 
-                tiltForksForward(rightStickYPosition * 0.25);
+                tiltForksForward(Math.abs(rightStickYPosition) * 0.25);
             }
         } else {
             if (liftSafetyPressed) {
@@ -224,6 +238,160 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         }
     }
 
+    protected StateMachine createShooterStateMachineForTeleop() {
+        StateMachine shooterStateMachine = new StateMachine(telemetry);
+
+        State waitingForButtonPressState = new WaitForButton(particleShooterBouncy, telemetry);
+        State waitingForButtonReleaseState = new WaitForButtonRelease(particleShooterBouncy, telemetry);
+
+        addShooterStateMachine(shooterStateMachine, waitingForButtonPressState, waitingForButtonReleaseState, true);
+
+        return shooterStateMachine;
+    }
+
+    protected StateMachine createBallGrabberStateMachine() {
+        StateMachine ballGrabberStateMachine = new StateMachine(telemetry);
+        ballGrabberStateMachine.addSequential(new WaitForGrabBallCommandState(telemetry));
+        ballGrabberStateMachine.addSequential(new BallGrabServoState(telemetry)); // tilt the forks
+        ballGrabberStateMachine.addSequential(new DelayState("wait for the squeeze!", telemetry, 300, TimeUnit.MILLISECONDS));
+        ballGrabberStateMachine.addSequential(new LiftSlightlyUpState(telemetry)); // run the lift
+        ballGrabberStateMachine.addSequential(newDoneState("Done grabbing the ball"));
+
+        return ballGrabberStateMachine;
+    }
+
+    class WaitForGrabBallCommandState extends State {
+        public WaitForGrabBallCommandState(Telemetry telemetry) {
+            super("Waiting to grab ball", telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            if (liftSafety.isPressed()) {
+                telemetry.addData("99", "Lift safety OFF");
+                if (grabBallButton.getRise()) {
+                    Log.d("VV", "Operator called for auto-grab");
+                    return nextState;
+                } else {
+                    return this;
+                }
+            } else {
+                telemetry.addData("99", "Lift safety ON");
+            }
+
+            return this;
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class LiftSlightlyUpState extends TimeoutSafetyState {
+        boolean startedDrive = false;
+
+        long encoderCountForLift = 0;
+
+        public LiftSlightlyUpState(Telemetry telemetry) {
+            super("Lifting cap ball", telemetry, 10000);
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            //if (!startedDrive) {
+            //    liftDriveTrain.driveInches(-3, -1);
+            //    startedDrive = true;
+
+            //    return this;
+            //}
+
+            // fixme - use MR motor controllers for this, once we figure out why it's not working
+            if (encoderCountForLift == 0) {
+                encoderCountForLift = liftDriveTrain.getEncoderCountsForDriveInches(-3);
+                Log.d("VV", "Required encoder count for lift = " + encoderCountForLift);
+            }
+
+            if (encoderCountForLift < 0) {
+                liftMotor.setPower(-1);
+            } else {
+                liftMotor.setPower(1);
+            }
+
+            long currentEncoderCount = liftDriveTrain.getCurrentPosition();
+
+            telemetry.addData("98", "Lift encoder position = " + currentEncoderCount);
+
+            if (encoderCountForLift < 0) {
+                if (currentEncoderCount <= encoderCountForLift) {
+                    Log.d("VV", "Lift encoder count of " + currentEncoderCount + " <= " + encoderCountForLift);
+                    liftMotor.setPower(0);
+                    return nextState;
+                }
+            } else {
+                if (currentEncoderCount >= encoderCountForLift) {
+                    Log.d("VV", "Lift encoder count of " + currentEncoderCount + " >= " + encoderCountForLift);
+                    liftMotor.setPower(0);
+                    return nextState;
+                }
+            }
+
+
+            if (isTimedOut()) {
+                Log.d("VV", "Auto lifting timed out, stopping lift");
+                resetLiftMotor();
+
+                return nextState;
+            }
+
+            return this;
+        }
+
+        protected void resetLiftMotor() {
+            //liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            liftMotor.setPower(0);
+        }
+
+        @Override
+        public void resetToStart() {
+            startedDrive = false;
+        }
+
+    }
+
+    class BallGrabServoState extends State {
+
+        public BallGrabServoState(Telemetry telemetry) {
+            super("Ball grab servo squeeze", telemetry);
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            forkTiltServo.setPosition(0.07);
+            return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+            tiltForkServoToStartingPosition();
+        }
+    }
+
     private void handleDrive() {
         cheesyDrive.handleDrive();
     }
@@ -233,44 +401,4 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         telemetry.addData ("07", "GP1 Left y: " + -driverLeftStickY.getPosition());
     }
 
-    private StateMachine createShooterStateMachine() {
-        StateMachine shooterStateMachine = new StateMachine(telemetry);
-
-        State waitingForButtonPressState = new WaitForButton(particleShooterBouncy, telemetry);
-
-        shooterStateMachine.addSequential(waitingForButtonPressState);
-        shooterStateMachine.addSequential(new CollectorOffState(telemetry));
-
-        DelayState waitForCollectorOffState = new DelayState("wait for collector stop", telemetry, 500, TimeUnit.MILLISECONDS);
-        shooterStateMachine.addSequential(waitForCollectorOffState);
-
-        // Unjam the loader
-        shooterStateMachine.addSequential(new ShooterReverseState(telemetry));
-        DelayState waitForReverseState = new DelayState("wait for shooter reverse", telemetry, 150, TimeUnit.MILLISECONDS);
-        shooterStateMachine.addSequential(waitForReverseState);
-        shooterStateMachine.addSequential(new ShooterOffState(telemetry));
-
-        shooterStateMachine.addSequential(new ShooterOnState(telemetry));
-
-        DelayState waitForShooterSpeedState = new DelayState("wait for shooter speed", telemetry, 500, TimeUnit.MILLISECONDS);
-        shooterStateMachine.addSequential(waitForShooterSpeedState);
-
-
-        shooterStateMachine.addSequential(new CollectorOnState(telemetry));
-
-        // Wait for trigger release
-        shooterStateMachine.addSequential(new WaitForButtonRelease(particleShooterBouncy, telemetry));
-
-        // Done shooting
-        shooterStateMachine.addSequential(new ShooterOffState(telemetry));
-        shooterStateMachine.addSequential(new CollectorOnState(telemetry));
-
-        // Reset all delays
-        ResetDelaysState resetAllDelaysState = new ResetDelaysState(telemetry,
-                waitForCollectorOffState,  waitForShooterSpeedState, waitForReverseState);
-        shooterStateMachine.addSequential(resetAllDelaysState);
-        resetAllDelaysState.setNextState(waitingForButtonPressState); // back to the beginning!
-
-        return shooterStateMachine;
-    }
 }

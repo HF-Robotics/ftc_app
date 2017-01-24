@@ -79,10 +79,6 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
     @Override
     public void init() {
         super.init();
-        // FIXME: Once beacon claim route added, this becomes part of each state as needed
-        I2cDeviceEnableDisable colorSensorEnableDisable = new I2cDeviceEnableDisable(beaconColorSensor);
-        colorSensorEnableDisable.setEnabled(false); // To deal with increased latency with mult. i2c devices
-
         gyro.calibrate();
         setDefaults();
     }
@@ -252,6 +248,14 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
     }
 
     /**
+     * Creates an instance of the "done" state which stops the robot and should be the
+     * "end" state of all of our robot's state machines
+     */
+    protected State newDelayState() {
+        return newDelayState("start delay", initialDelaySeconds);
+    }
+
+    /**
      * Turns are relative to being in the red alliance. Because this game is exactly
      * mirror image, to get our routes working for the blue alliance we simply need to
      * reverse the direction of the turn
@@ -262,83 +266,6 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         }
 
         return origTurn.invert();
-    }
-
-    /**
-     * Creates an instance of the "done" state which stops the robot and should be the
-     * "end" state of all of our robot's state machines
-     */
-    private State newDoneState(String name) {
-        return new State(name, telemetry) {
-            private boolean issuedStop = false;
-
-            @Override
-            public State doStuffAndGetNextState() {
-                if (!issuedStop) {
-                    // TODO: "Hold" mode
-                    drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                    drive.drivePower(0, 0);
-
-                    issuedStop = true;
-                }
-
-                return this;
-            }
-
-            @Override
-            public void resetToStart() {
-                issuedStop = false;
-            }
-
-            @Override
-            public void liveConfigure(DebouncedGamepadButtons buttons) {
-
-            }
-        };
-    }
-
-    /**
-     * Creates an instance of the "done" state which stops the robot and should be the
-     * "end" state of all of our robot's state machines
-     */
-    private State newDelayState() {
-        return newDelayState("start delay", initialDelaySeconds);
-    }
-
-    private State newDelayState(String name, final int numberOfSeconds) {
-        return new State(name, telemetry) {
-
-            private long startTime = 0;
-            private long thresholdTimeMs = TimeUnit.SECONDS.toMillis(numberOfSeconds);
-
-            @Override
-            public void resetToStart() {
-                startTime = 0;
-            }
-
-            @Override
-            public void liveConfigure(DebouncedGamepadButtons buttons) {
-
-            }
-
-            @Override
-            public State doStuffAndGetNextState() {
-                if (startTime == 0) {
-                    startTime = System.currentTimeMillis();
-                    return this;
-                }
-
-                long now = System.currentTimeMillis();
-                long elapsedMs = now - startTime;
-
-                if (elapsedMs > thresholdTimeMs) {
-                    return nextState;
-                }
-
-                telemetry.addData("04", "Delay: %d of %d ms", elapsedMs, thresholdTimeMs);
-                return this;
-            }
-        };
     }
 
     private State parkOnRamp1() {

@@ -22,6 +22,7 @@ import android.util.Log;
 
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -80,6 +81,10 @@ public class StateMachine {
         this.doOverButton = doOverButton;
     }
 
+    public void setConfigureGamepad(NinjaGamePad configureGamepad) {
+        this.allGamePadButtons = new DebouncedGamepadButtons(configureGamepad);
+    }
+
     public String getCurrentStateName() {
         return currentState.getName();
     }
@@ -129,6 +134,7 @@ public class StateMachine {
         executedStates.push(state);
         addNewState(state);
         currentState = state;
+        firstState = state;
     }
 
     public void addStartDelay(long numberOfSeconds) {
@@ -176,6 +182,7 @@ public class StateMachine {
 
                     executedStates.clear();
 
+                    executedStates.push(firstState);
                     currentState = firstState;
                     isStateMachinePaused = true;
                 }

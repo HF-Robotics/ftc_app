@@ -66,6 +66,10 @@ public class TankDrive {
         return new SidedTargetPositions(leftTargetPosition, rightTargetPosition);
     }
 
+    public int getEncoderCountsForInchesTravel(double linearInchesToDrive) {
+        return leftDriveTrain.getEncoderCountsForDriveInches(linearInchesToDrive);
+    }
+
     /**
      * Sets the RunMode for motors powering both sides of this TankDrive
      * @param runMode

@@ -23,5 +23,13 @@ package com.hfrobots.tnt.corelib.units;
  */
 
 public enum RotationalDirection {
-    CLOCKWISE, COUNTER_CLOCKWISE
+    CLOCKWISE, COUNTER_CLOCKWISE;
+
+    public RotationalDirection reverse(RotationalDirection direction) {
+        if (direction == CLOCKWISE) {
+            return COUNTER_CLOCKWISE;
+        } else {
+            return CLOCKWISE;
+        }
+    }
 }

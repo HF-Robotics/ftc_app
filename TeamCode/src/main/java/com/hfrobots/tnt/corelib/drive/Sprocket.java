@@ -20,24 +20,16 @@
 package com.hfrobots.tnt.corelib.drive;
 
 /**
- * Simply holds diameters and computes circumferences of wheels that we commonly use.
+ * Holds number of teeth on a sprocket, used to compute gear ratios in DriveTrain.
  */
-public class Wheel {
+public class Sprocket {
+    private final int numTeeth;
 
-    public static Wheel andyMarkStealth() {
-        return new Wheel(4.0D);
+    public Sprocket(int numberTeeth){
+        numTeeth = numberTeeth;
     }
 
-    //Define your variables
-    double circumference;
-
-    //Define your constructor
-    public Wheel(double diameterInches) {
-        circumference = Math.PI * diameterInches;
-    }
-
-    //Define your method
-    public double getRevolutionsForDistance(double distance) {
-        return distance / circumference;
+    public int getNumTeeth(){
+        return numTeeth;
     }
 }

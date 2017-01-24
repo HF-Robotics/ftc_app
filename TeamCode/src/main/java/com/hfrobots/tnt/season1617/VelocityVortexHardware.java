@@ -32,10 +32,12 @@ import com.hfrobots.tnt.corelib.drive.DualDcMotor;
 import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.hfrobots.tnt.corelib.drive.Gear;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
+import com.hfrobots.tnt.corelib.drive.Sprocket;
 import com.hfrobots.tnt.corelib.drive.TankDrive;
 import com.hfrobots.tnt.corelib.drive.Wheel;
 import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
+import com.hfrobots.tnt.corelib.state.StateMachine;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsAnalogOpticalDistanceSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
@@ -54,6 +56,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 public abstract class VelocityVortexHardware extends OpMode {
 
@@ -104,14 +107,19 @@ public abstract class VelocityVortexHardware extends OpMode {
     protected ModernRoboticsI2cGyro gyro;
 
     protected OnOffButton shooterTrigger;
+
     protected ExtendedDcMotor leftMotor1;
     protected ExtendedDcMotor rightMotor1;
+    protected ExtendedDcMotor leftMotor2;
+    protected ExtendedDcMotor rightMotor2;
 
     protected OnOffButton liftSafety;
 
     protected RangeInput liftThrottle;
 
     protected DcMotor liftMotor;
+
+    protected DriveTrain liftDriveTrain;
 
     protected OnOffButton brakeNoBrake;
 
@@ -127,6 +135,11 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected Servo forkTiltServo;
 
+    protected Servo beaconPusherUnderColorSensor;
+
+    protected Servo beaconPusherNoColorSensor;
+
+
     protected final double FORK_TILT_SERVO_REST_POSITION = 0.89;
 
     protected double forkTiltServoPosition = FORK_TILT_SERVO_REST_POSITION;
@@ -135,15 +148,14 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected ModernRoboticsI2cColorSensor beaconColorSensor;
 
-    protected OpticalDistanceSensor lineOdsSensor;
-
-    protected TouchSensor beaconTouchSensor;
     protected boolean shooterOn = false; // track state to not log every time through loop()
     protected boolean shooterReverse = false;
 
     protected OnOffButton particleShooterBouncy;
 
     protected DebouncedButton particleShooterDebounced;
+
+    protected DebouncedButton grabBallButton;
 
     /**
      * Initialize the hardware ... this class requires the following hardware map names
@@ -166,20 +178,26 @@ public abstract class VelocityVortexHardware extends OpMode {
         try {
             setupDriverControls();
             setupOperatorControls();
-            setupBeaconSensors();
-            setupLineFollower();
 
             liftLockServo = hardwareMap.servo.get("liftLockServo");
             forkTiltServo = hardwareMap.servo.get("forkTiltServo");
             lockForks();
-            forkTiltServo.setPosition(forkTiltServoPosition);
+            tiltForkServoToStartingPosition();
+
+            beaconColorSensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, "beaconColorSensor");
+            beaconPusherNoColorSensor = hardwareMap.servo.get("beaconPusherNoColorSensor");
+            beaconPusherUnderColorSensor = hardwareMap.servo.get("beaconPusherUnderColorSensor");
+            beaconPusherNoColorSensor.setPosition(.12);
+            beaconPusherUnderColorSensor.setPosition(.12);
+            //beaconPusherUnderColorSensor.setPosition(0);
+            //beaconPusherNoColorSensor.setPosition(0);
 
             collectorMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("collectorMotor"));
 
-            leftMotor1 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("leftDrive1"));
-            ExtendedDcMotor leftMotor2 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("leftDrive2"));
-            rightMotor1 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("rightDrive1"));
-            ExtendedDcMotor rightMotor2 = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("rightDrive2"));
+            leftMotor1 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("leftDrive1"));
+            leftMotor2 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("leftDrive2"));
+            rightMotor1 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("rightDrive1"));
+            rightMotor2 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("rightDrive2"));
             DualDcMotor leftMotor = new DualDcMotor(leftMotor1, leftMotor2);
             DualDcMotor rightMotor = new DualDcMotor(rightMotor1, rightMotor2);
 
@@ -197,24 +215,31 @@ public abstract class VelocityVortexHardware extends OpMode {
             gyro = hardwareMap.get(ModernRoboticsI2cGyro.class, "gyro");
 
             liftMotor = hardwareMap.dcMotor.get("liftMotor");
+            setupLiftDriveTrain();
 
             Iterator<VoltageSensor> voltageSensors = hardwareMap.voltageSensor.iterator();
             if (voltageSensors.hasNext()) {
                 voltageSensor = voltageSensors.next();
             }
+
+
         } catch (NullPointerException npe) {
             Log.d("VV", "NPE", npe);
             throw npe;
         }
     }
 
-    private void setupBeaconSensors() {
-        beaconTouchSensor = hardwareMap.touchSensor.get("beaconTouchSensor");
-        beaconColorSensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, "beaconColorSensor");
+    private void setupLiftDriveTrain() {
+        Wheel spoolWheel = new Wheel(1);
+        ExtendedDcMotor liftNinjaMotor = NinjaMotor.asNeverest40(liftMotor);
+        liftNinjaMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        liftDriveTrain = new DriveTrain("Cap ball lift", spoolWheel,
+                RotationalDirection.CLOCKWISE.reverse(liftNinjaMotor.getMotorNativeDirection()), liftNinjaMotor ,
+                new Sprocket[] { new Sprocket(1), new Sprocket(1)});
     }
 
-    private void setupLineFollower() {
-        lineOdsSensor = hardwareMap.opticalDistanceSensor.get("lineOdsSensor");
+    protected void tiltForkServoToStartingPosition() {
+        forkTiltServo.setPosition(FORK_TILT_SERVO_REST_POSITION);
     }
 
     private void setupOperatorControls() {
@@ -227,7 +252,7 @@ public abstract class VelocityVortexHardware extends OpMode {
         shooterTrigger = operatorsGamepad.getRightBumper();
         liftSafety = new RangeInputButton(operatorsGamepad.getLeftTrigger(), 0.65f);
         liftThrottle = operatorsGamepad.getLeftStickY();
-
+        grabBallButton = new DebouncedButton(new RangeInputButton(operatorsGamepad.getRightTrigger(), 0.65f));
 
     }
 
@@ -323,11 +348,13 @@ public abstract class VelocityVortexHardware extends OpMode {
             forkTiltServoPosition = 0;
         }
 
+        Log.d("VV", "fork tilt servo position = " + forkTiltServoPosition);
+
         forkTiltServo.setPosition(forkTiltServoPosition);
     }
 
     protected void tiltForksForward(double amountMore) {
-        forkTiltServoPosition -= amountMore;
+        forkTiltServoPosition += amountMore;
 
         if (forkTiltServoPosition >= FORK_TILT_SERVO_REST_POSITION) {
             forkTiltServoPosition = FORK_TILT_SERVO_REST_POSITION;
@@ -373,6 +400,113 @@ public abstract class VelocityVortexHardware extends OpMode {
         }
         topParticleShooter.setPower(-0.3);
         bottomParticleShooter.setPower(-0.3);
+    }
+
+    protected void addShooterStateMachine(StateMachine stateMachine, State startShooterState, State stopShooterState, boolean endless) {
+        stateMachine.addSequential(startShooterState);
+        stateMachine.addSequential(new CollectorOffState(telemetry));
+
+        DelayState waitForCollectorOffState = new DelayState("wait for collector stop", telemetry, 500, TimeUnit.MILLISECONDS);
+        stateMachine.addSequential(waitForCollectorOffState);
+
+        // Unjam the loader
+        stateMachine.addSequential(new ShooterReverseState(telemetry));
+        DelayState waitForReverseState = new DelayState("wait for shooter reverse", telemetry, 150, TimeUnit.MILLISECONDS);
+        stateMachine.addSequential(waitForReverseState);
+        stateMachine.addSequential(new ShooterOffState(telemetry));
+
+        stateMachine.addSequential(new ShooterOnState(telemetry));
+
+        DelayState waitForShooterSpeedState = new DelayState("wait for shooter speed", telemetry, 500, TimeUnit.MILLISECONDS);
+        stateMachine.addSequential(waitForShooterSpeedState);
+
+
+        stateMachine.addSequential(new CollectorOnState(telemetry));
+
+        // Wait for stop shooting signal release
+        stateMachine.addSequential(stopShooterState);
+
+        // Done shooting
+        stateMachine.addSequential(new ShooterOffState(telemetry));
+        stateMachine.addSequential(new CollectorOnState(telemetry));
+
+        // Reset all delays
+        ResetDelaysState resetAllDelaysState = new ResetDelaysState(telemetry,
+                waitForCollectorOffState,  waitForShooterSpeedState, waitForReverseState);
+        stateMachine.addSequential(resetAllDelaysState);
+
+        if (endless) {
+            resetAllDelaysState.setNextState(startShooterState); // back to the beginning!
+        }
+    }
+
+    /**
+     * Creates an instance of the "done" state which stops the robot and should be the
+     * "end" state of all of our robot's state machines
+     */
+    protected State newDoneState(String name) {
+        return new State(name, telemetry) {
+            private boolean issuedStop = false;
+
+            @Override
+            public State doStuffAndGetNextState() {
+                if (!issuedStop) {
+                    // TODO: "Hold" mode
+                    drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    drive.drivePower(0, 0);
+
+                    issuedStop = true;
+                }
+
+                return this;
+            }
+
+            @Override
+            public void resetToStart() {
+                issuedStop = false;
+            }
+
+            @Override
+            public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+            }
+        };
+    }
+
+    protected State newDelayState(String name, final int numberOfSeconds) {
+        return new State(name, telemetry) {
+
+            private long startTime = 0;
+            private long thresholdTimeMs = TimeUnit.SECONDS.toMillis(numberOfSeconds);
+
+            @Override
+            public void resetToStart() {
+                startTime = 0;
+            }
+
+            @Override
+            public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+            }
+
+            @Override
+            public State doStuffAndGetNextState() {
+                if (startTime == 0) {
+                    startTime = System.currentTimeMillis();
+                    return this;
+                }
+
+                long now = System.currentTimeMillis();
+                long elapsedMs = now - startTime;
+
+                if (elapsedMs > thresholdTimeMs) {
+                    return nextState;
+                }
+
+                telemetry.addData("04", "Delay: %d of %d ms", elapsedMs, thresholdTimeMs);
+                return this;
+            }
+        };
     }
 
     class WaitForButton extends State {

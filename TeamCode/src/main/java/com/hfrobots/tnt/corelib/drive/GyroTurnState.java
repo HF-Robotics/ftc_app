@@ -36,12 +36,12 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  */
 public class GyroTurnState extends TimeoutSafetyState {
     private static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
-    private static final double     P_TURN_COEFF            = 0.1;     // Larger is more responsive, but also less stable
+    private double     P_TURN_COEFF            = 0.1;     // Larger is more responsive, but also less stable
 
     private final TankDrive drive;
     private final ModernRoboticsI2cGyro gyro;
-    private final Turn turn;
-    private final double initialPower;
+    private Turn turn;
+    private double initialPower;
 
     private int targetHeading = Integer.MIN_VALUE;
 
@@ -85,11 +85,32 @@ public class GyroTurnState extends TimeoutSafetyState {
     @Override
     public void resetToStart() {
         super.resetToStart();
+        targetHeading = Integer.MIN_VALUE;
     }
 
     @Override
     public void liveConfigure(DebouncedGamepadButtons buttons) {
+        if (buttons.getDpadRight().getRise()) {
+            P_TURN_COEFF += 0.05;
+        } else if (buttons.getDpadLeft().getRise()) {
+            P_TURN_COEFF -= 0.05;
+        }
 
+        if (buttons.getDpadUp().getRise()) {
+            turn = new Turn(turn.getDirection(), turn.getDegrees() + 1);
+        } else if (buttons.getDpadDown().getRise()) {
+            turn = new Turn(turn.getDirection(), turn.getDegrees() - 1);
+        }
+
+        if (buttons.getLeftBumper().getRise()) {
+            initialPower -= 0.05;
+        } else if (buttons.getRightBumper().getRise()) {
+            initialPower += 0.05;
+        }
+
+        telemetry.addData("03", "Turn " + turn.getHeading());
+        telemetry.addData("04", "Initial power " + initialPower);
+        telemetry.addData("05", "P_TURN_COEFF " + P_TURN_COEFF);
     }
 
     // re-use of Pushbot gyro steer

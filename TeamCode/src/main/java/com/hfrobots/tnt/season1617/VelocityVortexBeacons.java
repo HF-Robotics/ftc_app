@@ -21,11 +21,14 @@ package com.hfrobots.tnt.season1617;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.drive.DriveInchesState;
 import com.hfrobots.tnt.corelib.drive.DriveUntilTouchState;
 import com.hfrobots.tnt.corelib.drive.GyroTurnState;
+import com.hfrobots.tnt.corelib.drive.ProportionalDriveInchesState;
 import com.hfrobots.tnt.corelib.drive.Turn;
+import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.StateMachine;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
@@ -36,13 +39,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.concurrent.TimeUnit;
 
-//@Autonomous(name="VV Beacons")
+@Autonomous(name="VV Beacons")
 @SuppressWarnings("unused")
 public class VelocityVortexBeacons extends VelocityVortexHardware {
 
     private static final double POWER_LEVEL = 0.4;
 
     private static final String LOG_TAG = "TNT Auto";
+    private static final double OUT_POSITION = .62;
     private StateMachine stateMachine = null;
 
     // The routes our robot knows how to do
@@ -231,56 +235,142 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         return origTurn.invert();
     }
 
-    /**
-     * Creates an instance of the "done" state which stops the robot and should be the
-     * "end" state of all of our robot's state machines
-     */
-    private State newDoneState(String name) {
-        return new State(name, telemetry) {
-            private boolean issuedStop = false;
+    private StateMachine parkOnRamp3() {
+        StateMachine stateMachine = new StateMachine(telemetry);
 
-            @Override
-            public State doStuffAndGetNextState() {
-                if (!issuedStop) {
-                    // TODO: "Hold" mode
-                    drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                    drive.drivePower(0, 0);
+        // Setup debugger controls
+        stateMachine.setDoOverButton(driverBRedButton);
+        stateMachine.setGoBackButton(driverYYellowButton);
+        stateMachine.setGoButton(driverAGreenButton);
+        stateMachine.setConfigureGamepad(operatorsGamepad);
+        stateMachine.startDebugging();
 
-                    issuedStop = true;
-                }
+        // This is only for testing now, remove when we make this real for the match
+        DelayState dummyDelayState = new DelayState("Dummy", telemetry, 1);
+        stateMachine.addSequential(dummyDelayState);
 
-                return this;
-            }
+        //(1)forward 5"
+        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+                "State 1 - drive forward", drive, telemetry, 5 /* inches */,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step1DriveState);
 
-            @Override
-            public void resetToStart() {
-                issuedStop = false;
-            }
+        //(2)turn 45 CCW
+        State step2TurnState = new GyroTurnState("Step 2 turn", drive,
+                gyro,
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        stateMachine.addSequential(step2TurnState);
 
-            @Override
-            public void liveConfigure(DebouncedGamepadButtons buttons) {
+        //(3)forward 32.5"
+        ProportionalDriveInchesState step3DriveState = new ProportionalDriveInchesState(
+                "State 3 - drive forward", drive, telemetry, 32.5 /* inches */,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step3DriveState);
 
-            }
-        };
+        //(4)stop and shoot
+        addParticleShooterForAuto(stateMachine);
+
+        //(5)turn 68.2 CCW
+        State step5TurnState = new GyroTurnState("Step 5 turn", drive,
+                gyro,
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 68)),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        stateMachine.addSequential(step5TurnState);
+
+        //(6) forward 49"
+        ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
+                "State 6 - drive forward", drive, telemetry, 49 /* inches */,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step6DriveState);
+        // (8????) Done
+        stateMachine.addSequential(newDoneState("Park on ramp 3 done"));
+
+        return stateMachine;
     }
 
     private StateMachine claimClosestBeacon() {
         StateMachine stateMachine = new StateMachine(telemetry);
 
-        // (1) Drive forward until touch sensor is pressed
-        State moveForwardState = new DriveUntilTouchState("Forward until touch sensor", drive, telemetry, beaconTouchSensor, 0.25, 3000);
+        // Setup debugger controls
+        stateMachine.setDoOverButton(driverBRedButton);
+        stateMachine.setGoBackButton(driverYYellowButton);
+        stateMachine.setGoButton(driverAGreenButton);
+        stateMachine.setConfigureGamepad(operatorsGamepad);
+        stateMachine.startDebugging();
 
-        stateMachine.setFirstState(moveForwardState);
+        // This is only for testing now, remove when we make this real for the match
+        DelayState dummyDelayState = new DelayState("Dummy", telemetry, 1);
+        stateMachine.addSequential(dummyDelayState);
 
-        // (2) Detect beacon color and press button
-        State detectAndPressBeaconState = new BeaconPusherState(telemetry);
-        moveForwardState.setNextState(detectAndPressBeaconState);
-        State doneState = newDoneState("Claim closest beacon done");
-        detectAndPressBeaconState.setNextState(doneState);
-        stateMachine.addNewState(detectAndPressBeaconState);
-        stateMachine.addNewState(doneState);
+        // (1) Drive forward 16"
+
+        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+                "State 1 - drive forward", drive, telemetry, 16 /* inches */,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step1DriveState);
+
+
+        // (2) Particle Shoot
+        // (2a) - Need a state for "waiting" for button press, a DelayState?
+
+        addParticleShooterForAuto(stateMachine);
+
+        // (3) Turn 90 degrees CCW
+
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
+                gyro,
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 90)),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        stateMachine.addSequential(step3TurnState);
+
+        // (4) Drive forward 16.5"
+        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+                "State 4 - drive forward", drive, telemetry, 16.5 /* inches */,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step4DriveState);
+
+        // (5) Turn 90 degrees CW
+        State step5TurnState = new GyroTurnState("Step 5 turn", drive,
+                gyro,
+                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 90)),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        stateMachine.addSequential(step5TurnState);
+
+        // (6) Forward 18" (should be in place to press beacons)
+        ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
+                "State 6 - drive forward", drive, telemetry, 18 /* inches */,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step6DriveState);
+
+        // (7) Detect beacon color and press button
+        stateMachine.addSequential(new BeaconPusherState(telemetry));
+
+        // (8) Done
+        stateMachine.addSequential(newDoneState("Beacon press done"));
 
         return stateMachine;
+    }
+
+    private void addParticleShooterForAuto(StateMachine stateMachine) {
+        State step2aSettleState = new DelayState("Wait to shoot", telemetry,
+                250, TimeUnit.MILLISECONDS);
+
+        // (2b) - Need a state for waiting to "release" the button, another DelayState?
+
+        State step2bWaitForParticlesState = new DelayState("Wait to shoot", telemetry,
+                3, TimeUnit.SECONDS);
+
+        // PEW PEW!
+        addShooterStateMachine(stateMachine, step2aSettleState, step2bWaitForParticlesState, false);
     }
 
     class BeaconPusherState extends State {
@@ -294,38 +384,38 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
             int redColorReading = beaconColorSensor.red();
             int greenColorReading = beaconColorSensor.green();
 
-            // TODO: We should attempt to get the color a few times until we're satisfied
-            // we have a good reading (it's registering not blue, but not some other wacky color)
-
             // Better not get this wrong, it's 30 points for the other team if you do
 
             // TODO: What can/should we do to determine if color sensor isn't sensing correctly? If
 
-            if (blueColorReading >= 5) {
-                Log.d("VV", "Detected blue on detector side (" + blueColorReading + ")");
-                // We detect blue (not red), the color sensor is on the left side,
-                // so depending on what it sees, do the alliance-specific action
+            // "in" on the linear servo is .setPosition(0)
+            // "push" on the linear servo is .setPosition(.60somethingorother).
+            // if (seeRed) { // push something } else if (seeBlue) { // push something} else { // error }
+
+            if (redColorReading > 50 && blueColorReading < 50 && greenColorReading < 50) {
                 if (currentAlliance == Alliance.RED) {
-                    //pick the right side (not the wrong one)
-                    telemetry.addData("01", "Pushing right side of beacon");
-                    Log.d("VV", "Pushing right side of beacon");
+                    beaconPusherUnderColorSensor.setPosition(OUT_POSITION);
+                    beaconPusherNoColorSensor.setPosition(0);
                 } else {
-                    telemetry.addData("01", "Pushing left side of beacon");
-                    Log.d("VV", "Pushing left side of beacon");
+                    // blue alliance
+                    beaconPusherUnderColorSensor.setPosition(0);
+                    beaconPusherNoColorSensor.setPosition(OUT_POSITION);
+                }
+            } else if ( blueColorReading > 50 && redColorReading < 50 && greenColorReading < 50 ) {
+                if (currentAlliance == Alliance.BLUE) {
+                    beaconPusherUnderColorSensor.setPosition(OUT_POSITION);
+                    beaconPusherNoColorSensor.setPosition(0);
+                } else {
+                    //red alliance
+                    beaconPusherUnderColorSensor.setPosition(0);
+                    beaconPusherNoColorSensor.setPosition(OUT_POSITION);
                 }
             } else {
-                Log.d("VV", "Detected not blue on detector side (" + blueColorReading + ")");
-                if (currentAlliance == Alliance.RED) {
-                    //pick the right side (not the wrong one)
-                    telemetry.addData("01", "Pushing left side of beacon");
-                    Log.d("VV", "Pushing left side of beacon");
-                } else {
-                    telemetry.addData("01", "Pushing right side of beacon");
-                    Log.d("VV", "Pushing right side of beacon");
-                }
+                Log.d("VV", "Did not see red or blue, not pushing beacon, observed values "
+                        + redColorReading + ", " + greenColorReading + ", " + blueColorReading);
             }
 
-            return this;
+            return nextState;
         }
 
         @Override

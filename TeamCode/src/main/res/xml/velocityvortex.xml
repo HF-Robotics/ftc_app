@@ -36,12 +36,12 @@ SOFTWARE.
     </MotorController>
     <DeviceInterfaceModule name="Device Interface Module 1" serialNumber="AL00VEZR">
         <Gyro name="gyro" port="0"/>
-        <TouchSensor name="beaconTouchSensor" port="0" />
         <ColorSensor name="beaconColorSensor" port="1"/>
-        <OpticalDistanceSensor name="lineOdsSensor" port="1"/>
     </DeviceInterfaceModule>
     <ServoController name="Servo Controller 1" serialNumber="AL00XOIU">
         <Servo name="liftLockServo" port="1"/>
         <Servo name="forkTiltServo" port="2"/>
+        <Servo name="beaconPusherNoColorSensor" port="5"/>
+        <Servo name="beaconPusherUnderColorSensor" port="6"/>
     </ServoController>
 </Robot>

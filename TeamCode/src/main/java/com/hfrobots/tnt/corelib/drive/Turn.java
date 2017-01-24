@@ -55,6 +55,14 @@ public class Turn {
         return asHeading;
     }
 
+    public int getDegrees() {
+        return degrees;
+    }
+
+    public RotationalDirection getDirection() {
+        return direction;
+    }
+
     /**
      * Returns an inverted representation of this Turn (i.e. for the opposite alliance)
      */

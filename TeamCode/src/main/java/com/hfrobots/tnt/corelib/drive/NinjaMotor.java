@@ -59,7 +59,7 @@ public class NinjaMotor implements ExtendedDcMotor {
         Log.d("VV", "asNeverest40(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
 
-        return new NinjaMotor(dcMotor, COUNTER_CLOCKWISE, 280);
+        return new NinjaMotor(dcMotor, COUNTER_CLOCKWISE, 1120);
     }
 
     /**

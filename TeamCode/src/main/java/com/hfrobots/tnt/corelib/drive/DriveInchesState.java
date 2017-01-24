@@ -36,12 +36,12 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * or run competing PID loops (no way to synchronize).
  */
 public class DriveInchesState extends TimeoutSafetyState {
-    private final TankDrive drive;
-    private final double powerLevel;
-    private final double inchesToDrive;
-    private boolean driveStarted = false;
-    private TankDrive.SidedTargetPositions targetPositions;
-    private final static long THRESHOLD_ENCODER_VALUE = 10;
+    protected final TankDrive drive;
+    protected final double powerLevel;
+    protected final double inchesToDrive;
+    protected boolean driveStarted = false;
+    protected TankDrive.SidedTargetPositions targetPositions;
+    protected final static long THRESHOLD_ENCODER_VALUE = 10;
 
 
     /**
@@ -64,7 +64,6 @@ public class DriveInchesState extends TimeoutSafetyState {
     @Override
     public State doStuffAndGetNextState() {
         if (!driveStarted) {
-            // we need to do something here to drive using encoders, what?
             targetPositions = drive.getTargetPositionsForInchesTravel(inchesToDrive);
             drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             drive.drivePower(powerLevel, powerLevel);
@@ -104,7 +103,19 @@ public class DriveInchesState extends TimeoutSafetyState {
             return nextState;
         }
 
+        double[] newPowerLevels = calculateNewPowerLevels(currentPositions, targetPositions);
+        drive.drivePower(newPowerLevels[0], newPowerLevels[1]);
+
         return this;
+    }
+
+    /**
+     * Calculate new left/right power levels based on current encoder values (or other sensors
+     * in subclasses)
+     */
+    protected double[] calculateNewPowerLevels(TankDrive.SidedTargetPositions currentPositions,
+                                               TankDrive.SidedTargetPositions targetPositions) {
+        return new double[] { powerLevel, powerLevel };
     }
 
     @Override
