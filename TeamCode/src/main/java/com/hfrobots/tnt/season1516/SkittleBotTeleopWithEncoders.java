@@ -21,7 +21,7 @@ package com.hfrobots.tnt.season1516;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name="Skittlebot Teleop - Encoders")
+//@TeleOp(name="Skittlebot Teleop - Encoders")
 public class SkittleBotTeleopWithEncoders extends SkittleBotTeleop {
     public SkittleBotTeleopWithEncoders() {
         super();

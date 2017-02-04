@@ -165,6 +165,7 @@ public class SensorTester extends OpMode implements I2cController.I2cPortReadyCa
     private void doOdsSensorLoop() {
         namedOdsSensors = namedDeviceMap.getAll(OpticalDistanceSensor.class);
 
+
         if (namedOdsSensors.isEmpty()) {
             telemetry.addData("No optical distance sensors", "");
             updateTelemetry(telemetry);
@@ -179,7 +180,7 @@ public class SensorTester extends OpMode implements I2cController.I2cPortReadyCa
             }
         }
 
-        NamedDeviceMap.NamedDevice<OpticalDistanceSensor> currentNamedOdsSensor = namedOdsSensors.get(currentRangeSensorListPosition);
+        NamedDeviceMap.NamedDevice<OpticalDistanceSensor> currentNamedOdsSensor = namedOdsSensors.get(currentOpticalDistanceSensorListPosition);
         OpticalDistanceSensor currentOdsSensor = currentNamedOdsSensor.getDevice();
         String sensorName = currentNamedOdsSensor.getName();
         telemetry.addData("ODS ",  "%s", sensorName);

@@ -514,29 +514,6 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         return step2DriveState;
     }
 
-    class CollectorRunningOutwardsState extends State {
-
-        public CollectorRunningOutwardsState(Telemetry telemetry) {
-            super("Collector run outwards", telemetry);
-        }
-
-        @Override
-        public State doStuffAndGetNextState() {
-            runParticleCollectorOutwards();
-            return nextState;
-        }
-
-        @Override
-        public void resetToStart() {
-            particleCollectorOff();
-        }
-
-        @Override
-        public void liveConfigure(DebouncedGamepadButtons buttons) {
-
-        }
-    }
-
     class CollectorStopState extends State {
         public CollectorStopState(Telemetry telemetry) {
             super("Collector stop", telemetry);

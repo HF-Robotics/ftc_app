@@ -70,7 +70,7 @@ public class ProportionalDriveInchesState extends DriveInchesState {
             loggedProportionalMode = true;
         }
 
-        double proportion = (double)currentError/(double)slowDownEncoderCount;
+        double proportion = (double)currentError / (double)slowDownEncoderCount;
 
         double proportionalPowerLevel = powerLevel * proportion;
 

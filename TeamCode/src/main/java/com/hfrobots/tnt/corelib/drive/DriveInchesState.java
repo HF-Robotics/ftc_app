@@ -25,6 +25,7 @@ import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -42,7 +43,7 @@ public class DriveInchesState extends TimeoutSafetyState {
     protected boolean driveStarted = false;
     protected TankDrive.SidedTargetPositions targetPositions;
     protected final static long THRESHOLD_ENCODER_VALUE = 10;
-
+    protected final DcMotorSimple.Direction driveDirection;
 
     /**
      * Constructs a state machine state that will drive the TankDrive the number of inches (- is reverse)
@@ -55,16 +56,32 @@ public class DriveInchesState extends TimeoutSafetyState {
                             double inchesToDrive,
                             double powerLevel,
                             long safetyTimeoutMillis) {
+        this(name, drive, telemetry, inchesToDrive, powerLevel, DcMotorSimple.Direction.FORWARD, safetyTimeoutMillis);
+    }
+
+    public DriveInchesState(String name, TankDrive drive,
+                            Telemetry telemetry,
+                            double inchesToDrive,
+                            double powerLevel,
+                            DcMotorSimple.Direction direction,
+                            long safetyTimeoutMillis) {
         super(name, telemetry, safetyTimeoutMillis);
         this.drive = drive;
         this.powerLevel = powerLevel;
         this.inchesToDrive = inchesToDrive;
+        this.driveDirection = direction;
     }
+
 
     @Override
     public State doStuffAndGetNextState() {
         if (!driveStarted) {
             targetPositions = drive.getTargetPositionsForInchesTravel(inchesToDrive);
+
+            if (driveDirection != DcMotorSimple.Direction.FORWARD) {
+                drive.setDirection(DcMotorSimple.Direction.REVERSE);
+            }
+
             drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             drive.drivePower(powerLevel, powerLevel);
             driveStarted = true;
@@ -78,22 +95,11 @@ public class DriveInchesState extends TimeoutSafetyState {
                 + targetPositions.getRightTargetPosition() + "/" + currentPositions.getLeftTargetPosition() + "/"
                 + currentPositions.getRightTargetPosition());
 
-        if (currentPositions.getLeftTargetPosition() >= targetPositions.getLeftTargetPosition() ||
-                currentPositions.getRightTargetPosition() >= targetPositions.getRightTargetPosition()) {
-            Log.d("VV", "Encoder positions met or exceeded - stopping drive");
+        if (isTargetReached(currentPositions)) {
+            Log.d("VV", "Target reached - stopping drive");
             stopDriving();
 
             return nextState;
-        }
-
-        long leftDifference = Math.abs(targetPositions.getLeftTargetPosition() - currentPositions.getLeftTargetPosition());
-        long rightDifference = Math.abs(targetPositions.getRightTargetPosition() - currentPositions.getRightTargetPosition());
-
-        if (leftDifference < THRESHOLD_ENCODER_VALUE && rightDifference < THRESHOLD_ENCODER_VALUE) {
-                Log.d("VV", "Encoder positions reached w/in threshold - stopping drive");
-                stopDriving();
-
-                return nextState;
         }
 
         if (isTimedOut()) {
@@ -107,6 +113,31 @@ public class DriveInchesState extends TimeoutSafetyState {
         drive.drivePower(newPowerLevels[0], newPowerLevels[1]);
 
         return this;
+    }
+
+    /**
+     * Is the current target position reached? In this class, this is evaluated simply
+     * on encoder counts being exceeded or w/in thresholds. Sub-classes may provide
+     * more complex behavior (range/distance sensing)
+     */
+    protected boolean isTargetReached(TankDrive.SidedTargetPositions currentPositions) {
+        if (currentPositions.getLeftTargetPosition() >= targetPositions.getLeftTargetPosition() ||
+                currentPositions.getRightTargetPosition() >= targetPositions.getRightTargetPosition()) {
+            Log.d("VV", "Encoder positions met or exceeded - target reached");
+
+            return true;
+        }
+
+        long leftDifference = Math.abs(targetPositions.getLeftTargetPosition() - currentPositions.getLeftTargetPosition());
+        long rightDifference = Math.abs(targetPositions.getRightTargetPosition() - currentPositions.getRightTargetPosition());
+
+        if (leftDifference < THRESHOLD_ENCODER_VALUE && rightDifference < THRESHOLD_ENCODER_VALUE) {
+            Log.d("VV", "Encoder positions reached w/in threshold - target reached");
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -135,5 +166,9 @@ public class DriveInchesState extends TimeoutSafetyState {
         drive.drivePower(0, 0);
         // (2) "reset" the motors/drive train to a "normal" state, which is?
         drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        if (driveDirection != DcMotorSimple.Direction.FORWARD) {
+            drive.setDirection(DcMotorSimple.Direction.FORWARD); // back to normal
+        }
     }
 }

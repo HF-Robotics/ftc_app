@@ -42,6 +42,7 @@ import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsAnalogOpticalDistanceSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -59,6 +60,9 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 public abstract class VelocityVortexHardware extends OpMode {
+
+    protected static final double BEACON_PUSHER_OUT_POSITION = 1;
+    protected static final double BEACON_PUSHER_IN_POSITION = 0.12;
 
     protected NinjaGamePad driversGamepad;
 
@@ -149,6 +153,7 @@ public abstract class VelocityVortexHardware extends OpMode {
     protected ModernRoboticsI2cColorSensor beaconColorSensor;
 
     protected boolean shooterOn = false; // track state to not log every time through loop()
+
     protected boolean shooterReverse = false;
 
     protected OnOffButton particleShooterBouncy;
@@ -156,6 +161,15 @@ public abstract class VelocityVortexHardware extends OpMode {
     protected DebouncedButton particleShooterDebounced;
 
     protected DebouncedButton grabBallButton;
+
+    protected OpticalDistanceSensor inboardLineSensor;
+
+    protected OpticalDistanceSensor outboardLineSensor;
+
+    protected OpticalDistanceSensor beaconDistanceSensor;
+
+    protected ModernRoboticsI2cRangeSensor redAllianceWallRangeSensor;
+
 
     /**
      * Initialize the hardware ... this class requires the following hardware map names
@@ -177,44 +191,19 @@ public abstract class VelocityVortexHardware extends OpMode {
 
         try {
             setupDriverControls();
+
             setupOperatorControls();
 
-            liftLockServo = hardwareMap.servo.get("liftLockServo");
-            forkTiltServo = hardwareMap.servo.get("forkTiltServo");
-            lockForks();
-            tiltForkServoToStartingPosition();
+            setupLiftAndForks();
 
-            beaconColorSensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, "beaconColorSensor");
-            beaconPusherNoColorSensor = hardwareMap.servo.get("beaconPusherNoColorSensor");
-            beaconPusherUnderColorSensor = hardwareMap.servo.get("beaconPusherUnderColorSensor");
-            beaconPusherNoColorSensor.setPosition(.12);
-            beaconPusherUnderColorSensor.setPosition(.12);
-            //beaconPusherUnderColorSensor.setPosition(0);
-            //beaconPusherNoColorSensor.setPosition(0);
+            setupBeaconPusher();
 
-            collectorMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("collectorMotor"));
+            setupDrive();
 
-            leftMotor1 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("leftDrive1"));
-            leftMotor2 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("leftDrive2"));
-            rightMotor1 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("rightDrive1"));
-            rightMotor2 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("rightDrive2"));
-            DualDcMotor leftMotor = new DualDcMotor(leftMotor1, leftMotor2);
-            DualDcMotor rightMotor = new DualDcMotor(rightMotor1, rightMotor2);
-
-            Wheel stealthWheel = Wheel.andyMarkStealth();
-            Gear dummyGear = new Gear(1);
-
-            DriveTrain leftDriveTrain = new DriveTrain("leftDrive", stealthWheel, RotationalDirection.COUNTER_CLOCKWISE, leftMotor, new Gear[]{dummyGear, dummyGear});
-            DriveTrain rightDriveTrain = new DriveTrain("rightDrive", stealthWheel, RotationalDirection.CLOCKWISE, rightMotor, new Gear[]{dummyGear, dummyGear});
-            drive = new TankDrive(leftDriveTrain, rightDriveTrain);
-
-            topParticleShooter = hardwareMap.dcMotor.get("topParticleShooter");
-            bottomParticleShooter = hardwareMap.dcMotor.get("bottomParticleShooter");
-            bottomParticleShooter.setDirection(DcMotorSimple.Direction.REVERSE); // rotates opposite top
+            setupParticleShooter();
 
             gyro = hardwareMap.get(ModernRoboticsI2cGyro.class, "gyro");
 
-            liftMotor = hardwareMap.dcMotor.get("liftMotor");
             setupLiftDriveTrain();
 
             Iterator<VoltageSensor> voltageSensors = hardwareMap.voltageSensor.iterator();
@@ -222,14 +211,58 @@ public abstract class VelocityVortexHardware extends OpMode {
                 voltageSensor = voltageSensors.next();
             }
 
+            inboardLineSensor = hardwareMap.opticalDistanceSensor.get("inboardLineSensor");
+            outboardLineSensor = hardwareMap.opticalDistanceSensor.get("outboardLineSensor");
 
+            beaconDistanceSensor = hardwareMap.opticalDistanceSensor.get("beaconDistanceSensor");
         } catch (NullPointerException npe) {
             Log.d("VV", "NPE", npe);
             throw npe;
         }
     }
 
+    protected void setupParticleShooter() {
+        collectorMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("collectorMotor"));
+        topParticleShooter = hardwareMap.dcMotor.get("topParticleShooter");
+        bottomParticleShooter = hardwareMap.dcMotor.get("bottomParticleShooter");
+        bottomParticleShooter.setDirection(DcMotorSimple.Direction.REVERSE); // rotates opposite top
+    }
+
+    protected void setupDrive() {
+        leftMotor1 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("leftDrive1"));
+        leftMotor2 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("leftDrive2"));
+        rightMotor1 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("rightDrive1"));
+        rightMotor2 = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("rightDrive2"));
+        DualDcMotor leftMotor = new DualDcMotor(leftMotor1, leftMotor2);
+        DualDcMotor rightMotor = new DualDcMotor(rightMotor1, rightMotor2);
+
+        Wheel stealthWheel = Wheel.andyMarkStealth();
+        Gear dummyGear = new Gear(1);
+
+        DriveTrain leftDriveTrain = new DriveTrain("leftDrive", stealthWheel, RotationalDirection.COUNTER_CLOCKWISE, leftMotor, new Gear[]{dummyGear, dummyGear});
+        DriveTrain rightDriveTrain = new DriveTrain("rightDrive", stealthWheel, RotationalDirection.CLOCKWISE, rightMotor, new Gear[]{dummyGear, dummyGear});
+        drive = new TankDrive(leftDriveTrain, rightDriveTrain);
+    }
+
+    protected void setupBeaconPusher() {
+        beaconColorSensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, "beaconColorSensor");
+        beaconPusherNoColorSensor = hardwareMap.servo.get("beaconPusherNoColorSensor");
+        beaconPusherUnderColorSensor = hardwareMap.servo.get("beaconPusherUnderColorSensor");
+        beaconPusherNoColorSensor.setPosition(BEACON_PUSHER_IN_POSITION);
+        beaconPusherUnderColorSensor.setPosition(BEACON_PUSHER_IN_POSITION);
+        //redAllianceWallRangeSensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "redAllianceWallRangeSensor");
+    }
+
+    protected void setupLiftAndForks() {
+        liftLockServo = hardwareMap.servo.get("liftLockServo");
+        forkTiltServo = hardwareMap.servo.get("forkTiltServo");
+        lockForks();
+        tiltForkServoToStartingPosition();
+    }
+
     private void setupLiftDriveTrain() {
+        // A drive train to allow us to run some portions of the lift automated
+        liftMotor = hardwareMap.dcMotor.get("liftMotor");
         Wheel spoolWheel = new Wheel(1);
         ExtendedDcMotor liftNinjaMotor = NinjaMotor.asNeverest40(liftMotor);
         liftNinjaMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -279,47 +312,6 @@ public abstract class VelocityVortexHardware extends OpMode {
         particleShooterBouncy = driversGamepad.getLeftBumper();
         particleShooterDebounced = new DebouncedButton(particleShooterBouncy);
     }
-
-    /**
-     * Access whether a warning has been generated.
-     */
-    boolean wasWarningGenerated() {
-        return warningGenerated;
-    }
-
-    /**
-     * Access the warning message.
-     */
-    String getWarningMessage()
-
-    {
-        return warningMessage;
-    }
-
-    /**
-     * Mutate the warning message by ADDING the specified message to the current
-     * message; set the warning indicator to true.
-     * <p/>
-     * A comma will be added before the specified message if the message isn't
-     * empty.
-     */
-    void appendWarningMessage(String exceptionMessage) {
-        if (warningGenerated) {
-            warningMessage += ", ";
-        }
-        warningGenerated = true;
-        warningMessage += exceptionMessage;
-    }
-
-    /**
-     * Indicate whether a message is a available to the class user.
-     */
-    private boolean warningGenerated = false;
-
-    /**
-     * Store a message to the user if one has been generated.
-     */
-    private String warningMessage;
 
     protected void particleCollectorOff() {
         collectorMotor.setPower(0);
@@ -402,7 +394,9 @@ public abstract class VelocityVortexHardware extends OpMode {
         bottomParticleShooter.setPower(-0.3);
     }
 
-    protected void addShooterStateMachine(StateMachine stateMachine, State startShooterState, State stopShooterState, boolean endless) {
+    protected void addShooterStateMachine(StateMachine stateMachine,
+                                          State startShooterState,
+                                          State stopShooterState, boolean forTeleop) {
         stateMachine.addSequential(startShooterState);
         stateMachine.addSequential(new CollectorOffState(telemetry));
 
@@ -428,14 +422,20 @@ public abstract class VelocityVortexHardware extends OpMode {
 
         // Done shooting
         stateMachine.addSequential(new ShooterOffState(telemetry));
-        stateMachine.addSequential(new CollectorOnState(telemetry));
+
+        if (forTeleop) {
+            stateMachine.addSequential(new CollectorOnState(telemetry));
+        } else {
+            // clear any particles in our way during autonomous
+            stateMachine.addSequential(new CollectorRunningOutwardsState(telemetry));
+        }
 
         // Reset all delays
         ResetDelaysState resetAllDelaysState = new ResetDelaysState(telemetry,
                 waitForCollectorOffState,  waitForShooterSpeedState, waitForReverseState);
         stateMachine.addSequential(resetAllDelaysState);
 
-        if (endless) {
+        if (forTeleop) {
             resetAllDelaysState.setNextState(startShooterState); // back to the beginning!
         }
     }
@@ -628,6 +628,29 @@ public abstract class VelocityVortexHardware extends OpMode {
         @Override
         public void resetToStart() {
 
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class CollectorRunningOutwardsState extends State {
+
+        public CollectorRunningOutwardsState(Telemetry telemetry) {
+            super("Collector run outwards", telemetry);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            runParticleCollectorOutwards();
+            return nextState;
+        }
+
+        @Override
+        public void resetToStart() {
+            particleCollectorOff();
         }
 
         @Override

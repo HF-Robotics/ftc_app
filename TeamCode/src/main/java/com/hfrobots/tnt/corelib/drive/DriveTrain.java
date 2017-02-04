@@ -37,6 +37,7 @@ public class DriveTrain {
     private final int direction;
     private final RotationalDirection wheelRotatingForwardDirection;
     private final String name;
+    private final DcMotorSimple.Direction forwardDirection;
 
     /**
      * Creates a drive train for the given wheel and gear train.
@@ -90,6 +91,8 @@ public class DriveTrain {
             // Do this instead of inverting power ... it handles encoders for us
             motor.setDirection(DcMotorSimple.Direction.REVERSE);
         }
+
+        this.forwardDirection = motor.getDirection(); // save for later
     }
 
     public DriveTrain(String name, Wheel wheel, RotationalDirection wheelRotatingForwardDirection,
@@ -129,8 +132,21 @@ public class DriveTrain {
             // Do this instead of inverting power ... it handles encoders for us
             motor.setDirection(DcMotorSimple.Direction.REVERSE);
         }
+
+        this.forwardDirection = motor.getDirection(); // save for later
     }
 
+    public void setReverseDirection() {
+        if (forwardDirection == DcMotorSimple.Direction.FORWARD) {
+            driveMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        } else {
+            driveMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        }
+    }
+
+    public void setForwardDirection() {
+        driveMotor.setDirection(forwardDirection);
+    }
 
     /**
      * Returns the current encoder count (position) of the motor that powers the drive train
