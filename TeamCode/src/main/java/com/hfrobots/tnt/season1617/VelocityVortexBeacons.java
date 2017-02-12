@@ -673,8 +673,6 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (3) Turn 50 degrees CCW
-        // TODO This turn is not 50 degrees when in the blue alliance, it's 50 + 180
-
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 49)),
@@ -694,7 +692,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (5) Turn 60 degrees CW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 48)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 41)), // don't come all the way ||
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -711,6 +709,11 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
                 telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step7UntilLineState);
 
+        ProportionalDriveInchesState step7SmidgeState = new ProportionalDriveInchesState(
+                "State 7 - smidge forward", drive, telemetry, .25,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step7SmidgeState);
+
         // (7) Detect beacon color and press button
         stateMachine.addSequential(new BeaconPusherState(telemetry));
 
@@ -718,6 +721,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(new PusherRetractState(telemetry));
         stateMachine.addSequential(new DelayState("waiting for beacon retract", telemetry, 1));
 
+        // FIXME: If we're getting penalty (wrong) beacons by brush-by, reduce this angle!
         State step7TurnState = new GyroTurnState("Step 7 turn", drive,
                 gyro,
                 adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 5)),
@@ -737,6 +741,11 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         DriveUntilLineState step9UntilLineState = new DriveUntilLineState("Drive until next beacon line", drive,
                 telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step9UntilLineState);
+
+        ProportionalDriveInchesState step9SmidgeState = new ProportionalDriveInchesState(
+                "State 9 - smidge forward", drive, telemetry, .25,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step9SmidgeState);
 
         // (10) detect beacon color and press beacon
         stateMachine.addSequential(new BeaconPusherState(telemetry));
@@ -776,7 +785,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 97), // FIXME: A little less than 97?
+                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 110),
                 telemetry,
                 POWER_LEVEL / 1.5,
                 20000L);
@@ -784,14 +793,14 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (4) Drive forward 46"
         ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
-                "State 4 - drive forward", drive, telemetry, 28.5 /* inches */,
+                "State 4 - drive forward", drive, telemetry, 42.5 /* inches */,
                 POWER_LEVEL /* power level*/, DcMotorSimple.Direction.REVERSE, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
 
         // (5) Turn 60 degrees CW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 50),
+                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -804,8 +813,13 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step6DriveState);
 
         DriveUntilLineState step7UntilLineState = new DriveUntilLineState("Drive until beacon line", drive,
-                telemetry, inboardLineSensor, outboardLineSensor, gyro, -POWER_LEVEL / 4, 15000);
+                telemetry, inboardLineSensor, outboardLineSensor, gyro, -POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step7UntilLineState);
+
+        ProportionalDriveInchesState step7SmidgeState = new ProportionalDriveInchesState(
+                "State 7 - smidge forward", drive, telemetry, .25,
+                POWER_LEVEL /* power level*/, DcMotorSimple.Direction.FORWARD, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step7SmidgeState);
 
         // (7) Detect beacon color and press button
         stateMachine.addSequential(new BeaconPusherState(telemetry));
@@ -833,6 +847,12 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         DriveUntilLineState step9UntilLineState = new DriveUntilLineState("Drive until next beacon line", drive,
                 telemetry, inboardLineSensor, outboardLineSensor, gyro, -POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step9UntilLineState);
+
+        // We're running in reverse! So, the sensors hit late, forward is actually "reverse" in this case
+        ProportionalDriveInchesState step9SmidgeState = new ProportionalDriveInchesState(
+                "State 9 - smidge forward", drive, telemetry, .25,
+                POWER_LEVEL /* power level*/, DcMotorSimple.Direction.FORWARD, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step9SmidgeState);
 
         // (10) detect beacon color and press beacon
         stateMachine.addSequential(new BeaconPusherState(telemetry));
