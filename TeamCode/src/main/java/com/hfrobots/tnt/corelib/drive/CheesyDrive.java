@@ -113,17 +113,19 @@ public class CheesyDrive {
 
         final boolean isFloat;
 
-        if (brakeNoBrake.isPressed()) {
-            isFloat = false;
-            tankDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        } else {
-            isFloat = true;
-            tankDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        }
-
         if (lowGear.isPressed()) {
             leftMotorPower = leftMotorPower / 3;
             rightMotorPower = rightMotorPower / 3;
+            isFloat = false;
+            tankDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        } else {
+            if (brakeNoBrake.isPressed()) {
+                isFloat = false;
+                tankDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            } else {
+                isFloat = true;
+                tankDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            }
         }
 
         telemetry.addData("08", "Power (%s) L/R: %5.2f / %5.2f", isFloat ? "F" : "B", leftMotorPower, rightMotorPower);

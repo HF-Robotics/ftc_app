@@ -48,6 +48,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
@@ -166,9 +167,9 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected OpticalDistanceSensor outboardLineSensor;
 
-    protected OpticalDistanceSensor beaconDistanceSensor;
+    //protected ModernRoboticsI2cRangeSensor redAllianceWallRangeSensor;
 
-    protected ModernRoboticsI2cRangeSensor redAllianceWallRangeSensor;
+    //protected ModernRoboticsI2cRangeSensor blueAllianceWallRangeSensor;
 
 
     /**
@@ -213,8 +214,6 @@ public abstract class VelocityVortexHardware extends OpMode {
 
             inboardLineSensor = hardwareMap.opticalDistanceSensor.get("inboardLineSensor");
             outboardLineSensor = hardwareMap.opticalDistanceSensor.get("outboardLineSensor");
-
-            beaconDistanceSensor = hardwareMap.opticalDistanceSensor.get("beaconDistanceSensor");
         } catch (NullPointerException npe) {
             Log.d("VV", "NPE", npe);
             throw npe;
@@ -251,6 +250,8 @@ public abstract class VelocityVortexHardware extends OpMode {
         beaconPusherNoColorSensor.setPosition(BEACON_PUSHER_IN_POSITION);
         beaconPusherUnderColorSensor.setPosition(BEACON_PUSHER_IN_POSITION);
         //redAllianceWallRangeSensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "redAllianceWallRangeSensor");
+        //blueAllianceWallRangeSensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "blueAllianceWallRangeSensor");
+        //blueAllianceWallRangeSensor.setI2cAddress(I2cAddr.create8bit(0x30));
     }
 
     protected void setupLiftAndForks() {
@@ -396,7 +397,7 @@ public abstract class VelocityVortexHardware extends OpMode {
 
     protected void addShooterStateMachine(StateMachine stateMachine,
                                           State startShooterState,
-                                          State stopShooterState, boolean forTeleop) {
+                                          State stopShooterState, State collectorEndState, boolean forTeleop) {
         stateMachine.addSequential(startShooterState);
         stateMachine.addSequential(new CollectorOffState(telemetry));
 
@@ -423,12 +424,8 @@ public abstract class VelocityVortexHardware extends OpMode {
         // Done shooting
         stateMachine.addSequential(new ShooterOffState(telemetry));
 
-        if (forTeleop) {
-            stateMachine.addSequential(new CollectorOnState(telemetry));
-        } else {
-            // clear any particles in our way during autonomous
-            stateMachine.addSequential(new CollectorRunningOutwardsState(telemetry));
-        }
+        // varies depending on when the shooter is being used!
+        stateMachine.addSequential(collectorEndState);
 
         // Reset all delays
         ResetDelaysState resetAllDelaysState = new ResetDelaysState(telemetry,

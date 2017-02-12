@@ -35,11 +35,19 @@ SOFTWARE.
         <Motor name="liftMotor" port="2" />
     </MotorController>
     <DeviceInterfaceModule name="Device Interface Module 1" serialNumber="AL00VEZR">
+        <!-- I2C Devices NOTE! Even though they don't use ports, they must have unique ones here! -->
         <Gyro name="gyro" port="0"/>
-        <OpticalDistanceSensor name="beaconDistanceSensor" port="0"/>
+        <ColorSensor name="beaconColorSensor" port="1"/>
+
+        <!-- Not in Use ATM
+        <ModernRoboticsI2cRangeSensor name="redAllianceWallRangeSensor" port="2" />
+        <ModernRoboticsI2cRangeSensor name="blueAllianceWallRangeSensor" port="3" />
+        -->
+
+        <!-- Analog Devices -->
         <OpticalDistanceSensor name="inboardLineSensor" port="1"/>
         <OpticalDistanceSensor name="outboardLineSensor" port="2"/>
-        <ColorSensor name="beaconColorSensor" port="1"/>
+
     </DeviceInterfaceModule>
     <ServoController name="Servo Controller 1" serialNumber="AL00XOIU">
         <Servo name="liftLockServo" port="1"/>

@@ -97,7 +97,7 @@ public class DriveUntilLineState extends TimeoutSafetyState {
         this.outboardLineSensor = outboardLineSensor;
         this.inboardLineSensor = inboardLineSensor;
         this.gyro = gyro;
-        maxEncoderCountsWhileSeeking = drive.getEncoderCountsForInchesTravel(1);
+        maxEncoderCountsWhileSeeking = drive.getEncoderCountsForInchesTravel(1.7);
     }
 
     @Override
@@ -119,9 +119,9 @@ public class DriveUntilLineState extends TimeoutSafetyState {
         }
 
         // FIXME this is only because coach mark is interested in this data for now
-        if (gyro != null) {
-            Log.d("VV", "squaring up, gyro heading is " + gyro.getIntegratedZValue());
-        }
+        //if (gyro != null) {
+        //    Log.d("VV", "squaring up, gyro heading is " + gyro.getIntegratedZValue());
+        //}
 
         // left side of tank drive is "inboard"
 

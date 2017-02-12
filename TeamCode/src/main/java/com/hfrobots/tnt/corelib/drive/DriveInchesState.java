@@ -38,8 +38,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  */
 public class DriveInchesState extends TimeoutSafetyState {
     protected final TankDrive drive;
-    protected final double powerLevel;
-    protected final double inchesToDrive;
+    protected double powerLevel;
+    protected double inchesToDrive;
     protected boolean driveStarted = false;
     protected TankDrive.SidedTargetPositions targetPositions;
     protected final static long THRESHOLD_ENCODER_VALUE = 10;
@@ -76,11 +76,19 @@ public class DriveInchesState extends TimeoutSafetyState {
     @Override
     public State doStuffAndGetNextState() {
         if (!driveStarted) {
-            targetPositions = drive.getTargetPositionsForInchesTravel(inchesToDrive);
-
             if (driveDirection != DcMotorSimple.Direction.FORWARD) {
                 drive.setDirection(DcMotorSimple.Direction.REVERSE);
             }
+
+            targetPositions = drive.getTargetPositionsForInchesTravel(inchesToDrive);
+
+            TankDrive.SidedTargetPositions currentPositions = drive.getCurrentPositions();
+
+            Log.d("VV", "DriveInches - starting drive of " + inchesToDrive + "inches -> l_cur="
+                    + currentPositions.getLeftTargetPosition() + ", r_cur=" +
+                    + currentPositions.getRightTargetPosition() + ", l_target="
+                    + targetPositions.getLeftTargetPosition() + "r_target="
+                    + targetPositions.getRightTargetPosition());
 
             drive.setRunMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             drive.drivePower(powerLevel, powerLevel);
@@ -103,7 +111,12 @@ public class DriveInchesState extends TimeoutSafetyState {
         }
 
         if (isTimedOut()) {
-            Log.e("VV", "Drive inches state timed out- stopping drive");
+            Log.e("VV", "Drive inches state timed out - stopping drive. Current encoder positions "+
+                "l_cur=" + currentPositions.getLeftTargetPosition() + ", r_cur="
+                    + currentPositions.getRightTargetPosition() + ", l_target=" +
+                    targetPositions.getLeftTargetPosition() + "r_target=" +
+                    targetPositions.getRightTargetPosition());
+
             stopDriving();
 
             return nextState;
@@ -123,7 +136,10 @@ public class DriveInchesState extends TimeoutSafetyState {
     protected boolean isTargetReached(TankDrive.SidedTargetPositions currentPositions) {
         if (currentPositions.getLeftTargetPosition() >= targetPositions.getLeftTargetPosition() ||
                 currentPositions.getRightTargetPosition() >= targetPositions.getRightTargetPosition()) {
-            Log.d("VV", "Encoder positions met or exceeded - target reached");
+            Log.d("VV", "Target reached. Encoder positions of l_target=" + targetPositions.getLeftTargetPosition() +
+                    ", r_target=" + targetPositions.getRightTargetPosition()
+                    + " met or exceeded l_cur=" + currentPositions.getLeftTargetPosition()
+                    + ", r_cur=" + currentPositions.getRightTargetPosition());
 
             return true;
         }
@@ -132,7 +148,9 @@ public class DriveInchesState extends TimeoutSafetyState {
         long rightDifference = Math.abs(targetPositions.getRightTargetPosition() - currentPositions.getRightTargetPosition());
 
         if (leftDifference < THRESHOLD_ENCODER_VALUE && rightDifference < THRESHOLD_ENCODER_VALUE) {
-            Log.d("VV", "Encoder positions reached w/in threshold - target reached");
+            Log.d("VV", "Target reached. Encoder positions reached w/in threshold of " +
+                    THRESHOLD_ENCODER_VALUE + ", left_diff=" + leftDifference + ", right_diff=" +
+                    rightDifference);
 
             return true;
         }
@@ -159,6 +177,20 @@ public class DriveInchesState extends TimeoutSafetyState {
     @Override
     public void liveConfigure(DebouncedGamepadButtons buttons) {
 
+        if (buttons.getLeftBumper().getRise()) {
+            inchesToDrive -= .25;
+        } else if (buttons.getRightBumper().getRise()) {
+            inchesToDrive += .25;
+        }
+
+        if (buttons.getaButton().getRise()) {
+            powerLevel -= .1;
+        } else if (buttons.getyButton().getRise()) {
+            powerLevel += .1;
+        }
+
+        telemetry.addData("03", "power level " + powerLevel);
+        telemetry.addData("04", "inches to drive " + inchesToDrive);
     }
 
     private void stopDriving() {

@@ -22,6 +22,7 @@ package com.hfrobots.tnt.corelib.drive;
 import android.util.Log;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 /**
  * Given a left and right drive train, treat it as a tank drive
@@ -54,6 +55,20 @@ public class TankDrive {
     public void drivePower(double leftPower, double rightPower) {
         leftDriveTrain.setPower(leftPower);
         rightDriveTrain.setPower(rightPower);
+    }
+
+    /**
+     * Sets the direction the drive will consider being "forward" (to make working with encoders
+     * easier)
+     */
+    public void setDirection(DcMotorSimple.Direction direction) {
+        if (direction.equals(DcMotorSimple.Direction.FORWARD)) {
+            leftDriveTrain.setForwardDirection();
+            rightDriveTrain.setForwardDirection();
+        } else if (direction.equals(DcMotorSimple.Direction.REVERSE)) {
+            leftDriveTrain.setReverseDirection();
+            rightDriveTrain.setReverseDirection();
+        }
     }
 
     /**

@@ -21,6 +21,7 @@ package com.hfrobots.tnt.corelib.drive;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -35,6 +36,20 @@ public class ProportionalDriveInchesState extends DriveInchesState {
     public ProportionalDriveInchesState(String name, TankDrive drive, Telemetry telemetry, double inchesToDrive, double powerLevel, long safetyTimeoutMillis) {
         super(name, drive, telemetry, inchesToDrive, powerLevel, safetyTimeoutMillis);
         calculateEncoderCountToSlowDown(drive);
+        Log.d("VV", "PropDrive encoderToSlowDown=" + slowDownEncoderCount + "for inches="
+                + inchesToSlowDown);
+    }
+
+    public ProportionalDriveInchesState(String name, TankDrive drive,
+                                        Telemetry telemetry,
+                                       double inchesToDrive,
+                                       double powerLevel,
+                                       DcMotorSimple.Direction direction,
+                                       long safetyTimeoutMillis) {
+        super(name, drive, telemetry, inchesToDrive, powerLevel, direction, safetyTimeoutMillis);
+        calculateEncoderCountToSlowDown(drive);
+        Log.d("VV", "PropDrive encoderToSlowDown=" + slowDownEncoderCount + "for inches="
+                + inchesToSlowDown);
     }
 
     protected void calculateEncoderCountToSlowDown(TankDrive drive) {
@@ -49,6 +64,9 @@ public class ProportionalDriveInchesState extends DriveInchesState {
 
         long rightDifference = Math.abs(targetPositions.getRightTargetPosition()
                 - currentPositions.getRightTargetPosition());
+
+        //Log.d("VV", "PropDrive, leftDiff=" + leftDifference + ", rightDiff=" + rightDifference  +
+          //      " >=? " + slowDownEncoderCount);
 
         if (leftDifference >= slowDownEncoderCount || rightDifference >= slowDownEncoderCount) {
             // keep driving normally

@@ -138,8 +138,10 @@ public class DriveTrain {
 
     public void setReverseDirection() {
         if (forwardDirection == DcMotorSimple.Direction.FORWARD) {
+            Log.d("VV", "DriveTrain.setReverseDirection() - direction now REVERSE (forward is) " + forwardDirection);
             driveMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         } else {
+            Log.d("VV", "DriveTrain.setReverseDirection() - direction now FORWARD (forward is) " + forwardDirection);
             driveMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         }
     }
@@ -169,10 +171,12 @@ public class DriveTrain {
     public int getAbsolutePositionForInchesTravel(double linearInchesToDrive) {
         int requiredEncoderCounts = getEncoderCountsForDriveInches(linearInchesToDrive);
 
-
         int absoluteTargetPosition = driveMotor.getCurrentPosition() + requiredEncoderCounts;
 
-        Log.d("VV", name + " drive train - requiredEncoder " + requiredEncoderCounts + ", absoluteTargetPosition: " + absoluteTargetPosition);
+        Log.d("VV", name + " drive train - requiredEncoder = " + requiredEncoderCounts
+                + ", currentPosition = " + driveMotor.getCurrentPosition()
+                + ", absoluteTargetPosition = " + absoluteTargetPosition);
+
         return absoluteTargetPosition;
     }
 

@@ -35,7 +35,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="VV Auto")
+//@Autonomous(name="VV Auto")
 @SuppressWarnings("unused")
 public class VelocityVortexAutonomous extends VelocityVortexHardware {
 

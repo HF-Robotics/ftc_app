@@ -244,7 +244,8 @@ public class VelocityVortexTeleop extends VelocityVortexHardware
         State waitingForButtonPressState = new WaitForButton(particleShooterBouncy, telemetry);
         State waitingForButtonReleaseState = new WaitForButtonRelease(particleShooterBouncy, telemetry);
 
-        addShooterStateMachine(shooterStateMachine, waitingForButtonPressState, waitingForButtonReleaseState, true);
+        addShooterStateMachine(shooterStateMachine, waitingForButtonPressState,
+                waitingForButtonReleaseState, new CollectorOffState(telemetry), true);
 
         return shooterStateMachine;
     }

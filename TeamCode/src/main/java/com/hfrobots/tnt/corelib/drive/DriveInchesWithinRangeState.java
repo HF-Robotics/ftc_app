@@ -22,6 +22,7 @@ import android.util.Log;
 
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -43,9 +44,11 @@ public class DriveInchesWithinRangeState extends ProportionalDriveInchesState {
 
     public DriveInchesWithinRangeState(String name, TankDrive drive, Telemetry telemetry,
                                        ModernRoboticsI2cRangeSensor rangeSensor,
-                                       double inchesToDrive, double expectedRangeInches, double powerLevel,
+                                       double inchesToDrive, double expectedRangeInches,
+                                       double powerLevel,
+                                       DcMotorSimple.Direction direction,
                                        long safetyTimeoutMillis) {
-        super(name, drive, telemetry, inchesToDrive, powerLevel, safetyTimeoutMillis);
+        super(name, drive, telemetry, inchesToDrive, powerLevel, direction, safetyTimeoutMillis);
         this.rangeSensor = rangeSensor;
         this.expectedRangeInches = expectedRangeInches;
     }

@@ -32,12 +32,13 @@ import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.StateMachine;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="VV Beacons")
+@Autonomous(name="VV Auto")
 @SuppressWarnings("unused")
 public class VelocityVortexBeacons extends VelocityVortexHardware {
 
@@ -48,7 +49,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
     // The routes our robot knows how to do
     private enum Routes {
-        CLAIM_CLOSEST_BEACON("Claim closest beacon"),
+        CLAIM_CLOSEST_BEACON("Claim beacons"),
         PARK_ON_RAMP_1("Park on ramp 1"),
         PARK_ON_RAMP_2("Park on ramp 2"),
         PARK_ON_RAMP_3("Park on ramp 3"),
@@ -238,7 +239,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         switch (selectedRoute) {
             case CLAIM_CLOSEST_BEACON:
-                stateMachine = claimClosestBeacon();
+                stateMachine = claimBeacons();
                 break;
             case PARK_ON_RAMP_1:
                 stateMachine = parkOnRamp1();
@@ -315,7 +316,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step3DriveState);
 
         //(4)stop and shoot
-        addParticleShooterForAuto(stateMachine);
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         //(5)turn 68.2 CCW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
@@ -328,7 +329,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         //(6) forward 49"
         ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
-                "State 6 - drive forward", drive, telemetry, 49 /* inches */,
+                "State 6 - drive forward", drive, telemetry, 59 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step6DriveState);
 
@@ -355,12 +356,12 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (1) Drive forward 16"
         ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
-                "State 1 - drive forward", drive, telemetry, 16 /* inches */,
+                "State 1 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
 
         // (2) Shoot
-        addParticleShooterForAuto(stateMachine);
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (3) Turn 97 degrees CCW
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
@@ -373,7 +374,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (4) Forward 26"
         ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
-                "State 1 - drive forward", drive, telemetry, 26 /* inches */,
+                "State 1 - drive forward", drive, telemetry, 32 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
 
@@ -413,19 +414,19 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (2) Turn 45 degrees CCW
         State step2TurnState = new GyroTurnState("Step 2 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 33)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
         stateMachine.addSequential(step2TurnState);
 
         // (3) Shoot
-        addParticleShooterForAuto(stateMachine);
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (3) Turn 64 degrees CCW
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 64)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 44)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -433,7 +434,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (4) Forward 51"
         ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
-                "State 1 - drive forward", drive, telemetry, 51 /* inches */,
+                "State 1 - drive forward", drive, telemetry, 58 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
 
@@ -464,7 +465,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (1) Drive forward 16"
 
         ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
-                "State 1 - drive forward", drive, telemetry, 16 /* inches */,
+                "State 1 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
 
@@ -472,11 +473,11 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (2) Particle Shoot
         // (2a) - Need a state for "waiting" for button press, a DelayState?
 
-        addParticleShooterForAuto(stateMachine);
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (3) Drive forward 16.5"
         ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
-                "State 3 - drive forward", drive, telemetry, 16.5 /* inches */,
+                "State 3 - drive forward", drive, telemetry, 12.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
 
@@ -503,7 +504,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (6) Forward 18"
         ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
-                "State 6 - drive forward", drive, telemetry, 18 /* inches */,
+                "State 6 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step6DriveState);
 
@@ -529,14 +530,14 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (2) Turn 45 deg ccw
         State step2TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 33)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
         stateMachine.addSequential(step2TurnState);
 
         // (3) Shoot
-        addParticleShooterForAuto(stateMachine);
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (4) Forward 14"
         ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
@@ -564,7 +565,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (7) Forward 3"
         ProportionalDriveInchesState step7DriveState = new ProportionalDriveInchesState(
-                "State 3 - drive forward", drive, telemetry, 3 /* inches */,
+                "State 3 - drive forward", drive, telemetry, 10 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step7DriveState);
 
@@ -590,7 +591,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (2) Turn 45 deg ccw
         State step2TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 33)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -604,7 +605,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
 
         // (4) Shoot
-        addParticleShooterForAuto(stateMachine);
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (5) Forward 12.5"
         ProportionalDriveInchesState step5DriveState = new ProportionalDriveInchesState(
@@ -642,7 +643,15 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         return stateMachine;
     }
 
-    private StateMachine claimClosestBeacon() {
+    private StateMachine claimBeacons() {
+        if (currentAlliance.equals(Alliance.RED)) {
+            return claimBeaconsRed();
+        } else {
+            return claimBeaconsBlue();
+        }
+    }
+
+    private StateMachine claimBeaconsRed() {
         StateMachine stateMachine = commonStateMachineSetup();
 
         // This is only for testing now, remove when we make this real for the match
@@ -652,22 +661,23 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (1) Drive forward 16"
 
         ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
-                "State 1 - drive forward", drive, telemetry, 18 /* inches */,
+                "State 1 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
 
 
         // (2) Particle Shoot
         // (2a) - Need a state for "waiting" for button press, a DelayState?
+        // Collector off, it vibrates the gyro
 
-        addParticleShooterForAuto(stateMachine);
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (3) Turn 50 degrees CCW
         // TODO This turn is not 50 degrees when in the blue alliance, it's 50 + 180
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 50)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 49)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -677,14 +687,14 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (4) Drive forward 46"
         ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
-                "State 4 - drive forward", drive, telemetry, 46 /* inches */,
+                "State 4 - drive forward", drive, telemetry, 47.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
 
         // (5) Turn 60 degrees CW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 50)),
+                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 48)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -692,19 +702,14 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (6) Forward 18" (should be in place to press beacons)
         ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
-                "State 6 - drive forward", drive, telemetry, 3 /*and w/ ods 8 inches */,
+                "State 6 - drive forward", drive, telemetry, 2 /*and w/ ods 8 inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step6DriveState);
 
 
         DriveUntilLineState step7UntilLineState = new DriveUntilLineState("Drive until beacon line", drive,
-                telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 2, 15000);
+                telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step7UntilLineState);
-
-        ProportionalDriveInchesState step7DriveState = new ProportionalDriveInchesState(
-                "State 7 - drive forward", drive, telemetry, 1 /*and w/ ods 8 inches */,
-                POWER_LEVEL/2 /* power level*/, 15000 /* milliseconds to timeout */);
-        stateMachine.addSequential(step7DriveState);
 
         // (7) Detect beacon color and press button
         stateMachine.addSequential(new BeaconPusherState(telemetry));
@@ -712,6 +717,14 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(new DelayState("waiting for beacon push", telemetry, 4));
         stateMachine.addSequential(new PusherRetractState(telemetry));
         stateMachine.addSequential(new DelayState("waiting for beacon retract", telemetry, 1));
+
+        State step7TurnState = new GyroTurnState("Step 7 turn", drive,
+                gyro,
+                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 5)),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        stateMachine.addSequential(step7TurnState);
 
         // TOD O absolute gyro turn? Getting square up working may fix this
         // (8)drive 31 inches
@@ -722,13 +735,104 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (9) drive until far beacon line
         DriveUntilLineState step9UntilLineState = new DriveUntilLineState("Drive until next beacon line", drive,
-                telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 2, 15000);
+                telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step9UntilLineState);
 
-        ProportionalDriveInchesState step9DriveState = new ProportionalDriveInchesState(
-                "State 9 - drive forward", drive, telemetry, 1 /*and w/ ods 8 inches */,
-                POWER_LEVEL/2 /* power level*/, 15000 /* milliseconds to timeout */);
-        stateMachine.addSequential(step9DriveState);
+        // (10) detect beacon color and press beacon
+        stateMachine.addSequential(new BeaconPusherState(telemetry));
+
+        stateMachine.addSequential(new DelayState("waiting for beacon push", telemetry, 4));
+        stateMachine.addSequential(new PusherRetractState(telemetry));
+
+        // (11) Done
+        stateMachine.addSequential(newDoneState("Beacon press done"));
+
+        return stateMachine;
+    }
+
+    private StateMachine claimBeaconsBlue() {
+        StateMachine stateMachine = commonStateMachineSetup();
+
+        // This is only for testing now, remove when we make this real for the match
+        DelayState dummyDelayState = new DelayState("Dummy", telemetry, 1, TimeUnit.MILLISECONDS);
+        stateMachine.addSequential(dummyDelayState);
+
+        // (1) Drive forward 16"
+
+        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+                "State 1 - drive forward", drive, telemetry, 20 /* inches */,
+                POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step1DriveState);
+
+
+        // (2) Particle Shoot
+        // (2a) - Need a state for "waiting" for button press, a DelayState?
+        // Collector off, it vibrates the gyro
+
+        addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
+
+        // (3) Turn 50 degrees CCW
+        // 50 really gets us 60
+
+        State step3TurnState = new GyroTurnState("Step 3 turn", drive,
+                gyro,
+                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 97), // FIXME: A little less than 97?
+                telemetry,
+                POWER_LEVEL / 1.5,
+                20000L);
+        stateMachine.addSequential(step3TurnState);
+
+        // (4) Drive forward 46"
+        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+                "State 4 - drive forward", drive, telemetry, 28.5 /* inches */,
+                POWER_LEVEL /* power level*/, DcMotorSimple.Direction.REVERSE, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step4DriveState);
+
+        // (5) Turn 60 degrees CW
+        State step5TurnState = new GyroTurnState("Step 5 turn", drive,
+                gyro,
+                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 50),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        stateMachine.addSequential(step5TurnState);
+
+        // (6) Forward 18" (should be in place to press beacons)
+        ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
+                "State 6 - drive forward", drive, telemetry, 3 /*and w/ ods 8 inches */,
+                POWER_LEVEL /* power level*/, DcMotorSimple.Direction.REVERSE, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step6DriveState);
+
+        DriveUntilLineState step7UntilLineState = new DriveUntilLineState("Drive until beacon line", drive,
+                telemetry, inboardLineSensor, outboardLineSensor, gyro, -POWER_LEVEL / 4, 15000);
+        stateMachine.addSequential(step7UntilLineState);
+
+        // (7) Detect beacon color and press button
+        stateMachine.addSequential(new BeaconPusherState(telemetry));
+
+        stateMachine.addSequential(new DelayState("waiting for beacon push", telemetry, 4));
+        stateMachine.addSequential(new PusherRetractState(telemetry));
+        stateMachine.addSequential(new DelayState("waiting for beacon retract", telemetry, 1));
+
+        State step7TurnState = new GyroTurnState("Step 7 turn", drive,
+                gyro,
+                new Turn(RotationalDirection.CLOCKWISE, 5),
+                telemetry,
+                POWER_LEVEL,
+                20000L);
+        stateMachine.addSequential(step7TurnState);
+
+        // TOD O absolute gyro turn? Getting square up working may fix this
+        // (8)drive 31 inches
+        ProportionalDriveInchesState step8DriveState = new ProportionalDriveInchesState(
+                "State 6 - drive forward", drive, telemetry, 31 ,
+                POWER_LEVEL /* power level*/, DcMotorSimple.Direction.REVERSE, 15000 /* milliseconds to timeout */);
+        stateMachine.addSequential(step8DriveState);
+
+        // (9) drive until far beacon line
+        DriveUntilLineState step9UntilLineState = new DriveUntilLineState("Drive until next beacon line", drive,
+                telemetry, inboardLineSensor, outboardLineSensor, gyro, -POWER_LEVEL / 3, 15000);
+        stateMachine.addSequential(step9UntilLineState);
 
         // (10) detect beacon color and press beacon
         stateMachine.addSequential(new BeaconPusherState(telemetry));
@@ -756,7 +860,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
     }
 
 
-    private void addParticleShooterForAuto(StateMachine stateMachine) {
+    private void addParticleShooterForAuto(StateMachine stateMachine, State collectorEndState) {
         State step2aSettleState = new DelayState("Wait to shoot", telemetry,
                 250, TimeUnit.MILLISECONDS);
 
@@ -766,7 +870,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
                 3, TimeUnit.SECONDS);
 
         // PEW PEW!
-        addShooterStateMachine(stateMachine, step2aSettleState, step2bWaitForParticlesState, false);
+        addShooterStateMachine(stateMachine, step2aSettleState, step2bWaitForParticlesState, collectorEndState, false);
     }
 
     class PusherRetractState extends State {
@@ -818,19 +922,23 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
             if (isSensingRedColor(redColorReading, greenColorReading, blueColorReading)) {
                 if (currentAlliance == Alliance.RED) {
+                    Log.d("VV", "Saw red beacon, red alliance, pushing beacon under color sensor");
                     beaconPusherUnderColorSensor.setPosition(BEACON_PUSHER_OUT_POSITION);
                     beaconPusherNoColorSensor.setPosition(0);
                 } else {
                     // blue alliance
+                    Log.d("VV", "Saw red beacon, blue alliance, pushing beacon *not* under color sensor");
                     beaconPusherUnderColorSensor.setPosition(0);
                     beaconPusherNoColorSensor.setPosition(BEACON_PUSHER_OUT_POSITION);
                 }
             } else if (isSensingBlueColor(redColorReading, greenColorReading, blueColorReading)) {
                 if (currentAlliance == Alliance.BLUE) {
+                    Log.d("VV", "Saw blue beacon, blue alliance, pushing beacon under color sensor");
                     beaconPusherUnderColorSensor.setPosition(BEACON_PUSHER_OUT_POSITION);
                     beaconPusherNoColorSensor.setPosition(0);
                 } else {
                     //red alliance
+                    Log.d("VV", "Saw blue beacon, red alliance, pushing beacon *not* under color sensor");
                     beaconPusherUnderColorSensor.setPosition(0);
                     beaconPusherNoColorSensor.setPosition(BEACON_PUSHER_OUT_POSITION);
                 }
@@ -845,12 +953,16 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         protected boolean isSensingBlueColor(int redColorReading,
                                              int greenColorReading,
                                              int blueColorReading) {
+            Log.d("VV", "isSensingRed (RGB) " + redColorReading + ", " + greenColorReading +  ", " + blueColorReading);
+
             return blueColorReading > redColorReading && blueColorReading > greenColorReading;
         }
 
         protected boolean isSensingRedColor(int redColorReading,
                                             int greenColorReading,
                                             int blueColorReading) {
+            Log.d("VV", "isSensingBlue (RGB) " + redColorReading + ", " + greenColorReading + ", " + blueColorReading);
+
             return redColorReading > blueColorReading && redColorReading > greenColorReading;
         }
 
