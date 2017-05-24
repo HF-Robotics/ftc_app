@@ -28,7 +28,7 @@ import com.qualcomm.robotcore.util.Range;
 /**
  * Provide a basic manual operational mode that controls the holonomic drive.
  */
-//@TeleOp(name="SkittleBot Teleop")
+@TeleOp(name="SkittleBot Teleop")
 public class SkittleBotTeleop extends SkittleBotTelemetry
 
 {

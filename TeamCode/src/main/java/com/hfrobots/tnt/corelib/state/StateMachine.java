@@ -152,6 +152,7 @@ public class StateMachine {
 
                 if (!possibleNextState.equals(currentState)) {
                     // We've changed states, Yay time to party
+                    Log.d("TNT", "state " + currentState.getName() + " -> " + possibleNextState);
                     executedStates.push(possibleNextState);
                     currentState = possibleNextState;
 
