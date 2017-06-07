@@ -49,7 +49,7 @@ import java.util.concurrent.locks.Lock;
  */
 @TeleOp(name="Sensor Tester", group="Utilities")
 @SuppressWarnings("unused")
-public class SensorTester extends OpMode implements I2cController.I2cPortReadyCallback {
+public class SensorTester extends OpMode {
     private List<NamedDeviceMap.NamedDevice<ModernRoboticsI2cColorSensor>> namedColorSensors;
 
     private List<NamedDeviceMap.NamedDevice<ModernRoboticsI2cRangeSensor>> namedRangeSensors;
@@ -242,22 +242,6 @@ public class SensorTester extends OpMode implements I2cController.I2cPortReadyCa
             ledEnabled = !ledEnabled;
         }
 
-        if (xButton.getRise()) {
-            calibratingColorSensor = currentColorSensor;
-            calibratingController = currentColorSensor.getI2cController();
-            // Register the callback for portIsReady().
-            calibratingController.registerForI2cPortReadyCallback(this, calibratingColorSensor.getPort());
-
-            sendCommand(currentColorSensor, currentColorSensor.getI2cController(), COMMAND_CODE_BLACK);
-        } else if (yButton.getRise()) {
-            calibratingColorSensor = currentColorSensor;
-            calibratingController = currentColorSensor.getI2cController();
-            // Register the callback for portIsReady().
-            calibratingController.registerForI2cPortReadyCallback(this, calibratingColorSensor.getPort());
-
-            sendCommand(currentColorSensor, currentColorSensor.getI2cController(), COMMAND_CODE_WHITE);
-        }
-
         currentColorSensor.enableLed(ledEnabled);
         int alpha = currentColorSensor.alpha();
         int red = currentColorSensor.red();
@@ -271,98 +255,6 @@ public class SensorTester extends OpMode implements I2cController.I2cPortReadyCa
         telemetry.addData("A", "%d", alpha);
         updateTelemetry(telemetry);
     }
-
-    private I2CMode controller_mode = I2CMode.READ;
-
-    // I2C address, registers, and commands
-    private I2cAddr COLOR_SENSOR_ADDR = I2cAddr.create8bit(0x3C);
-    private byte COMMAND_CODE_BLACK = 0x42;
-    private byte COMMAND_CODE_WHITE = 0x43;
-    private byte COMMAND_CODE_LED_ON = 0x00;
-    private byte COMMAND_CODE_LED_OFF = 0x01;
-    private byte WRITE_CACHE_OFFSET = 4;
-
-    /* In sendCommand(), we do the write process. Before reading or writing
-     * anything, we need to lock the relevant cache. We enable write mode,
-     * write our command code to the write cache, and then signal the
-     * controller to re-enable read mode when the port is next ready.
-     */
-    public synchronized void sendCommand(ModernRoboticsI2cColorSensor colorSensor,
-                                         I2cController controller, byte command) {
-
-        // Get a handle on the write cache and lock.
-        int port = colorSensor.getPort();
-        Lock wLock = controller.getI2cWriteCacheLock(port);
-        byte[] wCache = controller.getI2cWriteCache(port);
-
-        // Do the locking in a try/catch, in case a lock can't be made.
-        try {
-
-            // Lock the cache before anything.
-            wLock.lock();
-
-            // Enable write mode on the controller.
-            controller.enableI2cWriteMode(port, COLOR_SENSOR_ADDR, 0x03, 1);
-
-            // Write the supplied command to the relevant register.
-            wCache[WRITE_CACHE_OFFSET] = command;
-
-        } finally {
-
-            // Ensure the cache is unlocked.
-            wLock.unlock();
-
-            // Signal portIsReady() to enable read mode when we're done.
-            controller_mode = I2CMode.WRITE;
-        }
-    }
-
-
-    I2cController calibratingController;
-    ModernRoboticsI2cColorSensor calibratingColorSensor;
-
-    /* When the I2C port is ready for read/write action, we may need to take
-     * different actions depending on what we have queued. We use the
-     * controller_mode variable to track the current state.
-     */
-    public synchronized void portIsReady(int port) {
-
-        // I'm not sure why this needs to take place.
-        calibratingController.setI2cPortActionFlag(port);
-        calibratingController.readI2cCacheFromController(port);
-
-        switch (controller_mode) {
-
-            // Flush the write cache and set up a reset on next cycle.
-            case WRITE:
-                calibratingController.writeI2cCacheToController(port);
-                controller_mode = I2CMode.RESET;
-                break;
-
-            // During reset, we move back to read mode.
-            case RESET:
-                calibratingController.enableI2cReadMode(port, COLOR_SENSOR_ADDR, 0x03, 6);
-                calibratingController.writeI2cCacheToController(port);
-                controller_mode = I2CMode.READ;
-                break;
-
-            // Let ModernRoboticsI2cColorSensor handle reading.
-            case READ:
-            default:
-                break;
-        }
-
-        // Allow the ModernRoboticsI2cColorSensor class to handle the rest of
-        // the portIsReady read/write cycle.
-        calibratingColorSensor.portIsReady(port);
-    }
-
-
-    // Enum for the controller_mode variable.
-    private enum I2CMode {
-        READ, WRITE, RESET
-    }
-
 
     private int currentGyroListPosition = 0;
 

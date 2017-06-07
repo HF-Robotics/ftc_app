@@ -24,6 +24,7 @@ import android.util.Log;
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.configuration.MotorConfigurationType;
 
 /**
  * An implementation of ExtendedDcMotor that lets us treat two motors as one. There is an assumption
@@ -55,15 +56,16 @@ public class DualDcMotor implements ExtendedDcMotor {
         this.secondMotor.setZeroPowerBehavior(ZeroPowerBehavior.FLOAT);
     }
 
+
     @Override
-    public void setMaxSpeed(int encoderTicksPerSecond) {
-        firstMotor.setMaxSpeed(encoderTicksPerSecond);
-        secondMotor.setMaxSpeed(encoderTicksPerSecond);
+    public MotorConfigurationType getMotorType() {
+        return firstMotor.getMotorType();
     }
 
     @Override
-    public int getMaxSpeed() {
-        return firstMotor.getMaxSpeed();
+    public void setMotorType(MotorConfigurationType motorType) {
+        firstMotor.setMotorType(motorType);
+        secondMotor.setMotorType(motorType);
     }
 
     @Override

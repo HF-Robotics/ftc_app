@@ -27,6 +27,7 @@ import static com.hfrobots.tnt.corelib.units.RotationalDirection.COUNTER_CLOCKWI
 import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.hardware.configuration.MotorConfigurationType;
 
 /**
  * A DcMotor wrapper implementing our ExtendedDcMotor interface that
@@ -181,16 +182,6 @@ public class NinjaMotor implements ExtendedDcMotor {
     }
 
     @Override
-    public void setMaxSpeed(int encoderTicksPerSecond) {
-        dcMotor.setMaxSpeed(encoderTicksPerSecond);
-    }
-
-    @Override
-    public int getMaxSpeed() {
-        return dcMotor.getMaxSpeed();
-    }
-
-    @Override
     public DcMotorController getController() {
         return dcMotor.getController();
     }
@@ -248,6 +239,16 @@ public class NinjaMotor implements ExtendedDcMotor {
     @Override
     public double getPower() {
         return dcMotor.getPower();
+    }
+
+    @Override
+    public MotorConfigurationType getMotorType() {
+        return dcMotor.getMotorType();
+    }
+
+    @Override
+    public void setMotorType(MotorConfigurationType motorType) {
+        dcMotor.setMotorType(motorType);
     }
 }
 
