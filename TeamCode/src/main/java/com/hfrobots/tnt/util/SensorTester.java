@@ -23,6 +23,7 @@ import android.text.method.Touch;
 
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -33,6 +34,8 @@ import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cController;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import com.qualcomm.robotcore.hardware.TouchSensor;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -62,6 +65,7 @@ public class SensorTester extends OpMode {
 
     private List<NamedDeviceMap.NamedDevice<TouchSensor>> namedTouchDevices;
 
+    private List<NamedDeviceMap.NamedDevice<LynxI2cColorRangeSensor>> namedLynxColorSensors;
 
     private int currentListPosition;
 
@@ -84,6 +88,7 @@ public class SensorTester extends OpMode {
     public void init() {
         namedDeviceMap = new NamedDeviceMap(hardwareMap);
 
+        namedLynxColorSensors = namedDeviceMap.getAll(LynxI2cColorRangeSensor.class);
         namedColorSensors = namedDeviceMap.getAll(ModernRoboticsI2cColorSensor.class);
         namedRangeSensors = namedDeviceMap.getAll(ModernRoboticsI2cRangeSensor.class);
         namedOdsSensors = namedDeviceMap.getAll(OpticalDistanceSensor.class);
@@ -109,7 +114,7 @@ public class SensorTester extends OpMode {
 
     private boolean ledEnabled = false;
 
-    private enum Mode { COLOR, RANGE, ODS, GYRO, COMPASS, TOUCH }
+    private enum Mode { COLOR, LYNX_COLOR, RANGE, ODS, GYRO, COMPASS, TOUCH }
 
     private Mode currentMode = Mode.COLOR;
 
@@ -118,6 +123,9 @@ public class SensorTester extends OpMode {
         if (leftBumper.getRise()) {
             switch (currentMode) {
                 case COLOR:
+                    currentMode = Mode.LYNX_COLOR;
+                    break;
+                case LYNX_COLOR:
                     currentMode = Mode.RANGE;
                     break;
                 case RANGE:
@@ -141,6 +149,9 @@ public class SensorTester extends OpMode {
         switch (currentMode) {
             case COLOR:
                 doColorSensorLoop();
+                break;
+            case LYNX_COLOR:
+                doLynxColorSensorLoop();
                 break;
             case RANGE:
                 doRangeSensorLoop();
@@ -253,6 +264,47 @@ public class SensorTester extends OpMode {
         telemetry.addData("G", "%d", green);
         telemetry.addData("B", "%d", blue);
         telemetry.addData("A", "%d", alpha);
+        updateTelemetry(telemetry);
+    }
+
+    int currentLynxColorListPosition = 0;
+
+    private void doLynxColorSensorLoop() {
+        namedLynxColorSensors = namedDeviceMap.getAll(LynxI2cColorRangeSensor.class);
+
+        if (namedLynxColorSensors.isEmpty()) {
+            telemetry.addData("No lynx i2c color sensors", "");
+            updateTelemetry(telemetry);
+            return;
+        }
+
+        if (rightBumper.getRise()) {
+            currentLynxColorListPosition++;
+
+            if (currentLynxColorListPosition == namedLynxColorSensors.size()) {
+                currentLynxColorListPosition = 0;
+            }
+        }
+
+        NamedDeviceMap.NamedDevice<LynxI2cColorRangeSensor> currentNamedLynxColorSensor = namedLynxColorSensors.get(currentLynxColorListPosition);
+        LynxI2cColorRangeSensor currentColorSensor = currentNamedLynxColorSensor.getDevice();
+        String sensorName = currentNamedLynxColorSensor.getName();
+
+        if (aButton.getRise()) {
+            ledEnabled = !ledEnabled;
+        }
+
+        currentColorSensor.enableLed(ledEnabled);
+        int alpha = currentColorSensor.alpha();
+        int red = currentColorSensor.red();
+        int green = currentColorSensor.green();
+        int blue = currentColorSensor.blue();
+
+        telemetry.addData("color ",  "%s x blk cal, y wt cal", sensorName);
+        telemetry.addData("R G B A", "%d %d %d %d", red, green, blue, alpha);
+        telemetry.addData("D (mm):", "%f", currentColorSensor.getDistance(DistanceUnit.MM));
+        telemetry.addData("light:", "%f", currentColorSensor.getLightDetected());
+        telemetry.addData("raw light:", "%f", currentColorSensor.getRawLightDetected());
         updateTelemetry(telemetry);
     }
 
