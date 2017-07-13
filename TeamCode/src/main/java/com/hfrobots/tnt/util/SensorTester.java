@@ -1,5 +1,5 @@
 /**
- Copyright (c) 2016 HF Robotics (http://www.hfrobots.com)
+ Copyright (c) 2016, 2017, HF Robotics (http://www.hfrobots.com)
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
@@ -19,8 +19,6 @@
 
 package com.hfrobots.tnt.util;
 
-import android.text.method.Touch;
-
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
@@ -29,6 +27,7 @@ import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CompassSensor;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.GyroSensor;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cController;
@@ -38,8 +37,6 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-
 
 /**
  * An OpMode that allows you to test any/all of the sensors on a robot
@@ -67,6 +64,8 @@ public class SensorTester extends OpMode {
 
     private List<NamedDeviceMap.NamedDevice<LynxI2cColorRangeSensor>> namedLynxColorSensors;
 
+    private List<NamedDeviceMap.NamedDevice<DigitalChannel>> namedDigitalChannels;
+
     private int currentListPosition;
 
     private DebouncedButton leftBumper;
@@ -88,6 +87,7 @@ public class SensorTester extends OpMode {
     public void init() {
         namedDeviceMap = new NamedDeviceMap(hardwareMap);
 
+        namedDigitalChannels = namedDeviceMap.getAll(DigitalChannel.class);
         namedLynxColorSensors = namedDeviceMap.getAll(LynxI2cColorRangeSensor.class);
         namedColorSensors = namedDeviceMap.getAll(ModernRoboticsI2cColorSensor.class);
         namedRangeSensors = namedDeviceMap.getAll(ModernRoboticsI2cRangeSensor.class);
@@ -114,7 +114,7 @@ public class SensorTester extends OpMode {
 
     private boolean ledEnabled = false;
 
-    private enum Mode { COLOR, LYNX_COLOR, RANGE, ODS, GYRO, COMPASS, TOUCH }
+    private enum Mode { COLOR, LYNX_COLOR, RANGE, ODS, DIGITAL_CHANNEL, GYRO, COMPASS, TOUCH }
 
     private Mode currentMode = Mode.COLOR;
 
@@ -132,6 +132,9 @@ public class SensorTester extends OpMode {
                     currentMode = Mode.ODS;
                     break;
                 case ODS:
+                    currentMode = Mode.DIGITAL_CHANNEL;
+                    break;
+                case DIGITAL_CHANNEL:
                     currentMode = Mode.GYRO;
                     break;
                 case GYRO:
@@ -158,6 +161,9 @@ public class SensorTester extends OpMode {
                 break;
             case ODS:
                 doOdsSensorLoop();
+                break;
+            case DIGITAL_CHANNEL:
+                doDigitalChannelLoop();
                 break;
             case GYRO:
                 doGyroSensorLoop();
@@ -305,6 +311,35 @@ public class SensorTester extends OpMode {
         telemetry.addData("D (mm):", "%f", currentColorSensor.getDistance(DistanceUnit.MM));
         telemetry.addData("light:", "%f", currentColorSensor.getLightDetected());
         telemetry.addData("raw light:", "%f", currentColorSensor.getRawLightDetected());
+        updateTelemetry(telemetry);
+    }
+
+    int currentDigitalChannelListPosition = 0;
+
+    private void doDigitalChannelLoop() {
+        namedLynxColorSensors = namedDeviceMap.getAll(LynxI2cColorRangeSensor.class);
+
+        if (namedDigitalChannels.isEmpty()) {
+            telemetry.addData("No digital channels", "");
+            updateTelemetry(telemetry);
+            return;
+        }
+
+        if (rightBumper.getRise()) {
+            currentDigitalChannelListPosition++;
+
+            if (currentDigitalChannelListPosition == namedDigitalChannels.size()) {
+                currentDigitalChannelListPosition = 0;
+            }
+        }
+
+        NamedDeviceMap.NamedDevice<DigitalChannel> currentNamedDigitalChannel = namedDigitalChannels.get(currentDigitalChannelListPosition);
+        DigitalChannel currentDigitalChannel = currentNamedDigitalChannel.getDevice();
+        currentDigitalChannel.setMode(DigitalChannel.Mode.INPUT);
+        String sensorName = currentNamedDigitalChannel.getName();
+
+        telemetry.addData("digital ",  "%s = %s", sensorName, String.valueOf(currentDigitalChannel.getState()));
+
         updateTelemetry(telemetry);
     }
 
