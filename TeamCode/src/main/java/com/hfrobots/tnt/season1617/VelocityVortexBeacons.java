@@ -25,7 +25,7 @@ import android.util.Log;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.drive.DriveUntilLineState;
 import com.hfrobots.tnt.corelib.drive.GyroTurnState;
-import com.hfrobots.tnt.corelib.drive.ProportionalDriveInchesState;
+import com.hfrobots.tnt.corelib.drive.ProportionalDriveInchesStateExternalControl;
 import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
@@ -295,7 +295,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(dummyDelayState);
 
         //(1)forward 5"
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -310,7 +310,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step2TurnState);
 
         //(3)forward 32.5"
-        ProportionalDriveInchesState step3DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step3DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 32.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step3DriveState);
@@ -328,7 +328,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step5TurnState);
 
         //(6) forward 49"
-        ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step6DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 6 - drive forward", drive, telemetry, 59 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step6DriveState);
@@ -355,7 +355,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(dummyDelayState);
 
         // (1) Drive forward 16"
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -373,7 +373,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step3TurnState);
 
         // (4) Forward 26"
-        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step4DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 32 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
@@ -405,7 +405,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(dummyDelayState);
 
         // (1) Drive forward 25.5"
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 25.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -433,7 +433,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step3TurnState);
 
         // (4) Forward 51"
-        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step4DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 58 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
@@ -464,7 +464,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (1) Drive forward 16"
 
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -476,7 +476,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (3) Drive forward 16.5"
-        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step4DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 12.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
@@ -503,7 +503,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step5TurnState);
 
         // (6) Forward 18"
-        ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step6DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 6 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step6DriveState);
@@ -522,7 +522,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(dummyDelayState);
 
         // (1) Forward 25.5"
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 25.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -540,7 +540,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (4) Forward 14"
-        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step4DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 14 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
@@ -564,7 +564,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step6TurnState);
 
         // (7) Forward 3"
-        ProportionalDriveInchesState step7DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step7DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 10 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step7DriveState);
@@ -583,7 +583,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(dummyDelayState);
 
         // (1) Forward 5"
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -598,7 +598,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step2TurnState);
 
         // (3) Forward 32.5"
-        ProportionalDriveInchesState step3DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step3DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 32.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step3DriveState);
@@ -608,7 +608,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         addParticleShooterForAuto(stateMachine, new CollectorOffState(telemetry));
 
         // (5) Forward 12.5"
-        ProportionalDriveInchesState step5DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step5DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 12.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step5DriveState);
@@ -632,7 +632,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step7TurnState);
 
         // (8) Forward 7"
-        ProportionalDriveInchesState step8DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step8DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 3 - drive forward", drive, telemetry, 7 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step8DriveState);
@@ -660,7 +660,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (1) Drive forward 16"
 
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -684,7 +684,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // TODO: From here on, power is - when blue alliance because robot is running backwards
 
         // (4) Drive forward 46"
-        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step4DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 4 - drive forward", drive, telemetry, 47.5 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
@@ -699,7 +699,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step5TurnState);
 
         // (6) Forward 18" (should be in place to press beacons)
-        ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step6DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 6 - drive forward", drive, telemetry, 2 /*and w/ ods 8 inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step6DriveState);
@@ -709,7 +709,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
                 telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step7UntilLineState);
 
-        ProportionalDriveInchesState step7SmidgeState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step7SmidgeState = new ProportionalDriveInchesStateExternalControl(
                 "State 7 - smidge forward", drive, telemetry, .25,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step7SmidgeState);
@@ -732,7 +732,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // TOD O absolute gyro turn? Getting square up working may fix this
         // (8)drive 31 inches
-        ProportionalDriveInchesState step8DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step8DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 6 - drive forward", drive, telemetry, 31 ,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step8DriveState);
@@ -742,7 +742,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
                 telemetry, inboardLineSensor, outboardLineSensor, gyro, POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step9UntilLineState);
 
-        ProportionalDriveInchesState step9SmidgeState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step9SmidgeState = new ProportionalDriveInchesStateExternalControl(
                 "State 9 - smidge forward", drive, telemetry, .25,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step9SmidgeState);
@@ -768,7 +768,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // (1) Drive forward 16"
 
-        ProportionalDriveInchesState step1DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step1DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 1 - drive forward", drive, telemetry, 20 /* inches */,
                 POWER_LEVEL /* power level*/, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step1DriveState);
@@ -792,7 +792,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step3TurnState);
 
         // (4) Drive forward 46"
-        ProportionalDriveInchesState step4DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step4DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 4 - drive forward", drive, telemetry, 42.5 /* inches */,
                 POWER_LEVEL /* power level*/, DcMotorSimple.Direction.REVERSE, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step4DriveState);
@@ -807,7 +807,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step5TurnState);
 
         // (6) Forward 18" (should be in place to press beacons)
-        ProportionalDriveInchesState step6DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step6DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 6 - drive forward", drive, telemetry, 3 /*and w/ ods 8 inches */,
                 POWER_LEVEL /* power level*/, DcMotorSimple.Direction.REVERSE, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step6DriveState);
@@ -816,7 +816,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
                 telemetry, inboardLineSensor, outboardLineSensor, gyro, -POWER_LEVEL / 3, 15000);
         stateMachine.addSequential(step7UntilLineState);
 
-        ProportionalDriveInchesState step7SmidgeState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step7SmidgeState = new ProportionalDriveInchesStateExternalControl(
                 "State 7 - smidge forward", drive, telemetry, .25,
                 POWER_LEVEL /* power level*/, DcMotorSimple.Direction.FORWARD, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step7SmidgeState);
@@ -838,7 +838,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         // TOD O absolute gyro turn? Getting square up working may fix this
         // (8)drive 31 inches
-        ProportionalDriveInchesState step8DriveState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step8DriveState = new ProportionalDriveInchesStateExternalControl(
                 "State 6 - drive forward", drive, telemetry, 31 ,
                 POWER_LEVEL /* power level*/, DcMotorSimple.Direction.REVERSE, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step8DriveState);
@@ -849,7 +849,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         stateMachine.addSequential(step9UntilLineState);
 
         // We're running in reverse! So, the sensors hit late, forward is actually "reverse" in this case
-        ProportionalDriveInchesState step9SmidgeState = new ProportionalDriveInchesState(
+        ProportionalDriveInchesStateExternalControl step9SmidgeState = new ProportionalDriveInchesStateExternalControl(
                 "State 9 - smidge forward", drive, telemetry, .25,
                 POWER_LEVEL /* power level*/, DcMotorSimple.Direction.FORWARD, 15000 /* milliseconds to timeout */);
         stateMachine.addSequential(step9SmidgeState);

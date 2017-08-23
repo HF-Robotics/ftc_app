@@ -26,7 +26,6 @@ import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -36,7 +35,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * encoder value tracking since FTC motor controllers can't handle two motors on same output
  * or run competing PID loops (no way to synchronize).
  */
-public class DriveInchesState extends TimeoutSafetyState {
+public class DriveInchesStateExternalControl extends TimeoutSafetyState {
     protected final TankDrive drive;
     protected double powerLevel;
     protected double inchesToDrive;
@@ -51,20 +50,20 @@ public class DriveInchesState extends TimeoutSafetyState {
      * the distance is reached (within a threshold), or if the timeout is reached.
      */
     // TODO - would be nice to auto-calculate the timeout here based on distance/power
-    public DriveInchesState(String name, TankDrive drive,
-                            Telemetry telemetry,
-                            double inchesToDrive,
-                            double powerLevel,
-                            long safetyTimeoutMillis) {
+    public DriveInchesStateExternalControl(String name, TankDrive drive,
+                                           Telemetry telemetry,
+                                           double inchesToDrive,
+                                           double powerLevel,
+                                           long safetyTimeoutMillis) {
         this(name, drive, telemetry, inchesToDrive, powerLevel, DcMotorSimple.Direction.FORWARD, safetyTimeoutMillis);
     }
 
-    public DriveInchesState(String name, TankDrive drive,
-                            Telemetry telemetry,
-                            double inchesToDrive,
-                            double powerLevel,
-                            DcMotorSimple.Direction direction,
-                            long safetyTimeoutMillis) {
+    public DriveInchesStateExternalControl(String name, TankDrive drive,
+                                           Telemetry telemetry,
+                                           double inchesToDrive,
+                                           double powerLevel,
+                                           DcMotorSimple.Direction direction,
+                                           long safetyTimeoutMillis) {
         super(name, telemetry, safetyTimeoutMillis);
         this.drive = drive;
         this.powerLevel = powerLevel;
