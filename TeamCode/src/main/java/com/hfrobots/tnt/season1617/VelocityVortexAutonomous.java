@@ -25,13 +25,10 @@ import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.drive.DriveInchesState;
 import com.hfrobots.tnt.corelib.drive.GyroTurnState;
 import com.hfrobots.tnt.corelib.drive.Turn;
-import com.hfrobots.tnt.corelib.sensors.I2cDeviceEnableDisable;
 import com.hfrobots.tnt.corelib.state.State;
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 import java.util.concurrent.TimeUnit;
 
@@ -279,7 +276,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 48)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 48)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -293,7 +290,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 90)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 90)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -330,7 +327,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 58)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 58)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -344,7 +341,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
         // (5) Rotate 70 deg CCW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 95)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 95)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -384,7 +381,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 45)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -399,7 +396,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 23)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 23)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -415,7 +412,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step7TurnState = new GyroTurnState("Step 7 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 68)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 68)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -444,7 +441,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 180)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 180)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -468,7 +465,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 68)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 68)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -497,7 +494,7 @@ public class VelocityVortexAutonomous extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 45)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);

@@ -21,10 +21,11 @@ package com.hfrobots.tnt.corelib.drive;
 
 import android.util.Log;
 
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.configuration.MotorConfigurationType;
+
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 /**
  * An implementation of ExtendedDcMotor that lets us treat two motors as one. There is an assumption
@@ -217,8 +218,9 @@ public class DualDcMotor implements ExtendedDcMotor {
         secondMotor.close();
     }
 
+
     @Override
-    public RotationalDirection getMotorNativeDirection() {
+    public Rotation getMotorNativeDirection() {
         Log.d("VV", "First motor: " + (firstMotor == null ? null : firstMotor));
         if (firstMotor != null) {
             Log.d("VV", "First motor native direction: " + firstMotor.getMotorNativeDirection());

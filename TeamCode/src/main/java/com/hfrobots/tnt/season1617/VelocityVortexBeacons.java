@@ -30,11 +30,11 @@ import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.StateMachine;
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 import java.util.concurrent.TimeUnit;
 
@@ -303,7 +303,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         //(2)turn 45 CCW
         State step2TurnState = new GyroTurnState("Step 2 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 33)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 33)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -321,7 +321,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         //(5)turn 68.2 CCW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 50)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 50)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -366,7 +366,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (3) Turn 97 degrees CCW
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 97)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 97)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -414,7 +414,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (2) Turn 45 degrees CCW
         State step2TurnState = new GyroTurnState("Step 2 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 33)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 33)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -426,7 +426,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (3) Turn 64 degrees CCW
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 44)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 44)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -486,7 +486,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 4 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 90)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 90)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -496,7 +496,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (5) Turn 90 degrees CW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 90)),
+                adjustTurnForAlliance(new Turn(Rotation.CW, 90)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -530,7 +530,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (2) Turn 45 deg ccw
         State step2TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 33)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 33)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -548,7 +548,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (5) Turn 45 degrees ccw
         State step5TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 45)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -557,7 +557,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (6) Turn 45 degrees cw
         State step6TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(Rotation.CW, 45)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -591,7 +591,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (2) Turn 45 deg ccw
         State step2TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 33)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 33)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -616,7 +616,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (6) Turn 45 deg ccw
         State step6TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 45)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -625,7 +625,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (7) Turn 45 deg cw
         State step7TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 45)),
+                adjustTurnForAlliance(new Turn(Rotation.CW, 45)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -675,7 +675,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (3) Turn 50 degrees CCW
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 49)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 49)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -692,7 +692,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (5) Turn 60 degrees CW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.CLOCKWISE, 41)), // don't come all the way ||
+                adjustTurnForAlliance(new Turn(Rotation.CW, 41)), // don't come all the way ||
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -724,7 +724,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // FIXME: If we're getting penalty (wrong) beacons by brush-by, reduce this angle!
         State step7TurnState = new GyroTurnState("Step 7 turn", drive,
                 gyro,
-                adjustTurnForAlliance(new Turn(RotationalDirection.COUNTER_CLOCKWISE, 5)),
+                adjustTurnForAlliance(new Turn(Rotation.CCW, 5)),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -785,7 +785,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         State step3TurnState = new GyroTurnState("Step 3 turn", drive,
                 gyro,
-                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 110),
+                new Turn(Rotation.CCW, 110),
                 telemetry,
                 POWER_LEVEL / 1.5,
                 20000L);
@@ -800,7 +800,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
         // (5) Turn 60 degrees CW
         State step5TurnState = new GyroTurnState("Step 5 turn", drive,
                 gyro,
-                new Turn(RotationalDirection.COUNTER_CLOCKWISE, 45),
+                new Turn(Rotation.CCW, 45),
                 telemetry,
                 POWER_LEVEL,
                 20000L);
@@ -830,7 +830,7 @@ public class VelocityVortexBeacons extends VelocityVortexHardware {
 
         State step7TurnState = new GyroTurnState("Step 7 turn", drive,
                 gyro,
-                new Turn(RotationalDirection.CLOCKWISE, 5),
+                new Turn(Rotation.CW, 5),
                 telemetry,
                 POWER_LEVEL,
                 20000L);

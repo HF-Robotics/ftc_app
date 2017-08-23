@@ -34,11 +34,11 @@ import com.hfrobots.tnt.corelib.drive.Gear;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.drive.Sprocket;
 import com.hfrobots.tnt.corelib.drive.TankDrive;
+import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.drive.Wheel;
 import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.StateMachine;
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsAnalogOpticalDistanceSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
@@ -56,6 +56,7 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -238,8 +239,8 @@ public abstract class VelocityVortexHardware extends OpMode {
         Wheel stealthWheel = Wheel.andyMarkStealth();
         Gear dummyGear = new Gear(1);
 
-        DriveTrain leftDriveTrain = new DriveTrain("leftDrive", stealthWheel, RotationalDirection.COUNTER_CLOCKWISE, leftMotor, new Gear[]{dummyGear, dummyGear});
-        DriveTrain rightDriveTrain = new DriveTrain("rightDrive", stealthWheel, RotationalDirection.CLOCKWISE, rightMotor, new Gear[]{dummyGear, dummyGear});
+        DriveTrain leftDriveTrain = new DriveTrain("leftDrive", stealthWheel, Rotation.CCW, leftMotor, new Gear[]{dummyGear, dummyGear});
+        DriveTrain rightDriveTrain = new DriveTrain("rightDrive", stealthWheel, Rotation.CW, rightMotor, new Gear[]{dummyGear, dummyGear});
         drive = new TankDrive(leftDriveTrain, rightDriveTrain);
     }
 
@@ -268,7 +269,7 @@ public abstract class VelocityVortexHardware extends OpMode {
         ExtendedDcMotor liftNinjaMotor = NinjaMotor.asNeverest40(liftMotor);
         liftNinjaMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         liftDriveTrain = new DriveTrain("Cap ball lift", spoolWheel,
-                RotationalDirection.CLOCKWISE.reverse(liftNinjaMotor.getMotorNativeDirection()), liftNinjaMotor ,
+                Turn.invert(liftNinjaMotor.getMotorNativeDirection()), liftNinjaMotor ,
                 new Sprocket[] { new Sprocket(1), new Sprocket(1)});
     }
 

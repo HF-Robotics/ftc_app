@@ -18,8 +18,7 @@
  **/
 package com.hfrobots.tnt.corelib.drive;
 
-
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 /**
  * A human-understandable description of a turn the robot must make during autonomous
@@ -28,20 +27,20 @@ import com.hfrobots.tnt.corelib.units.RotationalDirection;
  * heading change
  */
 public class Turn {
-    private final RotationalDirection direction;
+    private final Rotation direction;
     private int degrees;
     private int asHeading;
 
-    public Turn(RotationalDirection direction, int degrees) {
+    public Turn(Rotation direction, int degrees) {
         this.direction = direction;
         this.degrees = degrees;
 
         final int headingSign;
         switch (this.direction) {
-            case CLOCKWISE:
+            case CW:
                 headingSign = -1;
                 break;
-            case COUNTER_CLOCKWISE:
+            case CCW:
                 headingSign = 1;
                 break;
             default:
@@ -59,7 +58,7 @@ public class Turn {
         return degrees;
     }
 
-    public RotationalDirection getDirection() {
+    public Rotation getDirection() {
         return direction;
     }
 
@@ -67,14 +66,17 @@ public class Turn {
      * Returns an inverted representation of this Turn (i.e. for the opposite alliance)
      */
     public Turn invert() {
-        switch (this.direction) {
-            case CLOCKWISE:
-                return new Turn(RotationalDirection.COUNTER_CLOCKWISE, degrees);
-            case COUNTER_CLOCKWISE:
-                return new Turn(RotationalDirection.CLOCKWISE, degrees);
-            default:
-                throw new IllegalArgumentException("Illegal direction specified: " + direction);
-        }
+        return new Turn(invert(this.direction), degrees);
     }
 
+    public static Rotation invert(Rotation toInvert) {
+        switch (toInvert) {
+            case CW:
+                return Rotation.CCW;
+            case CCW:
+                return Rotation.CW;
+            default:
+                throw new IllegalArgumentException("Illegal rotation specified: " + toInvert);
+        }
+    }
 }

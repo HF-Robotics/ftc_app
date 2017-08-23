@@ -21,13 +21,11 @@ package com.hfrobots.tnt.corelib.drive;
 
 import android.util.Log;
 
-import static com.hfrobots.tnt.corelib.units.RotationalDirection.CLOCKWISE;
-import static com.hfrobots.tnt.corelib.units.RotationalDirection.COUNTER_CLOCKWISE;
-
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.configuration.MotorConfigurationType;
+
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 /**
  * A DcMotor wrapper implementing our ExtendedDcMotor interface that
@@ -40,7 +38,19 @@ public class NinjaMotor implements ExtendedDcMotor {
     private final int encoderCountsPerRevolution;
     private final DcMotor dcMotor;
     private int absoluteTargetPosition;
-    private final RotationalDirection motorNativeDirection;
+    private final Rotation motorNativeDirection;
+
+    public static ExtendedDcMotor wrap32Motor(DcMotor dcMotor) {
+        MotorConfigurationType type = dcMotor.getMotorType();
+        Rotation orientation = type.getOrientation();
+
+        double ticksPerRev = type.getTicksPerRev();
+
+        Log.d("VV", "wrap32Motor(" + (dcMotor == null ? "null" : dcMotor) + ") " + orientation + ", " + ticksPerRev + " t/r");
+
+        return new NinjaMotor(dcMotor, orientation,
+                (int)type.getTicksPerRev() /* why does the SDK use double here, but motor interface accepts int ? */);
+    }
 
     /**
      * Creates an ExtendedDcMotor from the given FTC SDK Motor with Neverest 20 behavior
@@ -48,8 +58,7 @@ public class NinjaMotor implements ExtendedDcMotor {
     public static ExtendedDcMotor asNeverest20(DcMotor dcMotor) {
         Log.d("VV", "asNeverest20(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
-        //Fix me rotates backwards compared to other motors
-        return new NinjaMotor(dcMotor, CLOCKWISE, 560);
+        return new NinjaMotor(dcMotor, Rotation.CW, 560);
     }
 
     /**
@@ -60,7 +69,7 @@ public class NinjaMotor implements ExtendedDcMotor {
         Log.d("VV", "asNeverest40(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
 
-        return new NinjaMotor(dcMotor, COUNTER_CLOCKWISE, 1120);
+        return new NinjaMotor(dcMotor, Rotation.CCW, 1120);
     }
 
     /**
@@ -70,7 +79,7 @@ public class NinjaMotor implements ExtendedDcMotor {
 
         Log.d("VV", "asNeverest60(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
-        return new NinjaMotor(dcMotor, COUNTER_CLOCKWISE, 420);
+        return new NinjaMotor(dcMotor, Rotation.CCW, 420);
     }
 
     /**
@@ -80,13 +89,13 @@ public class NinjaMotor implements ExtendedDcMotor {
 
         Log.d("VV", "asTetrix20(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
-        return new NinjaMotor(dcMotor, CLOCKWISE, 1440);
+        return new NinjaMotor(dcMotor, Rotation.CW, 1440);
     }
 
     /**
      * Private because we want to have code only use the factory methods
      */
-    private NinjaMotor(DcMotor dcMotor, RotationalDirection motorNativeDirection, int encoderCountsPerRevolution) {
+    private NinjaMotor(DcMotor dcMotor, Rotation motorNativeDirection, int encoderCountsPerRevolution) {
         this.encoderCountsPerRevolution = encoderCountsPerRevolution;
         this.dcMotor = dcMotor;
         this.motorNativeDirection = motorNativeDirection;
@@ -96,7 +105,7 @@ public class NinjaMotor implements ExtendedDcMotor {
      * Which way does the motor shaft rotate when plugged directly into power?
      */
     @Override
-    public RotationalDirection getMotorNativeDirection() {
+    public Rotation getMotorNativeDirection() {
         return motorNativeDirection;
     }
 

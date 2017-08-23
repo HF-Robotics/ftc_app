@@ -21,9 +21,10 @@ package com.hfrobots.tnt.corelib.drive;
 
 import android.util.Log;
 
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 /**
  * Represents a drive train that hides the complexity of gear ratios and changes in direction
@@ -35,7 +36,7 @@ public class DriveTrain {
     private final ExtendedDcMotor driveMotor;
     private final double gearRatio;
     private final int direction;
-    private final RotationalDirection wheelRotatingForwardDirection;
+    private final Rotation wheelRotatingForwardDirection;
     private final String name;
     private final DcMotorSimple.Direction forwardDirection;
 
@@ -47,7 +48,7 @@ public class DriveTrain {
      * @param motor The ExtendedDcMotor used to power the drive train
      * @param gearTrain Array of Gear in the train in the order of driveMotor, ..., wheel
      */
-    public DriveTrain(String name, Wheel wheel, RotationalDirection wheelRotatingForwardDirection, ExtendedDcMotor motor, Gear[] gearTrain){
+    public DriveTrain(String name, Wheel wheel, Rotation wheelRotatingForwardDirection, ExtendedDcMotor motor, Gear[] gearTrain){
         this.name = name;
         Log.d("VV", this.name + " driveMotor is " + motor);
 
@@ -95,7 +96,7 @@ public class DriveTrain {
         this.forwardDirection = motor.getDirection(); // save for later
     }
 
-    public DriveTrain(String name, Wheel wheel, RotationalDirection wheelRotatingForwardDirection,
+    public DriveTrain(String name, Wheel wheel, Rotation wheelRotatingForwardDirection,
                       ExtendedDcMotor motor, Sprocket[] sprocketTrain){
         this.name = name;
         Log.d("VV", this.name + " driveMotor is " + motor);
@@ -108,9 +109,15 @@ public class DriveTrain {
         if (sprocketTrain == null) {
             throw new IllegalArgumentException("sprocket train needed");
         }
+
         if (sprocketTrain.length<2){
             throw new IllegalArgumentException("not enough sprockets");
         }
+
+        if (sprocketTrain.length > 2) {
+            throw new IllegalArgumentException("too many sprockets");
+        }
+
         Sprocket motorSprocket = sprocketTrain[0];
         Sprocket wheelSprocket = sprocketTrain[sprocketTrain.length - 1];
 
@@ -185,6 +192,10 @@ public class DriveTrain {
      * the distance. Does not work with DualDcMotors.
      */
     public int driveInches(double linearInchesToDrive, double power) {
+        if (driveMotor instanceof DualDcMotor) {
+            throw new IllegalArgumentException("DualDcMotor does not support built-in PID control - does not work with driveInches");
+        }
+
         int requiredEncoderCounts = getEncoderCountsForDriveInches(linearInchesToDrive);
         int absoluteTargetPosition = driveMotor.setRelativeTargetPosition(requiredEncoderCounts);
         Log.d("VV", this + " driveInches, target=" + absoluteTargetPosition);
@@ -215,8 +226,8 @@ public class DriveTrain {
     public int getEncoderCountsForDriveInches(double linearInchesToDrive) {
         double wheelRevolutions = linearInchesToDrive / wheel.circumference;
         double motorRevolutions = wheelRevolutions * gearRatio;
-        // this cast is safe will never have an encoder count that will reach beyond the max of an int
-        int encoderCounts = (int)Math.round(driveMotor.getEncoderCountsPerRevolution() * motorRevolutions);
+        // this cast is safe -- we will never have an encoder count that will reach beyond the max of an int
+        int encoderCounts = (int)(Math.round(driveMotor.getEncoderCountsPerRevolution() * motorRevolutions));
 
         return encoderCounts;
     }

@@ -19,8 +19,9 @@
 
 package com.hfrobots.tnt.corelib.drive;
 
-import com.hfrobots.tnt.corelib.units.RotationalDirection;
 import com.qualcomm.robotcore.hardware.DcMotor;
+
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 /**
  * Additions to the DcMotor class that allow us to more easily use it
@@ -31,7 +32,7 @@ public interface ExtendedDcMotor extends DcMotor {
     /**
      * Which way does the motor rotate when plugged in red:red black:black
      */
-    RotationalDirection getMotorNativeDirection();
+    Rotation getMotorNativeDirection();
 
     /**
      * Returns the number of encoder ticks/counts per full
