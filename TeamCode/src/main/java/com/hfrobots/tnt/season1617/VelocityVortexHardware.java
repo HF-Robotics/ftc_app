@@ -280,7 +280,7 @@ public abstract class VelocityVortexHardware extends OpMode {
     private void setupOperatorControls() {
         // Operator controls
         operatorsGamepad = new NinjaGamePad(gamepad2);
-        collectorToggleButton = new DebouncedButton(operatorsGamepad.getAButton());
+        collectorToggleButton = new DebouncedButton(driversGamepad.getBButton() /* operatorsGamepad.getAButton() */);
         liftLockButton = new DebouncedButton(operatorsGamepad.getXButton());
         liftUnlockButton = new DebouncedButton(operatorsGamepad.getYButton());
         collectorReverseToggleButton = new DebouncedButton(operatorsGamepad.getBButton());
