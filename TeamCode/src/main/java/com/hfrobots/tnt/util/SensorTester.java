@@ -21,6 +21,8 @@ package com.hfrobots.tnt.util;
 
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
@@ -34,7 +36,11 @@ import com.qualcomm.robotcore.hardware.I2cController;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
+import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 import java.util.List;
 
@@ -66,6 +72,8 @@ public class SensorTester extends OpMode {
 
     private List<NamedDeviceMap.NamedDevice<DigitalChannel>> namedDigitalChannels;
 
+    private List<NamedDeviceMap.NamedDevice<LynxEmbeddedIMU>> namedImus;
+
     private int currentListPosition;
 
     private DebouncedButton leftBumper;
@@ -95,10 +103,13 @@ public class SensorTester extends OpMode {
         namedGyroDevices = namedDeviceMap.getAll(GyroSensor.class);
         namedCompassDevices = namedDeviceMap.getAll(CompassSensor.class);
         namedTouchDevices = namedDeviceMap.getAll(TouchSensor.class);
+        namedImus = namedDeviceMap.getAll(LynxEmbeddedIMU.class);
 
         for (NamedDeviceMap.NamedDevice<GyroSensor> namedGyro : namedGyroDevices) {
             namedGyro.getDevice().calibrate();
         }
+
+        initializeLynxEmbeddedImus();
 
         currentListPosition = 0;
 
@@ -112,9 +123,25 @@ public class SensorTester extends OpMode {
         yButton = new DebouncedButton(ninjaGamePad.getYButton());
     }
 
+    protected void initializeLynxEmbeddedImus() {
+        for (NamedDeviceMap.NamedDevice<LynxEmbeddedIMU> namedImu : namedImus) {
+            LynxEmbeddedIMU imu = namedImu.getDevice();
+            BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+            parameters.mode                = BNO055IMU.SensorMode.IMU; // yes, it's the default, but let's be sure
+            parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+            parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+            //parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+            parameters.loggingEnabled      = false;
+            parameters.loggingTag          = "IMU";
+            //parameters.accelerationIntegrationAlgorithm = new NaiveAccelerationIntegrator();
+            imu.initialize(parameters);
+            imu.startAccelerationIntegration(null, null, 50); // not started by default?
+        }
+    }
+
     private boolean ledEnabled = false;
 
-    private enum Mode { COLOR, LYNX_COLOR, RANGE, ODS, DIGITAL_CHANNEL, GYRO, COMPASS, TOUCH }
+    private enum Mode { COLOR, LYNX_COLOR, LYNX_IMU, RANGE, ODS, DIGITAL_CHANNEL, GYRO, COMPASS, TOUCH }
 
     private Mode currentMode = Mode.COLOR;
 
@@ -126,6 +153,9 @@ public class SensorTester extends OpMode {
                     currentMode = Mode.LYNX_COLOR;
                     break;
                 case LYNX_COLOR:
+                    currentMode = Mode.LYNX_IMU;
+                    break;
+                case LYNX_IMU:
                     currentMode = Mode.RANGE;
                     break;
                 case RANGE:
@@ -155,6 +185,9 @@ public class SensorTester extends OpMode {
                 break;
             case LYNX_COLOR:
                 doLynxColorSensorLoop();
+                break;
+            case LYNX_IMU:
+                doLynxImuLoop();
                 break;
             case RANGE:
                 doRangeSensorLoop();
@@ -311,6 +344,55 @@ public class SensorTester extends OpMode {
         telemetry.addData("D (mm):", "%f", currentColorSensor.getDistance(DistanceUnit.MM));
         telemetry.addData("light:", "%f", currentColorSensor.getLightDetected());
         telemetry.addData("raw light:", "%f", currentColorSensor.getRawLightDetected());
+        updateTelemetry(telemetry);
+    }
+
+    int currentLynxImuListPosition = 0;
+
+    private void doLynxImuLoop() {
+        namedImus = namedDeviceMap.getAll(LynxEmbeddedIMU.class);
+
+        if (namedImus.isEmpty()) {
+            telemetry.addData("No lynx imus", "");
+            updateTelemetry(telemetry);
+            return;
+        }
+
+        if (rightBumper.getRise()) {
+            currentLynxImuListPosition++;
+
+            if (currentLynxImuListPosition == namedImus.size()) {
+                currentLynxImuListPosition = 0;
+            }
+        }
+
+        NamedDeviceMap.NamedDevice<LynxEmbeddedIMU> currentNamedLynxImu = namedImus.get(currentLynxImuListPosition);
+        LynxEmbeddedIMU currentImu = currentNamedLynxImu.getDevice();
+        String sensorName = currentNamedLynxImu.getName();
+
+        BNO055IMU.CalibrationStatus calibrationStatus = currentImu.getCalibrationStatus();
+        AngularVelocity angularVelocity = currentImu.getAngularVelocity();
+
+        Acceleration linearAccel = currentImu.getLinearAcceleration();
+
+        Acceleration overallAccel = currentImu.getOverallAcceleration();
+
+        Velocity velocity = currentImu.getVelocity();
+
+        Orientation currentOrientation = currentImu.getAngularOrientation();
+        // First angle is heading, second is roll, third is pitch
+        float heading = currentOrientation.firstAngle;
+        float roll = currentOrientation.secondAngle;
+        float pitch = currentOrientation.thirdAngle;
+
+        telemetry.addData("imu ",  "%s", sensorName);
+        telemetry.addData("h/r/p ",  "%.2f %.2f %.2f", heading, roll, pitch);
+        telemetry.addData("Vr x/y/z", "%.2f %.2f %.2f", angularVelocity.xRotationRate,
+                angularVelocity.yRotationRate, angularVelocity.zRotationRate);
+        telemetry.addData("dV x/y/z", "%.2f %.2f %.2f", linearAccel.xAccel, linearAccel.yAccel, linearAccel.zAccel);
+        telemetry.addData("dVo x/y/z", "%.2f %.2f %.2f", overallAccel.xAccel, overallAccel.yAccel, overallAccel.zAccel);
+        telemetry.addData("V x/y/z", "%.2f %.2f %.2f", velocity.xVeloc, velocity.yVeloc, velocity.zVeloc);
+
         updateTelemetry(telemetry);
     }
 
