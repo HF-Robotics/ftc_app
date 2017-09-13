@@ -29,8 +29,8 @@ SOFTWARE.
             <!-- Sensors -->
             <LynxEmbeddedIMU name="imu" port="0" bus="0" />
             <!-- This is a REV color sensor - use the LynxI2cColorRangeSensor class in your code-->
-            <LynxColorSensor name="leftColorRange" port="1" bus="0" />
-            <LynxColorSensor name="rightColorRange" port="0" bus="1" />
+            <!-- <LynxColorSensor name="leftColorRange" port="1" bus="0" />
+            <LynxColorSensor name="rightColorRange" port="0" bus="1" /> -->
 
             <!-- REV touch devices are wired to odd number ports note that their logic is also
                  inverted, pressed is 'false' -->
