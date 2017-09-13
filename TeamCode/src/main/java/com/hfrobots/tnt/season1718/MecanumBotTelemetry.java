@@ -39,8 +39,8 @@ public abstract class MecanumBotTelemetry extends MecanumBotHardware {
 
         // First angle is heading, second is roll, third is pitch
         telemetry.addData("imu", "h: " + imu.getAngularOrientation().firstAngle);
-        telemetry.addData("rC", "%d %d %d %d %f", rightColorRange.red(), rightColorRange.green(), rightColorRange.blue(), rightColorRange.alpha(), rightColorRange.getRawLightDetected());
-        telemetry.addData("lC", "%d %d %d %d %f", leftColorRange.red(), leftColorRange.green(), leftColorRange.blue(), leftColorRange.alpha(), leftColorRange.getRawLightDetected());
+        //telemetry.addData("rC", "%d %d %d %d %f", rightColorRange.red(), rightColorRange.green(), rightColorRange.blue(), rightColorRange.alpha(), rightColorRange.getRawLightDetected());
+        //telemetry.addData("lC", "%d %d %d %d %f", leftColorRange.red(), leftColorRange.green(), leftColorRange.blue(), leftColorRange.alpha(), leftColorRange.getRawLightDetected());
 
 
     }

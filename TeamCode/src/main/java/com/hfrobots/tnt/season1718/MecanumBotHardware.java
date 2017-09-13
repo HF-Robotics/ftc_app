@@ -87,23 +87,23 @@ public abstract class MecanumBotHardware extends OpMode {
             rightRearDriveMotor = null;
         }
 
-        try {
-            leftColorRange = hardwareMap.get(LynxI2cColorRangeSensor.class, "leftColorRange");
-        } catch (Exception ex) {
-            appendWarningMessage("leftColorRange");
-            DbgLog.msg(ex.getLocalizedMessage());
+        //try {
+        //    leftColorRange = hardwareMap.get(LynxI2cColorRangeSensor.class, "leftColorRange");
+        //} catch (Exception ex) {
+        //    appendWarningMessage("leftColorRange");
+        //    DbgLog.msg(ex.getLocalizedMessage());
 
-            leftColorRange = null;
-        }
+        //    leftColorRange = null;
+        //}
 
-        try {
-            rightColorRange = hardwareMap.get(LynxI2cColorRangeSensor.class, "rightColorRange");
-        } catch (Exception ex) {
-            appendWarningMessage("leftColorRange");
-            DbgLog.msg(ex.getLocalizedMessage());
+        //try {
+        //    rightColorRange = hardwareMap.get(LynxI2cColorRangeSensor.class, "rightColorRange");
+        //} catch (Exception ex) {
+        //    appendWarningMessage("leftColorRange");
+        //    DbgLog.msg(ex.getLocalizedMessage());
 
-            rightColorRange = null;
-        }
+        //    rightColorRange = null;
+        //}
 
         try {
             imu = hardwareMap.get(LynxEmbeddedIMU.class, "imu");
@@ -356,7 +356,7 @@ public abstract class MecanumBotHardware extends OpMode {
 
     protected LynxEmbeddedIMU imu;
 
-    protected LynxI2cColorRangeSensor leftColorRange;
+    // protected LynxI2cColorRangeSensor leftColorRange;
 
-    protected LynxI2cColorRangeSensor rightColorRange;
+    // protected LynxI2cColorRangeSensor rightColorRange;
 }
