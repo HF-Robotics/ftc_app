@@ -46,8 +46,12 @@ public class MotorTester extends OpMode {
     private int desiredPosition;
     private boolean runningToPosition;
     private int targetPosition;
+    private boolean runningTimedTest;
+    private long timedTestStartMs;
 
     private DebouncedButton aButton;
+
+    private DebouncedButton bButton;
 
     private DebouncedButton rightBumper;
 
@@ -63,6 +67,7 @@ public class MotorTester extends OpMode {
 
         NinjaGamePad ninjaGamePad = new NinjaGamePad(gamepad1);
         aButton = new DebouncedButton(ninjaGamePad.getAButton());
+        bButton = new DebouncedButton(ninjaGamePad.getBButton());
         rightBumper = new DebouncedButton(ninjaGamePad.getRightBumper());
         dpadUp = new DebouncedButton(ninjaGamePad.getDpadUp());
         dpadDown = new DebouncedButton(ninjaGamePad.getDpadDown());
@@ -90,9 +95,33 @@ public class MotorTester extends OpMode {
         DcMotor currentMotor = namedDcMotor.getDevice();
         String motorName = namedDcMotor.getName();
 
+        if (runningTimedTest) {
+            if ((System.currentTimeMillis() - timedTestStartMs) >= 5000) {
+                currentMotor.setPower(0D);
+                runningTimedTest = false;
+
+                updateTelemetry(currentMotor, motorName, 0, DcMotor.ZeroPowerBehavior.BRAKE);
+
+                return;
+            }
+
+            return;
+        }
+
+        if (bButton.getRise()) {
+            runningTimedTest = true;
+            timedTestStartMs = System.currentTimeMillis();
+            currentMotor.setPower(0.75D);
+            updateTelemetry(currentMotor, motorName, 0, DcMotor.ZeroPowerBehavior.BRAKE);
+
+            return;
+        }
+
         if (runningToPosition) {
             if (Math.abs(
                     currentMotor.getCurrentPosition() - targetPosition) >= 10) {
+                updateTelemetry(currentMotor, motorName, 0, DcMotor.ZeroPowerBehavior.BRAKE);
+
                 return;
             }
 
@@ -118,9 +147,14 @@ public class MotorTester extends OpMode {
             powerBehavior = DcMotor.ZeroPowerBehavior.BRAKE;
         }
 
+        currentMotor.setZeroPowerBehavior(powerBehavior);
+
+        updateTelemetry(currentMotor, motorName, leftStickYPosition, powerBehavior);
+    }
+
+    protected void updateTelemetry(DcMotor currentMotor, String motorName, float leftStickYPosition, DcMotor.ZeroPowerBehavior powerBehavior) {
         int currentPosition = currentMotor.getCurrentPosition();
 
-        currentMotor.setZeroPowerBehavior(powerBehavior);
         telemetry.addData("motor ",  "%s - %s - pow %s - despos %s - curpos %s", motorName, powerBehavior,
                 Double.toString(leftStickYPosition),
                 Integer.toString(desiredPosition),
