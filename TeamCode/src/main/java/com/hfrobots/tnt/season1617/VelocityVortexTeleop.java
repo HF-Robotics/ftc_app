@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Provide a basic manual operational mode that controls the tank drive.
  */
-@TeleOp(name="00-VV Teleop")
+//@TeleOp(name="00-VV Teleop")
 @SuppressWarnings("unused")
 public class VelocityVortexTeleop extends VelocityVortexHardware
 

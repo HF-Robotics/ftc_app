@@ -19,7 +19,7 @@
 
 package com.hfrobots.tnt.season1516;
 
-import com.qualcomm.ftccommon.DbgLog;
+import android.util.Log;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -73,7 +73,7 @@ public abstract class SkittleBotHardware extends OpMode {
 
         } catch (Exception exception) {
             appendWarningMessage("sensorRGB");
-            DbgLog.msg(exception.getLocalizedMessage());
+            Log.e("tnt", exception.getLocalizedMessage());
 
             sensorRGB = null;
         }
@@ -86,7 +86,7 @@ public abstract class SkittleBotHardware extends OpMode {
             frontTouchSensor = hardwareMap.touchSensor.get("frontTouchSensor");
         } catch (Exception exception) {
             appendWarningMessage("frontTouchSensor");
-            DbgLog.msg(exception.getLocalizedMessage());
+            Log.e("tnt", exception.getLocalizedMessage());
 
             frontTouchSensor = null;
         }
@@ -99,7 +99,7 @@ public abstract class SkittleBotHardware extends OpMode {
             y1MotorDrive = hardwareMap.dcMotor.get("y1MotorDrive");
         } catch (Exception p_exeception) {
             appendWarningMessage("y1MotorDrive");
-            DbgLog.msg(p_exeception.getLocalizedMessage());
+            Log.e("tnt", p_exeception.getLocalizedMessage());
 
             y1MotorDrive = null;
         }
@@ -108,7 +108,7 @@ public abstract class SkittleBotHardware extends OpMode {
             y2MotorDrive = hardwareMap.dcMotor.get("y2MotorDrive");
         } catch (Exception p_exeception) {
             appendWarningMessage("y2MotorDrive");
-            DbgLog.msg(p_exeception.getLocalizedMessage());
+            Log.e("tnt", p_exeception.getLocalizedMessage());
 
             y2MotorDrive = null;
         }
@@ -117,7 +117,7 @@ public abstract class SkittleBotHardware extends OpMode {
             x1MotorDrive = hardwareMap.dcMotor.get("x1MotorDrive");
         } catch (Exception p_exeception) {
             appendWarningMessage("x1MotorDrive");
-            DbgLog.msg(p_exeception.getLocalizedMessage());
+            Log.e("tnt", p_exeception.getLocalizedMessage());
 
             x1MotorDrive = null;
         }
@@ -126,7 +126,7 @@ public abstract class SkittleBotHardware extends OpMode {
             x2MotorDrive = hardwareMap.dcMotor.get("x2MotorDrive");
         } catch (Exception p_exeception) {
             appendWarningMessage("x2MotorDrive");
-            DbgLog.msg(p_exeception.getLocalizedMessage());
+            Log.e("tnt", p_exeception.getLocalizedMessage());
 
             x2MotorDrive = null;
         }
@@ -135,7 +135,7 @@ public abstract class SkittleBotHardware extends OpMode {
             climberDumpServo = hardwareMap.servo.get ("climberDumpServo");
         } catch (Exception exception) {
             appendWarningMessage("climberDumpServo");
-            DbgLog.msg (exception.getLocalizedMessage ());
+            Log.e("tnt", exception.getLocalizedMessage ());
 
             climberDumpServo = null;
         }
@@ -144,7 +144,7 @@ public abstract class SkittleBotHardware extends OpMode {
             winchDrive = hardwareMap.dcMotor.get("winchDrive");
         } catch (Exception exception) {
             appendWarningMessage("winchDrive");
-            DbgLog.msg(exception.getLocalizedMessage());
+            Log.e("tnt", exception.getLocalizedMessage());
 
             winchDrive = null;
         }
@@ -153,7 +153,7 @@ public abstract class SkittleBotHardware extends OpMode {
             winchAimServo = hardwareMap.servo.get ("winchAimServo");
         } catch (Exception exception) {
             appendWarningMessage("winchAimServo");
-            DbgLog.msg (exception.getLocalizedMessage ());
+            Log.e("tnt", exception.getLocalizedMessage ());
 
             winchAimServo = null;
         }

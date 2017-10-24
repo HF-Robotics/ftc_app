@@ -19,7 +19,7 @@
 
 package com.hfrobots.tnt.season1718;
 
-import com.qualcomm.ftccommon.DbgLog;
+import android.util.Log;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.hardware.bosch.NaiveAccelerationIntegrator;
@@ -30,6 +30,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
 public abstract class MecanumBotHardware extends OpMode {
+    protected DcMotor[] motors;
+
     /**
      * Perform any actions that are necessary when the OpMode is enabled.
      * <p/>
@@ -54,7 +56,7 @@ public abstract class MecanumBotHardware extends OpMode {
             leftFrontDriveMotor.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception ex) {
             appendWarningMessage("leftFrontDriveMotor");
-            DbgLog.msg(ex.getLocalizedMessage());
+            Log.e("tnt", ex.getLocalizedMessage());
 
             leftFrontDriveMotor = null;
         }
@@ -64,7 +66,7 @@ public abstract class MecanumBotHardware extends OpMode {
             leftRearDriveMotor.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception ex) {
             appendWarningMessage("leftRearDriveMotor");
-            DbgLog.msg(ex.getLocalizedMessage());
+            Log.e("tnt", ex.getLocalizedMessage());
 
             leftRearDriveMotor = null;
         }
@@ -73,7 +75,7 @@ public abstract class MecanumBotHardware extends OpMode {
             rightFrontDriveMotor = hardwareMap.dcMotor.get("rightFrontDriveMotor");
         } catch (Exception ex) {
             appendWarningMessage("rightFrontDriveMotor");
-            DbgLog.msg(ex.getLocalizedMessage());
+            Log.e("tnt", ex.getLocalizedMessage());
 
             rightFrontDriveMotor = null;
         }
@@ -82,10 +84,14 @@ public abstract class MecanumBotHardware extends OpMode {
             rightRearDriveMotor = hardwareMap.dcMotor.get("rightRearDriveMotor");
         } catch (Exception ex) {
             appendWarningMessage("rightRearDriveMotor");
-            DbgLog.msg(ex.getLocalizedMessage());
+            Log.e("tnt", ex.getLocalizedMessage());
 
             rightRearDriveMotor = null;
         }
+
+
+        motors = new DcMotor[] { rightFrontDriveMotor, rightRearDriveMotor, leftFrontDriveMotor, leftRearDriveMotor};
+
 
         //try {
         //    leftColorRange = hardwareMap.get(LynxI2cColorRangeSensor.class, "leftColorRange");
@@ -119,7 +125,7 @@ public abstract class MecanumBotHardware extends OpMode {
             imu.startAccelerationIntegration(null, null, 50); // not started by default?
         } catch (Exception ex) {
             appendWarningMessage("imu");
-            DbgLog.msg(ex.getLocalizedMessage());
+            Log.e("tnt", ex.getLocalizedMessage());
 
             imu = null;
         }
@@ -195,6 +201,12 @@ public abstract class MecanumBotHardware extends OpMode {
         return scaledPower;
     }
 
+    protected void stopAllDriveMotors() {
+        for (DcMotor motor : motors) {
+            motor.setPower(0);
+        }
+    }
+
     protected static class WheelSpeeds {
         protected double leftFront;
         protected double rightFront;
@@ -248,6 +260,10 @@ public abstract class MecanumBotHardware extends OpMode {
                 rightRear /= maxMagnitude;
             }
         }
+
+        public String toString() {
+            return "Wheel speed: " + leftFront + ", " + rightFront + ", " + leftRear + ", " + rightRear;
+        }
     }
 
     private final static double MAX_MOTOR_OUTPUT = 1.0;
@@ -300,6 +316,8 @@ public abstract class MecanumBotHardware extends OpMode {
         if (rightRearDriveMotor != null) {
             rightRearDriveMotor.setPower(wheelSpeeds.rightRear);
         }
+
+        Log.d("TNT", wheelSpeeds.toString());
     }
 
     /**
@@ -346,13 +364,13 @@ public abstract class MecanumBotHardware extends OpMode {
      */
     private String warningMessage;
 
-    private DcMotor leftFrontDriveMotor;
+    protected DcMotor leftFrontDriveMotor;
 
-    private DcMotor rightFrontDriveMotor;
+    protected DcMotor rightFrontDriveMotor;
 
-    private DcMotor leftRearDriveMotor;
+    protected DcMotor leftRearDriveMotor;
 
-    private DcMotor rightRearDriveMotor;
+    protected DcMotor rightRearDriveMotor;
 
     protected LynxEmbeddedIMU imu;
 

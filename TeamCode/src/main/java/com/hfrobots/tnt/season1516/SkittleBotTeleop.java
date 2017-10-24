@@ -21,7 +21,7 @@ package com.hfrobots.tnt.season1516;
 
 
 import com.hfrobots.tnt.season1516.SkittleBotTelemetry;
-import com.qualcomm.ftccommon.DbgLog;
+import android.util.Log;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.Range;
 
@@ -103,7 +103,7 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
     private void colorSensorRecon() {
         if (gamepad2.left_trigger > 0.5 || gamepad2.left_bumper) {
             ColorSensorValues reading = getColorSensorValues();
-            DbgLog.msg("Color sensor reading: " + reading.toString());
+            Log.d("tnt", "Color sensor reading: " + reading.toString());
         }
     }
 

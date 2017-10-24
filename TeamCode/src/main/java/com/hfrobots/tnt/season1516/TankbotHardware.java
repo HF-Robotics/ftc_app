@@ -19,7 +19,7 @@
 
 package com.hfrobots.tnt.season1516;
 
-import com.qualcomm.ftccommon.DbgLog;
+import android.util.Log;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -59,7 +59,7 @@ public abstract class TankbotHardware extends OpMode {
             leftDrive.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception p_exeception) {
             appendWarningMessage("leftDrive");
-            DbgLog.msg(p_exeception.getLocalizedMessage());
+            Log.e("tnt", p_exeception.getLocalizedMessage());
 
             leftDrive = null;
         }
@@ -68,7 +68,7 @@ public abstract class TankbotHardware extends OpMode {
             rightDrive = hardwareMap.dcMotor.get("rightDrive");
         } catch (Exception p_exeception) {
             appendWarningMessage("rightDrive");
-            DbgLog.msg(p_exeception.getLocalizedMessage());
+            Log.e("tnt", p_exeception.getLocalizedMessage());
 
             rightDrive = null;
         }
@@ -77,7 +77,7 @@ public abstract class TankbotHardware extends OpMode {
             hookServo = hardwareMap.servo.get("hookServo");
         } catch (Exception p_exeception) {
             appendWarningMessage("hookServo");
-            DbgLog.msg(p_exeception.getLocalizedMessage());
+            Log.e("tnt", p_exeception.getLocalizedMessage());
 
             hookServo = null;
         }
