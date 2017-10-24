@@ -35,6 +35,9 @@ SOFTWARE.
             <!-- REV touch devices are wired to odd number ports note that their logic is also
                  inverted, pressed is 'false' -->
             <DigitalDevice name="revTouch" port="1" />
+
+            <Servo name="naturalTopGlyphServo" port="0" />
+            <Servo name="naturalBottomGlyphServo" port="1" />
         </LynxModule>
     </LynxUsbDevice>
 </Robot>

@@ -1,5 +1,5 @@
 /**
- Copyright (c) 2016 HF Robotics (http://www.hfrobots.com)
+ Copyright (c) 2017 HF Robotics (http://www.hfrobots.com)
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
@@ -19,7 +19,7 @@
 
 package com.hfrobots.tnt.season1718;
 
-public abstract class MecanumBotTelemetry extends MecanumBotHardware {
+public abstract class RelicRecoveryTelemetry extends RelicRecoveryHardware {
 
     protected void updatePriorityTelemetry(String message) {
         telemetry.addData("00", message);

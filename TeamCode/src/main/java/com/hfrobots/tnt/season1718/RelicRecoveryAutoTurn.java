@@ -1,5 +1,5 @@
 /**
- Copyright (c) 2016 HF Robotics (http://www.hfrobots.com)
+ Copyright (c) 2017 HF Robotics (http://www.hfrobots.com)
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
@@ -35,7 +35,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
  * Proof of concept of an IMU-based turn for the Mecanum drive
  */
 @TeleOp(name="MecanumBot Auto Turn")
-public class MecanumBotAutoTurn extends MecanumBotTelemetry
+public class RelicRecoveryAutoTurn extends RelicRecoveryTelemetry
 
 {
     private static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
@@ -83,7 +83,7 @@ public class MecanumBotAutoTurn extends MecanumBotTelemetry
 
     private boolean doingTurn = false;
 
-    public MecanumBotAutoTurn() {
+    public RelicRecoveryAutoTurn() {
     }
 
     /**
@@ -122,7 +122,7 @@ public class MecanumBotAutoTurn extends MecanumBotTelemetry
         if (stopButton.getRise()) {
             // Stop whatever we're doing
             doingTurn = false;
-            stopAllDriveMotors();
+            mecanumDrive.stopAllDriveMotors();
         }
 
         if (doingTurn) {
@@ -202,16 +202,16 @@ public class MecanumBotAutoTurn extends MecanumBotTelemetry
             if (reachedTarget) {
                 Log.d("TNT", "Gyro turn heading reached - stopping drive");
 
-                mecanumDriveCartesian(0, 0, 0, false, 0.0);
+                mecanumDrive.driveCartesian(0, 0, 0, false, 0.0);
 
-                stopAllDriveMotors();
+                mecanumDrive.stopAllDriveMotors();
                 doingTurn = false;
             }
         }
     }
 
     private void configureMotorParameters() {
-        for (DcMotor motor : motors) {
+        for (DcMotor motor : mecanumDrive.motors) {
             if (useEncoders) {
                 motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             } else {
@@ -246,8 +246,6 @@ public class MecanumBotAutoTurn extends MecanumBotTelemetry
         // calculate error in -179 to +180 range  (
         float currentHeading = imu.getAngularOrientation().firstAngle;
         error = target - currentHeading;
-
-        // TODO: ask team why the following two loops ... what do they actually do?
 
         while (error > 180)  {
             Log.d("TNT", "Error is > 180, making smaller angle in other direction " + error);
@@ -284,7 +282,7 @@ public class MecanumBotAutoTurn extends MecanumBotTelemetry
         Log.d("TNT", String.format("Target, Curr, Err, St %5.2f , %5.2f , %5.2f , %f",
                 target, currentHeading, error, steer));
 
-        mecanumDriveCartesian(0, 0, -steer, false, 0.0);
+        mecanumDrive.driveCartesian(0, 0, -steer, false, 0.0);
 
         return onTarget;
     }

@@ -1,5 +1,5 @@
 /**
- Copyright (c) 2016 HF Robotics (http://www.hfrobots.com)
+ Copyright (c) 2017 HF Robotics (http://www.hfrobots.com)
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
@@ -20,21 +20,23 @@
 package com.hfrobots.tnt.season1718;
 
 
-import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.util.Range;
 
 /**
  * Provide a basic manual operational mode that controls the tank drive.
  */
-@TeleOp(name="MecanumBot Teleop")
-public class MecanumBotTeleop extends MecanumBotTelemetry
+@TeleOp(name="00 RR Teleop")
+public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
 
 {
+    protected float throttleGain = 0.3F;
 
-    private NinjaGamePad driversGamepad;
+    protected float throttleExponent = 3; // MUST BE AN ODD NUMBER!
 
-    public MecanumBotTeleop() {
+    protected float throttleDeadband = 0;
+
+    @SuppressWarnings("unused")
+    public RelicRecoveryTeleop() {
     }
 
     /**
@@ -45,7 +47,6 @@ public class MecanumBotTeleop extends MecanumBotTelemetry
     @Override
     public void init() {
         super.init();
-        driversGamepad = new NinjaGamePad(gamepad1);
     }
 
 
@@ -59,7 +60,8 @@ public class MecanumBotTeleop extends MecanumBotTelemetry
     @Override public void loop ()
 
     {
-        mecanumDrive();
+        handleDrivingInputs();
+        handleGlyphGripper();
 
         //
         // Send telemetry data to the driver station.
@@ -69,11 +71,23 @@ public class MecanumBotTeleop extends MecanumBotTelemetry
 
     }
 
-    private void mecanumDrive() {
+    private void handleDrivingInputs() {
         double x = driversGamepad.getLeftStickX().getPosition();
         double y = -driversGamepad.getRightStickY().getPosition();
-
         double rot = (driversGamepad.getRightTrigger().getPosition() - driversGamepad.getLeftTrigger().getPosition());
-        mecanumDriveCartesian(x, y, rot, false, 0.0);
+
+        double xScaled = scaleThrottleValue(x);
+        double yScaled = scaleThrottleValue(y);
+        double rotateScaled = scaleThrottleValue(rot);
+
+        mecanumDrive.driveCartesian(xScaled, yScaled, rotateScaled, false, 0.0);
     }
+
+    double scaleThrottleValue(double unscaledPower) {
+        return (-1 * throttleDeadband) + (1 - throttleDeadband)
+                * (throttleGain * Math.pow(unscaledPower, throttleExponent)
+                + (1 - throttleGain) * unscaledPower);
+    }
+
 }
+
