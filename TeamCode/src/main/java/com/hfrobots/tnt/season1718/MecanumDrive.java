@@ -84,7 +84,7 @@ public class MecanumDrive {
             built.leftFrontDriveMotor = leftFrontDriveMotor;
             built.rightFrontDriveMotor = rightFrontDriveMotor;
             built.leftRearDriveMotor = leftRearDriveMotor;
-            built.leftFrontDriveMotor = leftFrontDriveMotor;
+            built.rightRearDriveMotor = rightRearDriveMotor;
             built.motors = new DcMotor[] {leftFrontDriveMotor, rightFrontDriveMotor, leftRearDriveMotor, rightRearDriveMotor};
 
             return built;
