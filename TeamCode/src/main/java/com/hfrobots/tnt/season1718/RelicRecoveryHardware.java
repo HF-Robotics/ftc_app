@@ -30,6 +30,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
@@ -96,6 +97,10 @@ public abstract class RelicRecoveryHardware extends OpMode {
     protected Servo naturalTopGlyphServo;
 
     protected Servo naturalBottomGlyphServo;
+
+    protected DigitalChannel ccwGlyphLimit;
+
+    protected DigitalChannel cwGlyphLimit;
 
     protected GlyphMechanism glyphMechanism;
 
@@ -239,7 +244,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
             naturalBottomGlyphServo = null;
         }
 
-        glyphMechanism = new GlyphMechanism(naturalTopGlyphServo, naturalBottomGlyphServo, null);
+        glyphMechanism = new GlyphMechanism(naturalTopGlyphServo, naturalBottomGlyphServo, null,
+                ccwGlyphLimit, cwGlyphLimit);
     }
 
     /**

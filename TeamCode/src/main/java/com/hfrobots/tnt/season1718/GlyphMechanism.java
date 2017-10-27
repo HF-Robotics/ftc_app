@@ -19,31 +19,36 @@
 
 package com.hfrobots.tnt.season1718;
 
+import android.util.Log;
+
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 
 public class GlyphMechanism {
     private Servo upperGripper;
     private Servo lowerGripper;
-    private Servo rotate;
-    private Servo gripper1;
-    private Servo gripper2;
+    private final CRServo rotate;
+    private final Servo gripper1;
+    private final Servo gripper2;
     private boolean isFlipped;
-
-
-    private static final double ROTATE_UNFLIPPED_POSITION= 42;
-    private static final double ROTATE_FLIPPED_POSITION= 11;
+    private final DigitalChannel ccwLimitSwitch;
+    private final DigitalChannel cwLimitSwitch;
 
     private static final double GRIPPER_OPEN = 0.5;
     private static final double GRIPPER_CLOSED = 0;
 
-    public GlyphMechanism(Servo naturalTopGripper, Servo naturalBottomGripper, Servo rotateServo) {
+
+    public GlyphMechanism(Servo naturalTopGripper, Servo naturalBottomGripper, CRServo rotateServo, DigitalChannel ccwLimitSwitch, DigitalChannel cwLimitSwitch) {
         gripper1 = naturalTopGripper;
         gripper2 = naturalBottomGripper;
         upperGripper = gripper1;
         lowerGripper = gripper2;
         rotate = rotateServo;
+        this.ccwLimitSwitch = ccwLimitSwitch;
+        this.cwLimitSwitch = cwLimitSwitch;
     }
 
     /* @robot start: upperGripper is gripper1; lowerGripper is gripper2; */
@@ -51,7 +56,8 @@ public class GlyphMechanism {
         //todo don't allow flip unless move 3in up
         if (isFlipped) {
             if (rotate != null) {
-               rotate.setPosition(ROTATE_UNFLIPPED_POSITION);
+                rotate.setDirection(DcMotor.Direction.REVERSE);
+                rotate.setPower(1.0);
             }
 
             isFlipped = false;
@@ -60,7 +66,8 @@ public class GlyphMechanism {
         }
         else {
             if (rotate != null) {
-                rotate.setPosition(ROTATE_FLIPPED_POSITION);
+                rotate.setDirection(DcMotor.Direction.FORWARD);
+                rotate.setPower(1.0);
             }
 
             isFlipped = true;
@@ -86,6 +93,29 @@ public class GlyphMechanism {
 
     public void upperClose() {
         upperGripper.setPosition(GRIPPER_CLOSED);
+    }
+
+    public boolean isCWlimitReached() {
+        if (cwLimitSwitch == null) {
+            return false;
+        }
+
+        return !cwLimitSwitch.getState();
+    }
+
+    public boolean isCCWlimitReached() {
+        if (ccwLimitSwitch == null) {
+            return false;
+        }
+
+        return !ccwLimitSwitch.getState();
+    }
+
+    public void enforceLimits() {
+        if (isCWlimitReached() || isCCWlimitReached()) {
+            rotate.setPower(0D);
+            Log.d("tnt", "limits reached, stopping servo");
+        }
     }
 
     class Lift {
