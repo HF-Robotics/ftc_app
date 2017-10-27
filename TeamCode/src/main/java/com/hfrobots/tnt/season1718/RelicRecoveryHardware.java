@@ -21,6 +21,8 @@ package com.hfrobots.tnt.season1718;
 
 import android.util.Log;
 
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
@@ -164,7 +166,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
             leftFrontDriveMotor.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception ex) {
             appendWarningMessage("leftFrontDriveMotor");
-            Log.e("tnt", ex.getLocalizedMessage());
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             leftFrontDriveMotor = null;
         }
@@ -174,7 +176,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
             leftRearDriveMotor.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception ex) {
             appendWarningMessage("leftRearDriveMotor");
-            Log.e("tnt", ex.getLocalizedMessage());
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             leftRearDriveMotor = null;
         }
@@ -183,7 +185,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
             rightFrontDriveMotor = hardwareMap.dcMotor.get("rightFrontDriveMotor");
         } catch (Exception ex) {
             appendWarningMessage("rightFrontDriveMotor");
-            Log.e("tnt", ex.getLocalizedMessage());
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             rightFrontDriveMotor = null;
         }
@@ -192,7 +194,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
             rightRearDriveMotor = hardwareMap.dcMotor.get("rightRearDriveMotor");
         } catch (Exception ex) {
             appendWarningMessage("rightRearDriveMotor");
-            Log.e("tnt", ex.getLocalizedMessage());
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             rightRearDriveMotor = null;
         }
@@ -218,7 +220,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
             imu.startAccelerationIntegration(null, null, 50); // not started by default?
         } catch (Exception ex) {
             appendWarningMessage("imu");
-            Log.e("tnt", ex.getLocalizedMessage());
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             imu = null;
         }
@@ -229,7 +231,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
             naturalTopGlyphServo = hardwareMap.servo.get("naturalTopGlyphServo");
         } catch (Exception ex) {
             appendWarningMessage("");
-            Log.e("tnt", ex.getLocalizedMessage());
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             naturalTopGlyphServo = null;
         }
@@ -239,7 +241,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
         } catch (Exception ex) {
             appendWarningMessage("");
-            Log.e("tnt", ex.getLocalizedMessage());
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             naturalBottomGlyphServo = null;
         }

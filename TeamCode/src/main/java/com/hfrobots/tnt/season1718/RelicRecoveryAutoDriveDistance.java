@@ -27,6 +27,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
 /**
  * Proof of concept of an IMU-based turn for the Mecanum drive
  */
@@ -81,7 +83,7 @@ public class RelicRecoveryAutoDriveDistance extends RelicRecoveryTelemetry
 
             double wheelDiaInches = 4;
 
-            Log.d("TNT", "inches to drive (adj) " + inchesToDrive);
+            Log.d(LOG_TAG, "inches to drive (adj) " + inchesToDrive);
 
             double encoderCountForDistance = (inchesToDrive / (wheelDiaInches * Math.PI)) * encoderCountPerRev;
 
@@ -106,11 +108,11 @@ public class RelicRecoveryAutoDriveDistance extends RelicRecoveryTelemetry
                 motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
-            Log.d("TNT", "encD " + encoderCountForDistance);
-            Log.d("TNT", "RFP " + rightFrontTargetPos);
-            Log.d("TNT", "RRP" + rightRearTargetPos);
-            Log.d("TNT", "LFP " + leftFrontTargetPos);
-            Log.d("TNT", "LRP" + leftRearTargetPos);
+            Log.d(LOG_TAG, "encD " + encoderCountForDistance);
+            Log.d(LOG_TAG, "RFP " + rightFrontTargetPos);
+            Log.d(LOG_TAG, "RRP" + rightRearTargetPos);
+            Log.d(LOG_TAG, "LFP " + leftFrontTargetPos);
+            Log.d(LOG_TAG, "LRP" + leftRearTargetPos);
             // (2) - Cartesian drive with the correct direction
 
             for (DcMotor motor : mecanumDrive.motors) {
@@ -132,7 +134,7 @@ public class RelicRecoveryAutoDriveDistance extends RelicRecoveryTelemetry
             telemetry.addData("LFP", curRightRearPos);
             telemetry.addData("LRP", curLeftRearPos);
 
-            Log.d("TNT", "curPos RF/RR/LF/LR " + curRightFrontPos + "/" + curRightRearPos + "/" + curLeftFrontPos + "/" + curLeftRearPos);
+            Log.d(LOG_TAG, "curPos RF/RR/LF/LR " + curRightFrontPos + "/" + curRightRearPos + "/" + curLeftFrontPos + "/" + curLeftRearPos);
             if (!rightFrontDriveMotor.isBusy()
                 && !rightRearDriveMotor.isBusy()
                 && !leftFrontDriveMotor.isBusy()

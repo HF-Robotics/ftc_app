@@ -31,6 +31,7 @@ import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.StateMachine;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -39,6 +40,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 import java.util.concurrent.TimeUnit;
 
 @Autonomous(name="VV Auto")
+@Disabled
 @SuppressWarnings("unused")
 public class VelocityVortexBeacons extends VelocityVortexHardware {
 

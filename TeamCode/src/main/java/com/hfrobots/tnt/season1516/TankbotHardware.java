@@ -25,6 +25,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
 public abstract class TankbotHardware extends OpMode {
 
     // Required hardware map
@@ -59,7 +61,7 @@ public abstract class TankbotHardware extends OpMode {
             leftDrive.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception p_exeception) {
             appendWarningMessage("leftDrive");
-            Log.e("tnt", p_exeception.getLocalizedMessage());
+            Log.e(LOG_TAG, p_exeception.getLocalizedMessage());
 
             leftDrive = null;
         }
@@ -68,7 +70,7 @@ public abstract class TankbotHardware extends OpMode {
             rightDrive = hardwareMap.dcMotor.get("rightDrive");
         } catch (Exception p_exeception) {
             appendWarningMessage("rightDrive");
-            Log.e("tnt", p_exeception.getLocalizedMessage());
+            Log.e(LOG_TAG, p_exeception.getLocalizedMessage());
 
             rightDrive = null;
         }
@@ -77,7 +79,7 @@ public abstract class TankbotHardware extends OpMode {
             hookServo = hardwareMap.servo.get("hookServo");
         } catch (Exception p_exeception) {
             appendWarningMessage("hookServo");
-            Log.e("tnt", p_exeception.getLocalizedMessage());
+            Log.e(LOG_TAG, p_exeception.getLocalizedMessage());
 
             hookServo = null;
         }

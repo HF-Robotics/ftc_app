@@ -28,6 +28,8 @@ import com.qualcomm.robotcore.hardware.I2cController;
 import com.qualcomm.robotcore.hardware.I2cControllerPortDevice;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
 public class I2cDeviceEnableDisable {
     private final I2cControllerPortDevice device;
     private final I2cDeviceSynch syncDevice;
@@ -61,18 +63,18 @@ public class I2cDeviceEnableDisable {
         if (deviceEnabled != enabled) {
             if (enabled) {
                 if (syncDevice != null) {
-                    Log.i("TNT", String.format("Enabling I2cDeviceSync device %s", syncDevice));
+                    Log.i(LOG_TAG, String.format("Enabling I2cDeviceSync device %s", syncDevice));
                     syncDevice.engage();
                 } else {
-                    Log.i("TNT", String.format("Enabling I2cControllerPortDevice device %s", device));
+                    Log.i(LOG_TAG, String.format("Enabling I2cControllerPortDevice device %s", device));
                     i2cController.registerForI2cPortReadyCallback(deviceCallback, port);
                 }
             } else {
                 if (syncDevice != null) {
-                    Log.i("TNT", String.format("Disabling I2cDeviceSync device %s", syncDevice));
+                    Log.i(LOG_TAG, String.format("Disabling I2cDeviceSync device %s", syncDevice));
                     syncDevice.disengage();
                 } else {
-                    Log.i("TNT", String.format("Disabling I2cControllerPortDevice device %s", device));
+                    Log.i(LOG_TAG, String.format("Disabling I2cControllerPortDevice device %s", device));
                     i2cController.deregisterForPortReadyCallback(port);
                 }
             }

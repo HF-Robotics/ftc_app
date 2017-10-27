@@ -31,6 +31,8 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
 /**
  * Proof of concept of an IMU-based turn for the Mecanum drive
  */
@@ -167,7 +169,7 @@ public class RelicRecoveryAutoTurn extends RelicRecoveryTelemetry
             telemetry.addData("DEGREES_TO_TURN", degreesToTurn);
             telemetry.addData("POWER_CUT_OFF",powerCutOff);
             float currentHeading = imu.getAngularOrientation().firstAngle;
-            Log.d("TNT", "currHeading " + currentHeading);
+            Log.d(LOG_TAG, "currHeading " + currentHeading);
             telemetry.addData("Heading", currentHeading);
             updateTelemetry();
         }
@@ -185,7 +187,7 @@ public class RelicRecoveryAutoTurn extends RelicRecoveryTelemetry
 
             configureMotorParameters();
 
-            Log.d("TNT", "Gyro turn initialized - current heading: " + currentHeading + ", relative turn heading: " + turnHeading + ", target heading: " + targetHeading);
+            Log.d(LOG_TAG, "Gyro turn initialized - current heading: " + currentHeading + ", relative turn heading: " + turnHeading + ", target heading: " + targetHeading);
             initialized = true;
         }
 
@@ -194,13 +196,13 @@ public class RelicRecoveryAutoTurn extends RelicRecoveryTelemetry
 
             if (lastCycleTimestamp != 0) {
                 long elapsedCycleTimeMs = System.currentTimeMillis() - lastCycleTimestamp;
-                Log.d("TNT", "Cycle time ms: " + elapsedCycleTimeMs);
+                Log.d(LOG_TAG, "Cycle time ms: " + elapsedCycleTimeMs);
             }
 
             lastCycleTimestamp = System.currentTimeMillis();
 
             if (reachedTarget) {
-                Log.d("TNT", "Gyro turn heading reached - stopping drive");
+                Log.d(LOG_TAG, "Gyro turn heading reached - stopping drive");
 
                 mecanumDrive.driveCartesian(0, 0, 0, false, 0.0);
 
@@ -248,16 +250,16 @@ public class RelicRecoveryAutoTurn extends RelicRecoveryTelemetry
         error = target - currentHeading;
 
         while (error > 180)  {
-            Log.d("TNT", "Error is > 180, making smaller angle in other direction " + error);
+            Log.d(LOG_TAG, "Error is > 180, making smaller angle in other direction " + error);
             error -= 360;
         }
 
         while (error <= -180) {
-            Log.d("TNT", "Error is > 180, making smaller angle in other direction " + error);
+            Log.d(LOG_TAG, "Error is > 180, making smaller angle in other direction " + error);
             error += 360;
         }
 
-        Log.d("TNT", "Error: " + error);
+        Log.d(LOG_TAG, "Error: " + error);
 
         if (Math.abs(error) <= HEADING_THRESHOLD) {
             steer = 0.0;
@@ -279,7 +281,7 @@ public class RelicRecoveryAutoTurn extends RelicRecoveryTelemetry
         // What speed y direction?
         // What rotation?
 
-        Log.d("TNT", String.format("Target, Curr, Err, St %5.2f , %5.2f , %5.2f , %f",
+        Log.d(LOG_TAG, String.format("Target, Curr, Err, St %5.2f , %5.2f , %5.2f , %f",
                 target, currentHeading, error, steer));
 
         mecanumDrive.driveCartesian(0, 0, -steer, false, 0.0);

@@ -23,9 +23,10 @@ import android.util.Log;
 
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
+
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 public class GlyphMechanism {
     private Servo upperGripper;
@@ -63,8 +64,7 @@ public class GlyphMechanism {
             isFlipped = false;
             upperGripper = gripper1;
             lowerGripper = gripper2;
-        }
-        else {
+        } else {
             if (rotate != null) {
                 rotate.setDirection(DcMotor.Direction.FORWARD);
                 rotate.setPower(1.0);
@@ -114,7 +114,7 @@ public class GlyphMechanism {
     public void enforceLimits() {
         if (isCWlimitReached() || isCCWlimitReached()) {
             rotate.setPower(0D);
-            Log.d("tnt", "limits reached, stopping servo");
+            Log.d(LOG_TAG, "limits reached, stopping servo");
         }
     }
 

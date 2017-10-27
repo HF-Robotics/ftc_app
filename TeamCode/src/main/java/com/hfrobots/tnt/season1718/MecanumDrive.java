@@ -24,6 +24,8 @@ import android.util.Log;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
 public class MecanumDrive {
     protected DcMotor leftFrontDriveMotor;
 
@@ -208,7 +210,7 @@ public class MecanumDrive {
             rightRearDriveMotor.setPower(wheelSpeeds.rightRear);
         }
 
-        Log.d("TNT", wheelSpeeds.toString());
+        Log.d(LOG_TAG, wheelSpeeds.toString());
     }
 
     /**

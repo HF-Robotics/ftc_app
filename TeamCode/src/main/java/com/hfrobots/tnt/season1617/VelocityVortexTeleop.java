@@ -29,6 +29,7 @@ import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.StateMachine;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.hfrobots.tnt.corelib.state.ToggleState;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -39,7 +40,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Provide a basic manual operational mode that controls the tank drive.
  */
-//@TeleOp(name="00-VV Teleop")
+@TeleOp(name="00-VV Teleop")
+@Disabled
 @SuppressWarnings("unused")
 public class VelocityVortexTeleop extends VelocityVortexHardware
 

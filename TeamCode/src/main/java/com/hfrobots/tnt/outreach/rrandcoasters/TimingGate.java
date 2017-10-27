@@ -22,11 +22,13 @@ package com.hfrobots.tnt.outreach.rrandcoasters;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.state.StateMachine;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 
 @TeleOp(name="Timing Gate")
+@Disabled
 @SuppressWarnings("unused")
 public class TimingGate extends OpMode {
     private StateMachine stateMachine;

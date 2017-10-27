@@ -26,11 +26,15 @@ import com.hfrobots.tnt.corelib.drive.DriveInchesStateExternalControl;
 import com.hfrobots.tnt.corelib.drive.GyroTurnState;
 import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.state.State;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
-//@Autonomous(name="VV Auto")
+@Autonomous(name="VV Auto")
+@Disabled
+
 @SuppressWarnings("unused")
 public class VelocityVortexAutonomous extends VelocityVortexHardware {
 

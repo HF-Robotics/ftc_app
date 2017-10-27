@@ -20,6 +20,7 @@ package com.hfrobots.tnt.corelib.state;
 
 import android.util.Log;
 
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
@@ -152,7 +153,7 @@ public class StateMachine {
 
                 if (!possibleNextState.equals(currentState)) {
                     // We've changed states, Yay time to party
-                    Log.d("TNT", "state " + currentState.getName() + " -> " + possibleNextState);
+                    Log.d(LOG_TAG, "state " + currentState.getName() + " -> " + possibleNextState);
                     executedStates.push(possibleNextState);
                     currentState = possibleNextState;
 

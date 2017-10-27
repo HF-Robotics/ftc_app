@@ -22,6 +22,7 @@ package com.hfrobots.tnt.season1617;
 
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.ToggleState;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
@@ -30,7 +31,8 @@ import com.qualcomm.robotcore.util.Range;
  * Provide a basic manual operational mode that allows manual adjustment of particle shooter
  * motor power and displays the values, use dpad up/down for top motor, left/right for bottom
  */
-//@TeleOp(name="Shooter Tuner")
+@TeleOp(name="Shooter Tuner")
+@Disabled
 @SuppressWarnings("unused")
 public class ShooterTuner extends VelocityVortexHardware
 

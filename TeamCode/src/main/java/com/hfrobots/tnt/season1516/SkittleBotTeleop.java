@@ -22,13 +22,18 @@ package com.hfrobots.tnt.season1516;
 
 import com.hfrobots.tnt.season1516.SkittleBotTelemetry;
 import android.util.Log;
+
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.Range;
+
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 /**
  * Provide a basic manual operational mode that controls the holonomic drive.
  */
 @TeleOp(name="SkittleBot Teleop")
+@Disabled
 public class SkittleBotTeleop extends SkittleBotTelemetry
 
 {
@@ -103,7 +108,7 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
     private void colorSensorRecon() {
         if (gamepad2.left_trigger > 0.5 || gamepad2.left_bumper) {
             ColorSensorValues reading = getColorSensorValues();
-            Log.d("tnt", "Color sensor reading: " + reading.toString());
+            Log.d(LOG_TAG, "Color sensor reading: " + reading.toString());
         }
     }
 
