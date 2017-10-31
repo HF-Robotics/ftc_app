@@ -40,7 +40,7 @@ public interface ExtendedDcMotor extends DcMotor {
      *
      * @return encoder counts per revolution
      */
-    int getEncoderCountsPerRevolution();
+    double getEncoderCountsPerRevolution();
 
     /**
      * Sets a target position to run to relative to

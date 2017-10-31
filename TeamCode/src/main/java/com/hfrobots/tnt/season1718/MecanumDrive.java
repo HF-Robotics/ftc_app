@@ -21,54 +21,55 @@ package com.hfrobots.tnt.season1718;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 public class MecanumDrive {
-    protected DcMotor leftFrontDriveMotor;
+    protected ExtendedDcMotor leftFrontDriveMotor;
 
-    protected DcMotor rightFrontDriveMotor;
+    protected ExtendedDcMotor rightFrontDriveMotor;
 
-    protected DcMotor leftRearDriveMotor;
+    protected ExtendedDcMotor leftRearDriveMotor;
 
-    protected DcMotor rightRearDriveMotor;
+    protected ExtendedDcMotor rightRearDriveMotor;
 
-    protected DcMotor[] motors;
+    protected ExtendedDcMotor[] motors;
 
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
-        protected DcMotor leftFrontDriveMotor;
+        protected ExtendedDcMotor leftFrontDriveMotor;
 
-        protected DcMotor rightFrontDriveMotor;
+        protected ExtendedDcMotor rightFrontDriveMotor;
 
-        protected DcMotor leftRearDriveMotor;
+        protected ExtendedDcMotor leftRearDriveMotor;
 
-        protected DcMotor rightRearDriveMotor;
+        protected ExtendedDcMotor rightRearDriveMotor;
 
-        public Builder leftFrontDriveMotor(DcMotor motor) {
+        public Builder leftFrontDriveMotor(ExtendedDcMotor motor) {
             leftFrontDriveMotor = motor;
 
             return this;
         }
 
-        public Builder rightFrontDriveMotor(DcMotor motor) {
+        public Builder rightFrontDriveMotor(ExtendedDcMotor motor) {
             rightFrontDriveMotor = motor;
 
             return this;
         }
 
-        public Builder leftRearDriveMotor(DcMotor motor) {
+        public Builder leftRearDriveMotor(ExtendedDcMotor motor) {
             leftRearDriveMotor = motor;
 
             return this;
         }
 
-        public Builder rightRearDriveMotor(DcMotor motor) {
+        public Builder rightRearDriveMotor(ExtendedDcMotor motor) {
             rightRearDriveMotor = motor;
 
             return this;
@@ -87,7 +88,7 @@ public class MecanumDrive {
             built.rightFrontDriveMotor = rightFrontDriveMotor;
             built.leftRearDriveMotor = leftRearDriveMotor;
             built.rightRearDriveMotor = rightRearDriveMotor;
-            built.motors = new DcMotor[] {leftFrontDriveMotor, rightFrontDriveMotor, leftRearDriveMotor, rightRearDriveMotor};
+            built.motors = new ExtendedDcMotor[] {leftFrontDriveMotor, rightFrontDriveMotor, leftRearDriveMotor, rightRearDriveMotor};
 
             return built;
         }

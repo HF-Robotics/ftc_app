@@ -27,10 +27,13 @@ import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.hfrobots.tnt.corelib.control.RangeInput;
+import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
+import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.state.State;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -54,13 +57,13 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected NinjaGamePad operatorsGamepad;
 
-    protected DcMotor leftFrontDriveMotor;
+    protected ExtendedDcMotor leftFrontDriveMotor;
 
-    protected DcMotor rightFrontDriveMotor;
+    protected ExtendedDcMotor rightFrontDriveMotor;
 
-    protected DcMotor leftRearDriveMotor;
+    protected ExtendedDcMotor leftRearDriveMotor;
 
-    protected DcMotor rightRearDriveMotor;
+    protected ExtendedDcMotor rightRearDriveMotor;
 
     protected MecanumDrive mecanumDrive;
 
@@ -96,13 +99,20 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected DebouncedButton unlockButton;
 
+    // Glyph hardware/sensors
     protected Servo naturalTopGlyphServo;
 
     protected Servo naturalBottomGlyphServo;
 
+    protected CRServo glyphRotateServo;
+
     protected DigitalChannel ccwGlyphLimit;
 
     protected DigitalChannel cwGlyphLimit;
+
+    protected DigitalChannel glyphLiftBottomLimit;
+
+    protected DigitalChannel glyphLiftTopLimit;
 
     protected GlyphMechanism glyphMechanism;
 
@@ -162,7 +172,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected void setupDrivebase() {
         try {
-            leftFrontDriveMotor = hardwareMap.dcMotor.get("leftFrontDriveMotor");
+            leftFrontDriveMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("leftFrontDriveMotor"));
             leftFrontDriveMotor.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception ex) {
             appendWarningMessage("leftFrontDriveMotor");
@@ -172,7 +182,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
 
         try {
-            leftRearDriveMotor = hardwareMap.dcMotor.get("leftRearDriveMotor");
+            leftRearDriveMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("leftRearDriveMotor"));
             leftRearDriveMotor.setDirection(DcMotor.Direction.REVERSE);
         } catch (Exception ex) {
             appendWarningMessage("leftRearDriveMotor");
@@ -182,7 +192,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
 
         try {
-            rightFrontDriveMotor = hardwareMap.dcMotor.get("rightFrontDriveMotor");
+            rightFrontDriveMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("rightFrontDriveMotor"));
         } catch (Exception ex) {
             appendWarningMessage("rightFrontDriveMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
@@ -191,7 +201,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
 
         try {
-            rightRearDriveMotor = hardwareMap.dcMotor.get("rightRearDriveMotor");
+            rightRearDriveMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("rightRearDriveMotor"));
         } catch (Exception ex) {
             appendWarningMessage("rightRearDriveMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
@@ -228,9 +238,18 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     private void setupGlyphMechanism() {
         try {
+            glyphRotateServo = hardwareMap.crservo.get("glyphRotateServo");
+        } catch (Exception ex) {
+            appendWarningMessage("No glyphRotateServo in hardware map");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            glyphRotateServo = null;
+        }
+
+        try {
             naturalTopGlyphServo = hardwareMap.servo.get("naturalTopGlyphServo");
         } catch (Exception ex) {
-            appendWarningMessage("");
+            appendWarningMessage("No naturalTopGlyphServo in hardware map");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             naturalTopGlyphServo = null;
@@ -238,15 +257,50 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
         try {
             naturalBottomGlyphServo = hardwareMap.servo.get("naturalBottomGlyphServo");
-
         } catch (Exception ex) {
-            appendWarningMessage("");
+            appendWarningMessage("No naturalBottomGlyphServo in hardware map");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             naturalBottomGlyphServo = null;
         }
 
-        glyphMechanism = new GlyphMechanism(naturalTopGlyphServo, naturalBottomGlyphServo, null,
+        try {
+            glyphLiftBottomLimit = hardwareMap.digitalChannel.get("glyphLiftBottomLimit");
+        } catch (Exception ex) {
+            appendWarningMessage("No glyphLiftBottomLimit in hardware map");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            glyphLiftBottomLimit = null;
+        }
+
+        try {
+            glyphLiftTopLimit = hardwareMap.digitalChannel.get("glyphLiftTopLimit");
+        } catch (Exception ex) {
+            appendWarningMessage("No glyphLiftTopLimit in hardware map");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            glyphLiftTopLimit = null;
+        }
+
+        try {
+            ccwGlyphLimit = hardwareMap.digitalChannel.get("ccwGlyphLimit");
+        } catch (Exception ex) {
+            appendWarningMessage("No ccwGlyphLimit in hardware map");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            ccwGlyphLimit = null;
+        }
+
+        try {
+            cwGlyphLimit = hardwareMap.digitalChannel.get("cwGlyphLimit");
+        } catch (Exception ex) {
+            appendWarningMessage("No cwGlyphLimit in hardware map");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            cwGlyphLimit = null;
+        }
+
+        glyphMechanism = new GlyphMechanism(naturalTopGlyphServo, naturalBottomGlyphServo, glyphRotateServo,
                 ccwGlyphLimit, cwGlyphLimit);
     }
 

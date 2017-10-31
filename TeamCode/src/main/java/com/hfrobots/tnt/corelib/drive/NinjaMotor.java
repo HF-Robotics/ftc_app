@@ -35,7 +35,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
  */
 public class NinjaMotor implements ExtendedDcMotor {
 
-    private final int encoderCountsPerRevolution;
+    private final double encoderCountsPerRevolution;
     private final DcMotor dcMotor;
     private int absoluteTargetPosition;
     private final Rotation motorNativeDirection;
@@ -59,6 +59,10 @@ public class NinjaMotor implements ExtendedDcMotor {
         Log.d("VV", "asNeverest20(" + (dcMotor == null ? "null" : dcMotor) + ")");
 
         return new NinjaMotor(dcMotor, Rotation.CW, 560);
+    }
+
+    public static ExtendedDcMotor asNeverest20Orbital(DcMotor dcMotor) {
+        return new NinjaMotor(dcMotor, Rotation.CCW, 537.6);  //nr 20 orbital)
     }
 
     /**
@@ -95,7 +99,7 @@ public class NinjaMotor implements ExtendedDcMotor {
     /**
      * Private because we want to have code only use the factory methods
      */
-    private NinjaMotor(DcMotor dcMotor, Rotation motorNativeDirection, int encoderCountsPerRevolution) {
+    private NinjaMotor(DcMotor dcMotor, Rotation motorNativeDirection, double encoderCountsPerRevolution) {
         this.encoderCountsPerRevolution = encoderCountsPerRevolution;
         this.dcMotor = dcMotor;
         this.motorNativeDirection = motorNativeDirection;
@@ -113,7 +117,7 @@ public class NinjaMotor implements ExtendedDcMotor {
      * How many PPR does this motor produce?
      */
     @Override
-    public int getEncoderCountsPerRevolution() {
+    public double getEncoderCountsPerRevolution() {
         return encoderCountsPerRevolution;
     }
 

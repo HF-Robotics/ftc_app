@@ -21,23 +21,25 @@ SOFTWARE.
     <LynxUsbDevice name="Expansion Hub Portal 1" serialNumber="DQ1476N4" parentModuleAddress="2">
         <LynxModule name="Expansion Hub 1" port="2">
             <!-- DC Motors -->
-            <NeveRest40Gearmotor name="leftFrontDriveMotor"  port="0" />
-            <NeveRest40Gearmotor name="rightFrontDriveMotor" port="1" />
-            <NeveRest40Gearmotor name="leftRearDriveMotor"  port="2" />
-            <NeveRest40Gearmotor name="rightRearDriveMotor"  port="3" />
-
-            <!-- Sensors -->
-            <LynxEmbeddedIMU name="imu" port="0" bus="0" />
-            <!-- This is a REV color sensor - use the LynxI2cColorRangeSensor class in your code-->
-            <!-- <LynxColorSensor name="leftColorRange" port="1" bus="0" />
-            <LynxColorSensor name="rightColorRange" port="0" bus="1" /> -->
+            <Motor name="leftFrontDriveMotor"  port="0" />
+            <Motor name="rightFrontDriveMotor" port="1" />
+            <Motor name="leftRearDriveMotor"  port="2" />
+            <Motor name="rightRearDriveMotor"  port="3" />
 
             <!-- REV touch devices are wired to odd number ports note that their logic is also
                  inverted, pressed is 'false' -->
+            <!-- need to add limit switches glyphLiftTopLimit, glyphLiftBottomLimit,
+                 ccwGlyphLimit, cwGlyphLimit -->
             <DigitalDevice name="revTouch" port="1" />
 
             <Servo name="naturalTopGlyphServo" port="0" />
             <Servo name="naturalBottomGlyphServo" port="1" />
+            <ContinuousRotationServo name="glyphRotateServo" port="3" />
+
+            <!-- Need to add jewel servos -->
+
+            <LynxColorSensor name="redAllianceJewelColor" port="1" bus="0" />
+            <LynxColorSensor name="blueAllianceJewelColor"  port="0" bus="1" />
         </LynxModule>
     </LynxUsbDevice>
 </Robot>

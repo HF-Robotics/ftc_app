@@ -114,7 +114,7 @@ public class GlyphMechanism {
     public void enforceLimits() {
         if (isCWlimitReached() || isCCWlimitReached()) {
             rotate.setPower(0D);
-            Log.d(LOG_TAG, "limits reached, stopping servo");
+            Log.d(LOG_TAG, "rotation limits reached, stopping servo");
         }
     }
 

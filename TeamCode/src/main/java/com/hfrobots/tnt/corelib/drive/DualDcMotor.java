@@ -230,7 +230,7 @@ public class DualDcMotor implements ExtendedDcMotor {
     }
 
     @Override
-    public int getEncoderCountsPerRevolution() {
+    public double getEncoderCountsPerRevolution() {
         return firstMotor.getEncoderCountsPerRevolution();
     }
 
