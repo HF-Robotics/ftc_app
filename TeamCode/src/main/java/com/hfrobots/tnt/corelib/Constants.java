@@ -23,4 +23,6 @@ public class Constants {
     private Constants() {} // no new ()
 
     public static final String LOG_TAG = "TNT";
+
+    public enum Alliance { RED, BLUE }
 }

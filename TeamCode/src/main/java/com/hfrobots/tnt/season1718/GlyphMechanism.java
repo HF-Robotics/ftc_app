@@ -21,6 +21,7 @@ package com.hfrobots.tnt.season1718;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -31,18 +32,24 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 public class GlyphMechanism {
     private Servo upperGripper;
     private Servo lowerGripper;
-    private final CRServo rotate;
+    private final Servo rotate;
     private final Servo gripper1;
     private final Servo gripper2;
     private boolean isFlipped;
     private final DigitalChannel ccwLimitSwitch;
     private final DigitalChannel cwLimitSwitch;
+    protected final Lift lift;
 
-    private static final double GRIPPER_OPEN = 0.5;
+    protected int liftStartPosition;
+
+    private static final double GRIPPER_OPEN = 0.375;
     private static final double GRIPPER_CLOSED = 0;
 
 
-    public GlyphMechanism(Servo naturalTopGripper, Servo naturalBottomGripper, CRServo rotateServo, DigitalChannel ccwLimitSwitch, DigitalChannel cwLimitSwitch) {
+    public GlyphMechanism(Servo naturalTopGripper, Servo naturalBottomGripper, Servo rotateServo,
+                          DigitalChannel ccwLimitSwitch, DigitalChannel cwLimitSwitch,
+                          DigitalChannel minHeight, DigitalChannel maxHeight,
+                          DcMotor liftMotor) {
         gripper1 = naturalTopGripper;
         gripper2 = naturalBottomGripper;
         upperGripper = gripper1;
@@ -50,15 +57,30 @@ public class GlyphMechanism {
         rotate = rotateServo;
         this.ccwLimitSwitch = ccwLimitSwitch;
         this.cwLimitSwitch = cwLimitSwitch;
+        lift = new Lift();
+        lift.minHeight = minHeight;
+        lift.maxHeight = maxHeight;
+        lift.liftMotor = liftMotor;
+        lift.liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        liftStartPosition = lift.liftMotor.getCurrentPosition();
+
+        upperOpen();
+        lowerOpen();
     }
 
     /* @robot start: upperGripper is gripper1; lowerGripper is gripper2; */
     public boolean flip() {
-        //todo don't allow flip unless move 3in up
+        // don't allow flip unless move 3in up
+
+        //if (Math.abs(lift.liftMotor.getCurrentPosition() - liftStartPosition) < 600) {
+        //    Log.d(Constants.LOG_TAG, "Not safe to rotate");
+
+        //     return isFlipped;
+        //}
+
         if (isFlipped) {
             if (rotate != null) {
-                rotate.setDirection(DcMotor.Direction.REVERSE);
-                rotate.setPower(1.0);
+                rotate.setPosition(0.0);
             }
 
             isFlipped = false;
@@ -66,8 +88,7 @@ public class GlyphMechanism {
             lowerGripper = gripper2;
         } else {
             if (rotate != null) {
-                rotate.setDirection(DcMotor.Direction.FORWARD);
-                rotate.setPower(1.0);
+                rotate.setPosition(1.0);
             }
 
             isFlipped = true;
@@ -77,6 +98,10 @@ public class GlyphMechanism {
         }
 
         return isFlipped;
+    }
+
+    public void stopRotating() {
+        rotate.setPosition(0.5);
     }
 
     public void lowerOpen() {
@@ -113,42 +138,41 @@ public class GlyphMechanism {
 
     public void enforceLimits() {
         if (isCWlimitReached() || isCCWlimitReached()) {
-            rotate.setPower(0D);
+            rotate.setPosition(0.5D);
             Log.d(LOG_TAG, "rotation limits reached, stopping servo");
         }
     }
 
     class Lift {
-        private DcMotor lift;
+        private DcMotor liftMotor;
         private DigitalChannel maxHeight;
         private DigitalChannel minHeight;
 
-        private double upPower = 42;
-        private double downPower = 11;
         public void stop(){
-            lift.setPower(0);
+            liftMotor.setPower(0);
         }
 
-        public boolean moveUp(){
-            lift.setPower(upPower);
+        public boolean moveUp(double power){
 
-            if (maxHeight.getState()) {
-                lift.setPower(0);
+            if (!maxHeight.getState()) {
+                liftMotor.setPower(0);
                 return false;
             }
             else{
+                liftMotor.setPower(power);
+
                 return true;
             }
 
         }
 
-        public boolean moveDown() {
-            lift.setPower(downPower);
-
-            if (minHeight.getState()) {
-                lift.setPower(0);
+        public boolean moveDown(double power) {
+            if (!minHeight.getState()) {
+                liftMotor.setPower(0);
                 return false;
             } else {
+                liftMotor.setPower(-power);
+
                 return true;
             }
         }

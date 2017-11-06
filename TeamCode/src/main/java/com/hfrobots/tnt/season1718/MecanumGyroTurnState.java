@@ -40,7 +40,8 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 public class MecanumGyroTurnState extends TimeoutSafetyState
 {
     private static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
-    private double     P_TURN_COEFF            = 0.1;     // Larger is more responsive, but also less stable
+    private double     P_TURN_COEFF            = 0.03;     // Larger is more responsive, but also less stable
+    private static final double MAX_POWER = 0.4;
 
     private boolean useEncoders = false;
 
@@ -185,7 +186,7 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
             steer = 0.0;
             onTarget = true;
         } else {
-            steer = Range.clip(error * P_TURN_COEFF, -1, 1);
+            steer = Range.clip(error * P_TURN_COEFF, -MAX_POWER, MAX_POWER);
         }
 
         if (Math.abs (steer) <= powerCutOff) {

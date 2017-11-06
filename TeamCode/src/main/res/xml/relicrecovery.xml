@@ -19,7 +19,9 @@ SOFTWARE.
 -->
 <Robot type="FirstInspires-FTC">
     <LynxUsbDevice name="Expansion Hub Portal 1" serialNumber="DQ1476N4" parentModuleAddress="2">
-        <LynxModule name="Expansion Hub 1" port="2">
+        <LynxModule name="Main Hub" port="2">
+            <LynxEmbeddedIMU name="imu" port="0" bus="0" />
+
             <!-- DC Motors -->
             <Motor name="leftFrontDriveMotor"  port="0" />
             <Motor name="rightFrontDriveMotor" port="1" />
@@ -30,16 +32,27 @@ SOFTWARE.
                  inverted, pressed is 'false' -->
             <!-- need to add limit switches glyphLiftTopLimit, glyphLiftBottomLimit,
                  ccwGlyphLimit, cwGlyphLimit -->
-            <DigitalDevice name="revTouch" port="1" />
+            <DigitalDevice name="glyphLiftTopLimit" port="1" />
+            <DigitalDevice name= "glyphLiftBottomLimit" port= "3"/>
+            <DigitalDevice name= "cwGlyphLimit" port= "5"/>
+            <DigitalDevice name= "ccwGlyphLimit" port= "7"/>
 
             <Servo name="naturalTopGlyphServo" port="0" />
             <Servo name="naturalBottomGlyphServo" port="1" />
-            <ContinuousRotationServo name="glyphRotateServo" port="3" />
+            <Servo name="glyphRotateServo" port="2" />
 
-            <!-- Need to add jewel servos -->
+            <Servo name="redAllianceJewelServo" port="4" />
+            <Servo name="blueAllianceJewelServo" port="5" />
 
             <LynxColorSensor name="redAllianceJewelColor" port="1" bus="0" />
             <LynxColorSensor name="blueAllianceJewelColor"  port="0" bus="1" />
+        </LynxModule>
+
+        <LynxModule name="Secondary Hub" port="1">
+            <LynxEmbeddedIMU name="imu 1" port="0" bus="0" />
+
+            <NeveRest20Gearmotor name="liftMotor" port="0" />
+
         </LynxModule>
     </LynxUsbDevice>
 </Robot>

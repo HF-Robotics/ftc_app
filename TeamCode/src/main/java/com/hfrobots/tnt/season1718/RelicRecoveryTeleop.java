@@ -29,11 +29,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
 
 {
-    protected float throttleGain = 0.3F;
-
-    protected float throttleExponent = 3; // MUST BE AN ODD NUMBER!
-
-    protected float throttleDeadband = 0;
 
     @SuppressWarnings("unused")
     public RelicRecoveryTeleop() {
@@ -82,17 +77,16 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         double y = -driversGamepad.getRightStickY().getPosition();
         double rot = (driversGamepad.getRightTrigger().getPosition() - driversGamepad.getLeftTrigger().getPosition());
 
+        // FIXME: Wiring issue? Not going to debug now...
+        x = -x;
+        y = -y;
+        rot = -rot;
+
         double xScaled = scaleThrottleValue(x);
         double yScaled = scaleThrottleValue(y);
         double rotateScaled = scaleThrottleValue(rot);
 
         mecanumDrive.driveCartesian(xScaled, yScaled, rotateScaled, false, 0.0);
-    }
-
-    double scaleThrottleValue(double unscaledPower) {
-        return (-1 * throttleDeadband) + (1 - throttleDeadband)
-                * (throttleGain * Math.pow(unscaledPower, throttleExponent)
-                + (1 - throttleGain) * unscaledPower);
     }
 
 }

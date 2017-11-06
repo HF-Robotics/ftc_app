@@ -31,45 +31,35 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 /**
- * Proof of concept of an IMU-based turn for the Mecanum drive
+ * Proof of concept of an time-based turn for the Mecanum drive
  */
-public class MecanumGyroTurnState extends TimeoutSafetyState
+public class MecanumTimedTurnState extends TimeoutSafetyState
 {
-    private static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
-    private double     P_TURN_COEFF            = 0.03;     // Larger is more responsive, but also less stable
-    private static final double MAX_POWER = 0.4;
+    private static final double POWER_LEVEL = 0.2;
 
-    private boolean useEncoders = false;
+    private boolean useEncoders = true;
 
-    private boolean useBraking = false;
+    private boolean useBraking = true;
 
-    private final Turn turn;
-
-    private double powerCutOff = 0.02;
-
-    private boolean initialized = false;
-
-    private boolean reachedTarget = false;
-
-    private float targetHeading;
+    private final Rotation direction;
 
     private final MecanumDrive mecanumDrive;
-
-    private final LynxEmbeddedIMU imu;
 
     private long lastCycleTimestamp = 0;
 
     private boolean doingTurn = false;
 
-    public MecanumGyroTurnState(String name, Telemetry telemetry, MecanumDrive mecanumDrive, LynxEmbeddedIMU imu, Turn turn, long safetyTimeoutMillis) {
-        super(name, telemetry, safetyTimeoutMillis);
+    private boolean initialized = false;
+
+    public MecanumTimedTurnState(String name, Telemetry telemetry, MecanumDrive mecanumDrive, Rotation direction, long timeMillis) {
+        super(name, telemetry, timeMillis);
         this.mecanumDrive = mecanumDrive;
-        this.imu = imu;
-        this.turn = turn;
+        this.direction = direction;
     }
 
     public State doStuffAndGetNextState() {
@@ -77,48 +67,26 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
             initialize();
         }
 
-        if (isTimedOut()) {
-            Log.e(LOG_TAG, "Gyro turn timeout reached - stopping drive");
-
-            mecanumDrive.stopAllDriveMotors();
-
-            return nextState;
+        if (!isTimedOut()) {
+            return this;
         }
 
-        reachedTarget = onHeading(targetHeading);
+        mecanumDrive.stopAllDriveMotors();
 
-        if (lastCycleTimestamp != 0) {
-            long elapsedCycleTimeMs = System.currentTimeMillis() - lastCycleTimestamp;
-            Log.d(LOG_TAG, "Cycle time ms: " + elapsedCycleTimeMs);
-        }
-
-        lastCycleTimestamp = System.currentTimeMillis();
-
-        if (reachedTarget) {
-            Log.d(LOG_TAG, "Gyro turn heading reached - stopping drive");
-
-            mecanumDrive.driveCartesian(0, 0, 0, false, 0.0);
-
-            mecanumDrive.stopAllDriveMotors();
-            doingTurn = false;
-
-            return nextState;
-        }
-
-        return this;
+        return nextState;
     }
 
     private void initialize() {
         // not-yet initialized
-        // First angle is heading, second is roll, third is pitch
-        reachedTarget = false;
-        float currentHeading = imu.getAngularOrientation().firstAngle;
-        float turnHeading = turn.getHeading();
-        targetHeading = currentHeading + turnHeading;
 
         configureMotorParameters();
 
-        Log.d(LOG_TAG, "Gyro turn initialized - current heading: " + currentHeading + ", relative turn heading: " + turnHeading + ", target heading: " + targetHeading);
+        if (direction.equals(Rotation.CCW)) {
+            mecanumDrive.driveCartesian(0, 0, POWER_LEVEL, false, 0);
+        } else {
+            mecanumDrive.driveCartesian(0, 0, -POWER_LEVEL, false, 0);
+        }
+
         initialized = true;
     }
 
@@ -147,66 +115,5 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
                 motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
             }
         }
-    }
-
-    // re-use of Pushbot gyro steer
-
-    /**
-     * Perform one cycle of closed loop heading control.
-     *
-     * @param target     Absolute Angle (in Degrees) relative to last gyro reset.
-     *                  0 = fwd. +ve is CCW from fwd. -ve is CW from forward.
-     *                  If a relative angle is required, add/subtract from current heading.
-     * @return
-     */
-    boolean onHeading(float target) {
-        float   error ;
-        double   steer ;
-        boolean  onTarget = false;
-
-        // determine turn power based on +/- error
-
-        // calculate error in -179 to +180 range  (
-        float currentHeading = imu.getAngularOrientation().firstAngle;
-        error = target - currentHeading;
-
-        while (error > 180)  {
-            Log.d(LOG_TAG, "Error is > 180, making smaller angle in other direction " + error);
-            error -= 360;
-        }
-
-        while (error <= -180) {
-            Log.d(LOG_TAG, "Error is > 180, making smaller angle in other direction " + error);
-            error += 360;
-        }
-
-        Log.d(LOG_TAG, "Error: " + error);
-
-        if (Math.abs(error) <= HEADING_THRESHOLD) {
-            steer = 0.0;
-            onTarget = true;
-        } else {
-            steer = Range.clip(error * P_TURN_COEFF, -MAX_POWER, MAX_POWER);
-        }
-
-        if (Math.abs (steer) <= powerCutOff) {
-            if (steer >= 0) {
-                steer = powerCutOff;
-            } else {
-                steer = -powerCutOff;
-            }
-        }
-
-        // Ok, let's tell the robot base what to do...
-        // What speed x direction?
-        // What speed y direction?
-        // What rotation?
-
-        Log.d(LOG_TAG, String.format("Target, Curr, Err, St %5.2f , %5.2f , %5.2f , %f",
-                target, currentHeading, error, steer));
-
-        mecanumDrive.driveCartesian(0, 0, -steer, false, 0.0);
-
-        return onTarget;
     }
 }

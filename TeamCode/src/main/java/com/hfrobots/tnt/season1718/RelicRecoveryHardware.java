@@ -23,6 +23,7 @@ import android.util.Log;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
+import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
@@ -32,6 +33,7 @@ import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.state.State;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
+import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -39,10 +41,15 @@ import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
+
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 public abstract class RelicRecoveryHardware extends OpMode {
+    protected float throttleGain = 0.3F;
+    protected float throttleExponent = 3; // MUST BE AN ODD NUMBER!
+    protected float throttleDeadband = 0;
     /**
      * Indicate whether a message is a available to the class user.
      */
@@ -57,6 +64,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected NinjaGamePad operatorsGamepad;
 
+    // Drivebase
     protected ExtendedDcMotor leftFrontDriveMotor;
 
     protected ExtendedDcMotor rightFrontDriveMotor;
@@ -100,11 +108,14 @@ public abstract class RelicRecoveryHardware extends OpMode {
     protected DebouncedButton unlockButton;
 
     // Glyph hardware/sensors
+
+    protected GlyphMechanism glyphMechanism;
+
     protected Servo naturalTopGlyphServo;
 
     protected Servo naturalBottomGlyphServo;
 
-    protected CRServo glyphRotateServo;
+    protected Servo glyphRotateServo;
 
     protected DigitalChannel ccwGlyphLimit;
 
@@ -114,16 +125,37 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected DigitalChannel glyphLiftTopLimit;
 
-    protected GlyphMechanism glyphMechanism;
+    protected DcMotor liftMotor;
+
+    // Glyph Controls
 
     protected DebouncedButton toggleTopGlyphGripper;
 
     protected DebouncedButton toggleBottomGlyphGripper;
 
+    protected DebouncedButton rotateGlyphButton;
+
+    protected DebouncedButton stopRotatingGlyphButton;
+
+    protected RangeInput liftControl;
+
     protected boolean topGlyphClosed = false;
 
     protected boolean bottomGlyphClosed = false;
 
+    // Jewel Mechanism
+
+    protected Servo redAllianceJewelServo;
+
+    protected Servo blueAllianceJewelServo;
+
+    protected LynxI2cColorRangeSensor redAllianceJewelColor;
+
+    protected LynxI2cColorRangeSensor blueAllianceJewelColor;
+
+    protected JewelMechanism redAllianceJewelMech;
+
+    protected JewelMechanism blueAllianceJewelMech;
 
     /**
      * Perform any actions that are necessary when the OpMode is enabled.
@@ -152,22 +184,18 @@ public abstract class RelicRecoveryHardware extends OpMode {
     }
 
     private void setupJewelMechanism() {
-        //    leftColorRange = hardwareMap.get(LynxI2cColorRangeSensor.class, "leftColorRange");
-        //} catch (Exception ex) {
-        //    appendWarningMessage("leftColorRange");
-        //    DbgLog.msg(ex.getLocalizedMessage());
 
-        //    leftColorRange = null;
-        //}
+        redAllianceJewelServo = hardwareMap.servo.get("redAllianceJewelServo");
 
-        //try {
-        //    rightColorRange = hardwareMap.get(LynxI2cColorRangeSensor.class, "rightColorRange");
-        //} catch (Exception ex) {
-        //    appendWarningMessage("leftColorRange");
-        //    DbgLog.msg(ex.getLocalizedMessage());
+        blueAllianceJewelServo = hardwareMap.servo.get("blueAllianceJewelServo");
 
-        //    rightColorRange = null;
-        //}
+        redAllianceJewelColor = hardwareMap.get(LynxI2cColorRangeSensor.class, "redAllianceJewelColor");
+
+        blueAllianceJewelColor = hardwareMap.get(LynxI2cColorRangeSensor.class, "blueAllianceJewelColor");
+
+
+        redAllianceJewelMech = new JewelMechanism(redAllianceJewelServo, redAllianceJewelColor, Rotation.CW);
+        blueAllianceJewelMech = new JewelMechanism(blueAllianceJewelServo, blueAllianceJewelColor, Rotation.CCW);
     }
 
     protected void setupDrivebase() {
@@ -237,32 +265,12 @@ public abstract class RelicRecoveryHardware extends OpMode {
     }
 
     private void setupGlyphMechanism() {
-        try {
-            glyphRotateServo = hardwareMap.crservo.get("glyphRotateServo");
-        } catch (Exception ex) {
-            appendWarningMessage("No glyphRotateServo in hardware map");
-            Log.e(LOG_TAG, ex.getLocalizedMessage());
+        glyphRotateServo = hardwareMap.servo.get("glyphRotateServo");
 
-            glyphRotateServo = null;
-        }
+        naturalTopGlyphServo = hardwareMap.servo.get("naturalTopGlyphServo");
 
-        try {
-            naturalTopGlyphServo = hardwareMap.servo.get("naturalTopGlyphServo");
-        } catch (Exception ex) {
-            appendWarningMessage("No naturalTopGlyphServo in hardware map");
-            Log.e(LOG_TAG, ex.getLocalizedMessage());
+        naturalBottomGlyphServo = hardwareMap.servo.get("naturalBottomGlyphServo");
 
-            naturalTopGlyphServo = null;
-        }
-
-        try {
-            naturalBottomGlyphServo = hardwareMap.servo.get("naturalBottomGlyphServo");
-        } catch (Exception ex) {
-            appendWarningMessage("No naturalBottomGlyphServo in hardware map");
-            Log.e(LOG_TAG, ex.getLocalizedMessage());
-
-            naturalBottomGlyphServo = null;
-        }
 
         try {
             glyphLiftBottomLimit = hardwareMap.digitalChannel.get("glyphLiftBottomLimit");
@@ -300,8 +308,10 @@ public abstract class RelicRecoveryHardware extends OpMode {
             cwGlyphLimit = null;
         }
 
+        liftMotor = hardwareMap.dcMotor.get("liftMotor");
+
         glyphMechanism = new GlyphMechanism(naturalTopGlyphServo, naturalBottomGlyphServo, glyphRotateServo,
-                ccwGlyphLimit, cwGlyphLimit);
+                ccwGlyphLimit, cwGlyphLimit, glyphLiftBottomLimit, glyphLiftTopLimit, liftMotor);
     }
 
     /**
@@ -417,6 +427,9 @@ public abstract class RelicRecoveryHardware extends OpMode {
         operatorsGamepad = new NinjaGamePad(gamepad2);
         toggleTopGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
         toggleBottomGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
+        rotateGlyphButton = new DebouncedButton(operatorsGamepad.getBButton());
+        stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getXButton());
+        liftControl = operatorsGamepad.getLeftStickY();
     }
 
     private void setupDriverControls() {
@@ -447,6 +460,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
 
         telemetry.addData("gl", "top: " + topGlyphClosed + ", bot: " + bottomGlyphClosed);
+
         if (bottomGlyphClosed) {
             glyphMechanism.lowerClose();
         } else {
@@ -457,9 +471,33 @@ public abstract class RelicRecoveryHardware extends OpMode {
         } else{
             glyphMechanism.upperOpen();
         }
+
+        if (rotateGlyphButton.getRise()) {
+            glyphMechanism.flip();
+
+            Log.d(Constants.LOG_TAG, "Flip requested");
+            telemetry.addData("02", "Flip requested");
+        } else if (stopRotatingGlyphButton.getRise()) {
+            glyphMechanism.stopRotating();
+            Log.d(Constants.LOG_TAG, "Stoping rotation requested");
+        }
+
+        double liftThrottle = liftControl.getPosition();
+
+        liftThrottle = scaleThrottleValue(liftThrottle);
+
+        if (liftThrottle < 0) {
+            glyphMechanism.lift.moveUp(Math.abs(liftThrottle));
+        } else if (liftThrottle > 0 ) {
+            glyphMechanism.lift.moveDown(Math.abs(liftThrottle));
+        } else {
+            glyphMechanism.lift.stop();
+        }
     }
 
-    // protected LynxI2cColorRangeSensor leftColorRange;
-
-    // protected LynxI2cColorRangeSensor rightColorRange;
+    double scaleThrottleValue(double unscaledPower) {
+        return (-1 * throttleDeadband) + (1 - throttleDeadband)
+                * (throttleGain * Math.pow(unscaledPower, throttleExponent)
+                + (1 - throttleGain) * unscaledPower);
+    }
 }

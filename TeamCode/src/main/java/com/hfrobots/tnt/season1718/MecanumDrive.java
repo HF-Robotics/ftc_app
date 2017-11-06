@@ -211,7 +211,7 @@ public class MecanumDrive {
             rightRearDriveMotor.setPower(wheelSpeeds.rightRear);
         }
 
-        Log.d(LOG_TAG, wheelSpeeds.toString());
+        //Log.d(LOG_TAG, wheelSpeeds.toString());
     }
 
     /**

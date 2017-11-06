@@ -21,15 +21,11 @@ package com.hfrobots.tnt.season1718;
 
 import android.util.Log;
 
-import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
-import com.hfrobots.tnt.corelib.drive.DriveInchesStateExternalControl;
-import com.hfrobots.tnt.corelib.drive.GyroTurnState;
+import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.state.State;
-import com.hfrobots.tnt.season1617.VelocityVortexHardware;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 @Autonomous(name="RR Auto")
@@ -42,7 +38,7 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 
     // The routes our robot knows how to do
     private enum Routes { LEFT_STONE("Left stone"),
-        RIGHT_STONE_RIGHT_CRYPTO("Right stone to right crypto "),
+        //RIGHT_STONE_RIGHT_CRYPTO("Right stone to right crypto "),
         RIGHT_STONE("Right stone");
 
         final String description;
@@ -60,12 +56,12 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 
     private Routes[] possibleRoutes = Routes.values();
 
-    private enum Alliance { RED, BLUE };
+    ;
 
     // Which alliance are we? (the robot is programmed from the point-of-view of the red alliance
     // but we can also have it run the blue one if selected
 
-    private Alliance currentAlliance = Alliance.RED;
+    private Constants.Alliance currentAlliance = Constants.Alliance.RED;
 
     private int initialDelaySeconds = 0;
 
@@ -88,7 +84,7 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
     }
 
     private void setDefaults() {
-        currentAlliance = Alliance.RED;
+        currentAlliance = Constants.Alliance.RED;
         selectedRoutesIndex = 0;
         initialDelaySeconds = 0;
     }
@@ -120,6 +116,8 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
         } else {
             telemetry.addData("00", "UNLOCKED: Press Lt stick lock");
         }
+
+        handleGlyphGripper();
 
         telemetry.addData("01", "Alliance: %s", currentAlliance);
         telemetry.addData("02", "Route: %s", possibleRoutes[selectedRoutesIndex].getDescription());
@@ -161,9 +159,9 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 
         // Alliance selection
         if (driverBRedButton.getRise()) {
-            currentAlliance = Alliance.RED;
+            currentAlliance = Constants.Alliance.RED;
         } else if (driverXBlueButton.getRise()) {
-            currentAlliance = Alliance.BLUE;
+            currentAlliance = Constants.Alliance.BLUE;
         }
     }
 
@@ -184,9 +182,9 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
                     case RIGHT_STONE:
                         selectedState = rightStoneStateMachine();
                         break;
-                    case RIGHT_STONE_RIGHT_CRYPTO:
-                        selectedState = rightStoneRightCryptoStateMachine();
-                        break;
+                    //case RIGHT_STONE_RIGHT_CRYPTO:
+                    //    selectedState = rightStoneRightCryptoStateMachine();
+                    //    break;
                     default:
                         selectedState = newDoneState("Default done");
                 }
@@ -238,7 +236,7 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
      * reverse the direction of the turn
      */
     private Turn adjustTurnForAlliance(Turn origTurn) {
-        if (currentAlliance == Alliance.RED) {
+        if (currentAlliance == Constants.Alliance.RED) {
             return origTurn;
         }
 
@@ -246,11 +244,31 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
     }
 
     private State leftStoneStateMachine() {
-        return newDoneState("Left Stone - TODO");
+        final JewelMechanism jewelMechUsed;
+
+        if (currentAlliance.equals(Constants.Alliance.BLUE)) {
+            jewelMechUsed = blueAllianceJewelMech;
+        } else {
+            jewelMechUsed = redAllianceJewelMech;
+        }
+
+        JewelMechanism.JewelMechanismDeploySensorState firstState = jewelMechUsed.getDeploySensorState(telemetry);
+        State waitToDeploy = newDelayState("waiting for deploy", 2);
+        firstState.setNextState(waitToDeploy);
+        JewelMechanism.JewelMechanismDetectAndTurn detectAndTurnState
+                = jewelMechUsed.getDetectAndTurnState(telemetry, currentAlliance, mecanumDrive);
+        waitToDeploy.setNextState(detectAndTurnState);
+        JewelMechanism.JewelMechanismStowSensorState stowSensorState = jewelMechUsed.getStowSensorState(telemetry);
+        detectAndTurnState.setNextState(stowSensorState);
+        State waitToStow = newDelayState("waiting for stow", 2);
+        stowSensorState.setNextState(waitToStow);
+        waitToStow.setNextState(newDoneState("Done"));
+
+        return firstState;
     }
 
     private State rightStoneStateMachine() {
-        return newDoneState("Right Stone - TODO");
+        return leftStoneStateMachine(); /* no different atm */
     }
 
     private State rightStoneRightCryptoStateMachine() {
