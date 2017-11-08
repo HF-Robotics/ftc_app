@@ -58,7 +58,7 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         handleDrivingInputs();
         handleGlyphGripper();
 
-        handleLimits();
+//        handleLimits();
 
         //
         // Send telemetry data to the driver station.
@@ -68,9 +68,9 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
 
     }
 
-    private void handleLimits() {
-        glyphMechanism.enforceLimits();
-    }
+//    private void handleLimits() {
+//        glyphMechanism.enforceLimits();
+//    }
 
     private void handleDrivingInputs() {
         double x = driversGamepad.getLeftStickX().getPosition();

@@ -143,6 +143,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected boolean bottomGlyphClosed = false;
 
+    protected boolean glyphFlipped = false;
+
     // Jewel Mechanism
 
     protected Servo redAllianceJewelServo;
@@ -473,13 +475,21 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
 
         if (rotateGlyphButton.getRise()) {
-            glyphMechanism.flip();
+            glyphFlipped = !glyphFlipped;
+            glyphMechanism.flip(glyphFlipped);
 
             Log.d(Constants.LOG_TAG, "Flip requested");
             telemetry.addData("02", "Flip requested");
         } else if (stopRotatingGlyphButton.getRise()) {
             glyphMechanism.stopRotating();
-            Log.d(Constants.LOG_TAG, "Stoping rotation requested");
+            Log.d(Constants.LOG_TAG, "Stopping rotation requested");
+        }
+
+        //I'm not sure if CW and CCW are right in the section below, need robot - CMN
+        if (glyphFlipped && glyphMechanism.isCWlimitReached()) {
+            glyphMechanism.stopRotating();
+        } else if (!glyphFlipped && glyphMechanism.isCCWlimitReached()) {
+            glyphMechanism.stopRotating();
         }
 
         double liftThrottle = liftControl.getPosition();

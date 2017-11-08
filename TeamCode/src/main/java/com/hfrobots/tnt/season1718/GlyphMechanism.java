@@ -63,13 +63,14 @@ public class GlyphMechanism {
         lift.liftMotor = liftMotor;
         lift.liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         liftStartPosition = lift.liftMotor.getCurrentPosition();
+        isFlipped = false;
 
         upperOpen();
         lowerOpen();
     }
 
     /* @robot start: upperGripper is gripper1; lowerGripper is gripper2; */
-    public boolean flip() {
+    public void flip(boolean flipped) {
         // don't allow flip unless move 3in up
 
         //if (Math.abs(lift.liftMotor.getCurrentPosition() - liftStartPosition) < 600) {
@@ -78,26 +79,20 @@ public class GlyphMechanism {
         //     return isFlipped;
         //}
 
-        if (isFlipped) {
+        if (flipped) {
             if (rotate != null) {
                 rotate.setPosition(0.0);
+                upperGripper = gripper1;
+                lowerGripper = gripper2;
             }
 
-            isFlipped = false;
-            upperGripper = gripper1;
-            lowerGripper = gripper2;
         } else {
             if (rotate != null) {
                 rotate.setPosition(1.0);
+                upperGripper= gripper2;
+                lowerGripper = gripper1;
             }
-
-            isFlipped = true;
-
-            upperGripper= gripper2;
-            lowerGripper = gripper1;
         }
-
-        return isFlipped;
     }
 
     public void stopRotating() {
@@ -136,6 +131,16 @@ public class GlyphMechanism {
         return !ccwLimitSwitch.getState();
     }
 
+    /**
+     * enforceLimits() is not working as intended.  It stops rotation when EITHER limit is reached.
+     * But we don't want that; when the mechanism starts rotating, it may already be touching the
+     * limit switch that it is rotating AWAY from.  Thus, the mechanism never completes its
+     * rotation.
+     *
+     * Adjusted flip() function above to be more like the lift mechanism; it will keep rotating
+     * in a given direction until the user input changes.  This required some changes in the
+     * RelicRecoveryHardware file as well. -- CMN
+      */
     public void enforceLimits() {
         if (isCWlimitReached() || isCCWlimitReached()) {
             rotate.setPosition(0.5D);
