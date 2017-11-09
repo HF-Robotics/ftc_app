@@ -425,8 +425,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
     private void setupOperatorControls() {
         // Operator controls
         operatorsGamepad = new NinjaGamePad(gamepad2);
-        toggleTopGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
-        toggleBottomGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
+
         rotateGlyphButton = new DebouncedButton(operatorsGamepad.getBButton());
         stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getXButton());
         liftControl = operatorsGamepad.getLeftStickY();
@@ -434,8 +433,14 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     private void setupDriverControls() {
         driversGamepad = new NinjaGamePad(gamepad1);
-        driverLeftStickX = driversGamepad.getLeftStickX();
-        driverLeftStickY = driversGamepad.getLeftStickY();
+        driverLeftStickX = driversGamepad.getLeftStickX(); // we never actually use?
+        driverLeftStickY = driversGamepad.getLeftStickY(); // we never actually use?
+
+        //These were originally in operator controls
+        //also, I have questions about how debounced button really works in connection with
+        //the main program loop.  Why do this in init() at all?
+        toggleTopGlyphGripper = new DebouncedButton(operatorsGamepad.getRightBumper());
+        toggleBottomGlyphGripper = new DebouncedButton(operatorsGamepad.getLeftBumper());
 
         driverDpadDown = new DebouncedButton(driversGamepad.getDpadDown());
         driverDpadUp = new DebouncedButton(driversGamepad.getDpadUp());
