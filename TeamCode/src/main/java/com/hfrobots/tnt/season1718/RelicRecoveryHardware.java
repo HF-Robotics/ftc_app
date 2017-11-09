@@ -35,7 +35,6 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -117,9 +116,9 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected Servo glyphRotateServo;
 
-    protected DigitalChannel ccwGlyphLimit;
+    protected DigitalChannel invertedGlyphLimit;
 
-    protected DigitalChannel cwGlyphLimit;
+    protected DigitalChannel uprightGlyphLimit;
 
     protected DigitalChannel glyphLiftBottomLimit;
 
@@ -142,6 +141,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
     protected boolean topGlyphClosed = false;
 
     protected boolean bottomGlyphClosed = false;
+
+    protected boolean inverted = false;
 
     // Jewel Mechanism
 
@@ -291,27 +292,27 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
 
         try {
-            ccwGlyphLimit = hardwareMap.digitalChannel.get("ccwGlyphLimit");
+            invertedGlyphLimit = hardwareMap.digitalChannel.get("invertedGlyphLimit");
         } catch (Exception ex) {
-            appendWarningMessage("No ccwGlyphLimit in hardware map");
+            appendWarningMessage("No invertedGlyphLimit in hardware map");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
 
-            ccwGlyphLimit = null;
+            invertedGlyphLimit = null;
         }
 
         try {
-            cwGlyphLimit = hardwareMap.digitalChannel.get("cwGlyphLimit");
+            uprightGlyphLimit = hardwareMap.digitalChannel.get("uprightGlyphLimit");
         } catch (Exception ex) {
-            appendWarningMessage("No cwGlyphLimit in hardware map");
+            appendWarningMessage("No uprightGlyphLimit in hardware map");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
 
-            cwGlyphLimit = null;
+            uprightGlyphLimit = null;
         }
 
         liftMotor = hardwareMap.dcMotor.get("liftMotor");
 
         glyphMechanism = new GlyphMechanism(naturalTopGlyphServo, naturalBottomGlyphServo, glyphRotateServo,
-                ccwGlyphLimit, cwGlyphLimit, glyphLiftBottomLimit, glyphLiftTopLimit, liftMotor);
+                invertedGlyphLimit, uprightGlyphLimit, glyphLiftBottomLimit, glyphLiftTopLimit, liftMotor);
     }
 
     /**
@@ -457,6 +458,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
     }
 
     protected void handleGlyphGripper() {
+        //Handle Grippers
         if (toggleBottomGlyphGripper.getRise()) {
             bottomGlyphClosed = ! bottomGlyphClosed;
         }
@@ -477,14 +479,23 @@ public abstract class RelicRecoveryHardware extends OpMode {
             glyphMechanism.upperOpen();
         }
 
+        //Handle Glyph Mechanism
         if (rotateGlyphButton.getRise()) {
-            glyphMechanism.flip();
+            inverted = !inverted;
+            glyphMechanism.flip(inverted);
 
             Log.d(Constants.LOG_TAG, "Flip requested");
             telemetry.addData("02", "Flip requested");
         } else if (stopRotatingGlyphButton.getRise()) {
             glyphMechanism.stopRotating();
-            Log.d(Constants.LOG_TAG, "Stoping rotation requested");
+            Log.d(Constants.LOG_TAG, "Stopping rotation requested");
+        }
+
+        //I'm not sure if CW and CCW are right in the section below, need robot - CMN
+        if (inverted && glyphMechanism.isUprightLimitReached()) {
+            glyphMechanism.stopRotating();
+        } else if (!inverted && glyphMechanism.isInvertedLimitReached()) {
+            glyphMechanism.stopRotating();
         }
 
         double liftThrottle = liftControl.getPosition();
