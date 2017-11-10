@@ -477,6 +477,11 @@ public abstract class RelicRecoveryHardware extends OpMode {
         //Handle Glyph Mechanism
         if (rotateGlyphButton.getRise()) {
             inverted = !inverted;
+            //begin changes to solve glyph mech opening on flip
+            bottomGlyphClosed = true;
+            topGlyphClosed = true;
+            glyphMechanism.lowerClose();
+            glyphMechanism.upperClose();
             glyphMechanism.flip(inverted);
 
             Log.d(Constants.LOG_TAG, "Flip requested");
