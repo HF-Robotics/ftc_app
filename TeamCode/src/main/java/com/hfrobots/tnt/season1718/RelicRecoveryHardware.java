@@ -429,6 +429,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
         rotateGlyphButton = new DebouncedButton(operatorsGamepad.getBButton());
         stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getXButton());
+        toggleTopGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
+        toggleBottomGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
         liftControl = operatorsGamepad.getLeftStickY();
     }
 
@@ -437,11 +439,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
         driverLeftStickX = driversGamepad.getLeftStickX(); // we never actually use?
         driverLeftStickY = driversGamepad.getLeftStickY(); // we never actually use?
 
-        //These were originally in operator controls
-        //also, I have questions about how debounced button really works in connection with
-        //the main program loop.  Why do this in init() at all?
-        toggleTopGlyphGripper = new DebouncedButton(driversGamepad.getRightBumper());
-        toggleBottomGlyphGripper = new DebouncedButton(driversGamepad.getLeftBumper());
+        //Also, why do we do these assignments in init instead of during main loop?
 
         driverDpadDown = new DebouncedButton(driversGamepad.getDpadDown());
         driverDpadUp = new DebouncedButton(driversGamepad.getDpadUp());
@@ -451,8 +449,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
         driverBRedButton = new DebouncedButton(driversGamepad.getBButton());
         driverXBlueButton = new DebouncedButton(driversGamepad.getXButton());
         driverYYellowButton = new DebouncedButton(driversGamepad.getYButton());
-        //driverLeftBumper = new DebouncedButton(driversGamepad.getLeftBumper());
-        //driverRightBumper = new DebouncedButton(driversGamepad.getRightBumper());
+        driverLeftBumper = new DebouncedButton(driversGamepad.getLeftBumper());
+        driverRightBumper = new DebouncedButton(driversGamepad.getRightBumper());
         lockButton = new DebouncedButton(driversGamepad.getLeftStickButton());
         unlockButton = new DebouncedButton(driversGamepad.getRightStickButton());
     }
