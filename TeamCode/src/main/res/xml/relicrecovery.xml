@@ -31,11 +31,11 @@ SOFTWARE.
             <!-- REV touch devices are wired to odd number ports note that their logic is also
                  inverted, pressed is 'false' -->
             <!-- need to add limit switches glyphLiftTopLimit, glyphLiftBottomLimit,
-                 ccwGlyphLimit, cwGlyphLimit -->
+             invertedGlyphLimitimuprightGlyphLimitimit -->
             <DigitalDevice name="glyphLiftTopLimit" port="1" />
             <DigitalDevice name= "glyphLiftBottomLimit" port= "3"/>
-            <DigitalDevice name= "cwGlyphLimit" port= "5"/>
-            <DigitalDevice name= "ccwGlyphLimit" port= "7"/>
+            <DigitalDevice name= "uprightGlyphLimit" port= "5"/>
+            <DigitalDevice name= "invertedGlyphLimit" port= "7"/>
 
             <Servo name="naturalTopGlyphServo" port="0" />
             <Servo name="naturalBottomGlyphServo" port="1" />

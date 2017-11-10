@@ -21,8 +21,6 @@ package com.hfrobots.tnt.season1718;
 
 import android.util.Log;
 
-import com.hfrobots.tnt.corelib.Constants;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -35,9 +33,8 @@ public class GlyphMechanism {
     private final Servo rotate;
     private final Servo gripper1;
     private final Servo gripper2;
-    private boolean isFlipped;
-    private final DigitalChannel ccwLimitSwitch;
-    private final DigitalChannel cwLimitSwitch;
+    private final DigitalChannel invertedLimitSwitch;
+    private final DigitalChannel uprightLimitSwitch;
     protected final Lift lift;
 
     protected int liftStartPosition;
@@ -47,7 +44,7 @@ public class GlyphMechanism {
 
 
     public GlyphMechanism(Servo naturalTopGripper, Servo naturalBottomGripper, Servo rotateServo,
-                          DigitalChannel ccwLimitSwitch, DigitalChannel cwLimitSwitch,
+                          DigitalChannel invertedLimitSwitch, DigitalChannel uprightLimitSwitch,
                           DigitalChannel minHeight, DigitalChannel maxHeight,
                           DcMotor liftMotor) {
         gripper1 = naturalTopGripper;
@@ -55,8 +52,8 @@ public class GlyphMechanism {
         upperGripper = gripper1;
         lowerGripper = gripper2;
         rotate = rotateServo;
-        this.ccwLimitSwitch = ccwLimitSwitch;
-        this.cwLimitSwitch = cwLimitSwitch;
+        this.invertedLimitSwitch = invertedLimitSwitch;
+        this.uprightLimitSwitch = uprightLimitSwitch;
         lift = new Lift();
         lift.minHeight = minHeight;
         lift.maxHeight = maxHeight;
@@ -69,7 +66,7 @@ public class GlyphMechanism {
     }
 
     /* @robot start: upperGripper is gripper1; lowerGripper is gripper2; */
-    public boolean flip() {
+    public void flip(boolean inverted) {
         // don't allow flip unless move 3in up
 
         //if (Math.abs(lift.liftMotor.getCurrentPosition() - liftStartPosition) < 600) {
@@ -78,26 +75,28 @@ public class GlyphMechanism {
         //     return isFlipped;
         //}
 
-        if (isFlipped) {
+        if (inverted) {
             if (rotate != null) {
-                rotate.setPosition(0.0);
+                rotateToUpright();
+                upperGripper = gripper1;
+                lowerGripper = gripper2;
             }
 
-            isFlipped = false;
-            upperGripper = gripper1;
-            lowerGripper = gripper2;
         } else {
             if (rotate != null) {
-                rotate.setPosition(1.0);
+                rotateToInverted();
+                upperGripper= gripper2;
+                lowerGripper = gripper1;
             }
-
-            isFlipped = true;
-
-            upperGripper= gripper2;
-            lowerGripper = gripper1;
         }
+    }
 
-        return isFlipped;
+    public void rotateToInverted() {  //check that this direction is right
+        rotate.setPosition(0.0);
+    }
+
+    public void rotateToUpright() {  //check that this direction is right
+        rotate.setPosition(1.0);
     }
 
     public void stopRotating() {
@@ -120,24 +119,34 @@ public class GlyphMechanism {
         upperGripper.setPosition(GRIPPER_CLOSED);
     }
 
-    public boolean isCWlimitReached() {
-        if (cwLimitSwitch == null) {
+    public boolean isUprightLimitReached() {
+        if (uprightLimitSwitch == null) {
             return false;
         }
 
-        return !cwLimitSwitch.getState();
+        return !uprightLimitSwitch.getState();
     }
 
-    public boolean isCCWlimitReached() {
-        if (ccwLimitSwitch == null) {
+    public boolean isInvertedLimitReached() {
+        if (invertedLimitSwitch == null) {
             return false;
         }
 
-        return !ccwLimitSwitch.getState();
+        return !invertedLimitSwitch.getState();
     }
 
+    /**
+     * enforceLimits() is not working as intended.  It stops rotation when EITHER limit is reached.
+     * But we don't want that; when the mechanism starts rotating, it may already be touching the
+     * limit switch that it is rotating AWAY from.  Thus, the mechanism never completes its
+     * rotation.
+     *
+     * Adjusted flip() function above to be more like the lift mechanism; it will keep rotating
+     * in a given direction until the user input changes.  This required some changes in the
+     * RelicRecoveryHardware file as well. -- CMN
+      */
     public void enforceLimits() {
-        if (isCWlimitReached() || isCCWlimitReached()) {
+        if (isUprightLimitReached() || isInvertedLimitReached()) {
             rotate.setPosition(0.5D);
             Log.d(LOG_TAG, "rotation limits reached, stopping servo");
         }

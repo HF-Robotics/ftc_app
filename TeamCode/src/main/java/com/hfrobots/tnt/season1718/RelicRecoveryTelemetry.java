@@ -43,7 +43,7 @@ public abstract class RelicRecoveryTelemetry extends RelicRecoveryHardware {
             telemetry.addData("imu", "h: " + imu.getAngularOrientation().firstAngle);
         }
 
-        telemetry.addData("limits", "b:" + glyphLiftBottomLimit.getState() + " t:" + glyphLiftTopLimit.getState() + " cw:" + cwGlyphLimit.getState() + " ccw:" + ccwGlyphLimit.getState());
+        telemetry.addData("limits", "b:" + glyphLiftBottomLimit.getState() + " t:" + glyphLiftTopLimit.getState() + " cw:" + uprightGlyphLimit.getState() + " ccw:" + invertedGlyphLimit.getState());
         //telemetry.addData("rC", "%d %d %d %d %f", rightColorRange.red(), rightColorRange.green(), rightColorRange.blue(), rightColorRange.alpha(), rightColorRange.getRawLightDetected());
         //telemetry.addData("lC", "%d %d %d %d %f", leftColorRange.red(), leftColorRange.green(), leftColorRange.blue(), leftColorRange.alpha(), leftColorRange.getRawLightDetected());
 
