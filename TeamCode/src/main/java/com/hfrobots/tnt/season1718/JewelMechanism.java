@@ -79,7 +79,13 @@ public class JewelMechanism {
         int red = jewelSensor.red();
         int green = jewelSensor.green();
 
-        Log.d(Constants.LOG_TAG, "jewel mech detected RGB " + red + " " + blue + " " + green + " for alliance " + alliance);
+
+        /* jewel mech detected RGB 8 10 7 for alliance BLUE
+11-11 09:20:49.706  2762  7508 D TNT     : jewel mech thinks we saw red
+11-11 09:20:49.706  2762  7508 D TNT     : jewel mech turning CCW
+*/
+
+        Log.d(Constants.LOG_TAG, "jewel mech detected RGB " + red + " " + green + " " + blue + " for alliance " + alliance);
 
         if (blue > red) {
             Log.d(Constants.LOG_TAG, "jewel mech thinks we saw blue");

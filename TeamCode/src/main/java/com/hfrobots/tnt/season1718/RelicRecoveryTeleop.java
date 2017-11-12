@@ -20,7 +20,11 @@
 package com.hfrobots.tnt.season1718;
 
 
+import android.util.Log;
+
+import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.Range;
 
 /**
  * Provide a basic manual operational mode that controls the tank drive.
@@ -72,6 +76,14 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
 //        glyphMechanism.enforceLimits();
 //    }
 
+    @Override
+    public void stop() {
+        Log.d(Constants.LOG_TAG, "x-throttle-usage: " + xThrottleHistogram.toString());
+        Log.d(Constants.LOG_TAG, "y-throttle-usage: " + yThrottleHistogram.toString());
+        Log.d(Constants.LOG_TAG, "rot-throttle-usage: " + rotateThrottleHistogram.toString());
+        super.stop();
+    }
+
     private void handleDrivingInputs() {
         double x = driversGamepad.getLeftStickX().getPosition();
         double y = -driversGamepad.getRightStickY().getPosition();
@@ -86,7 +98,37 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         double yScaled = scaleThrottleValue(y);
         double rotateScaled = scaleThrottleValue(rot);
 
+        xThrottleHistogram.accumulate(xScaled);
+        yThrottleHistogram.accumulate(yScaled);
+        rotateThrottleHistogram.accumulate(rotateScaled);
+
         mecanumDrive.driveCartesian(xScaled, yScaled, rotateScaled, false, 0.0);
+    }
+
+    private Histogram xThrottleHistogram = new Histogram();
+    private Histogram yThrottleHistogram = new Histogram();
+    private Histogram rotateThrottleHistogram = new Histogram();
+
+    class Histogram {
+        int[] buckets = new int[20];
+
+        void accumulate(double value) {
+            int bucketIndex = Range.clip((int)(Math.abs(value) * buckets.length), 0, buckets.length - 1);
+            buckets[bucketIndex]++;
+        }
+
+        @Override
+        public String toString() {
+            StringBuffer buf = new StringBuffer();
+            for (int i = 0; i < buckets.length; i++) {
+                if (i != 0) {
+                    buf.append(", ");
+                }
+                buf.append(buckets[i]);
+            }
+
+            return buf.toString();
+        }
     }
 
 }
