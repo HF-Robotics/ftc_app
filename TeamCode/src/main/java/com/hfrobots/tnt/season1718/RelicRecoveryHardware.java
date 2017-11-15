@@ -46,8 +46,8 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 public abstract class RelicRecoveryHardware extends OpMode {
-    protected float throttleGain = 0.3F;
-    protected float throttleExponent = 3; // MUST BE AN ODD NUMBER!
+    protected float throttleGain = 0.7F;
+    protected float throttleExponent = 5; // MUST BE AN ODD NUMBER!
     protected float throttleDeadband = 0;
     /**
      * Indicate whether a message is a available to the class user.

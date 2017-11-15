@@ -39,7 +39,7 @@ public class GlyphMechanism {
 
     protected int liftStartPosition;
 
-    private static final double GRIPPER_OPEN = 0.375;
+    private static final double GRIPPER_OPEN = 0.370;
     private static final double GRIPPER_CLOSED = 0;
 
 
