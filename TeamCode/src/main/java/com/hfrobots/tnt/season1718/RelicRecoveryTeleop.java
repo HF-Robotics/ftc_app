@@ -85,9 +85,9 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
     }
 
     private void handleDrivingInputs() {
-        double x = driversGamepad.getLeftStickX().getPosition();
-        double y = -driversGamepad.getRightStickY().getPosition();
-        double rot = (driversGamepad.getRightTrigger().getPosition() - driversGamepad.getLeftTrigger().getPosition());
+        double x = driveStrafe.getPosition();
+        double y = - driveForwardReverse.getPosition();
+        double rot = driveRotate.getPosition();
 
         // FIXME: Wiring issue? Not going to debug now...
         x = -x;

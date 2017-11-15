@@ -82,6 +82,16 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected RangeInput driverLeftStickY;
 
+    protected RangeInput driverRightStickX;
+
+    protected RangeInput driverRightStickY;
+
+    protected RangeInput driveForwardReverse;
+
+    protected RangeInput driveStrafe;
+
+    protected RangeInput driveRotate;
+
     protected DebouncedButton driverDpadUp;
 
     protected DebouncedButton driverDpadDown;
@@ -128,19 +138,15 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     // Glyph Controls
 
-    protected DebouncedButton toggleTopGlyphGripper;
+    protected DebouncedButton toggleUpperGlyphGripper;
 
-    protected DebouncedButton toggleBottomGlyphGripper;
+    protected DebouncedButton toggleLowerGlyphGripper;
 
     protected DebouncedButton rotateGlyphButton;
 
     protected DebouncedButton stopRotatingGlyphButton;
 
     protected RangeInput liftControl;
-
-    protected boolean topGlyphClosed = false;
-
-    protected boolean bottomGlyphClosed = false;
 
     protected boolean inverted = false;
 
@@ -426,8 +432,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
     private void setupOperatorControls() {
         // Operator controls
         operatorsGamepad = new NinjaGamePad(gamepad2);
-        toggleTopGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
-        toggleBottomGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
+        toggleUpperGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
+        toggleLowerGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
         rotateGlyphButton = new DebouncedButton(operatorsGamepad.getBButton());
         stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getXButton());
         liftControl = operatorsGamepad.getLeftStickY();
@@ -437,6 +443,12 @@ public abstract class RelicRecoveryHardware extends OpMode {
         driversGamepad = new NinjaGamePad(gamepad1);
         driverLeftStickX = driversGamepad.getLeftStickX();
         driverLeftStickY = driversGamepad.getLeftStickY();
+        driverRightStickX = driversGamepad.getRightStickX();
+        driverRightStickY = driversGamepad.getRightStickY();
+
+        driveStrafe = driverLeftStickX;
+        driveForwardReverse = driverLeftStickY;
+        driveRotate = driverRightStickX;
 
         driverDpadDown = new DebouncedButton(driversGamepad.getDpadDown());
         driverDpadUp = new DebouncedButton(driversGamepad.getDpadUp());
@@ -453,35 +465,16 @@ public abstract class RelicRecoveryHardware extends OpMode {
     }
 
     protected void handleGlyphGripper() {
-        //Handle Grippers
-        if (toggleBottomGlyphGripper.getRise()) {
-            bottomGlyphClosed = ! bottomGlyphClosed;
-        }
-        if (toggleTopGlyphGripper.getRise()){
-            topGlyphClosed = ! topGlyphClosed;
+        if (toggleLowerGlyphGripper.getRise()) {
+            glyphMechanism.toggleLower();
         }
 
-        telemetry.addData("gl", "top: " + topGlyphClosed + ", bot: " + bottomGlyphClosed);
-
-        if (bottomGlyphClosed) {
-            glyphMechanism.lowerClose();
-        } else {
-            glyphMechanism.lowerOpen();
-        }
-        if (topGlyphClosed) {
-            glyphMechanism.upperClose();
-        } else{
-            glyphMechanism.upperOpen();
+        if (toggleUpperGlyphGripper.getRise()){
+            glyphMechanism.toggleUpper();
         }
 
-        //Handle Glyph Mechanism
         if (rotateGlyphButton.getRise()) {
             inverted = !inverted;
-            //begin changes to solve glyph mech opening on flip
-            bottomGlyphClosed = true;
-            topGlyphClosed = true;
-            glyphMechanism.lowerClose();
-            glyphMechanism.upperClose();
             glyphMechanism.flip(inverted);
 
             Log.d(Constants.LOG_TAG, "Flip requested");
@@ -491,7 +484,6 @@ public abstract class RelicRecoveryHardware extends OpMode {
             Log.d(Constants.LOG_TAG, "Stopping rotation requested");
         }
 
-        //I'm not sure if CW and CCW are right in the section below, need robot - CMN
         if (inverted && glyphMechanism.isUprightLimitReached()) {
             glyphMechanism.stopRotating();
         } else if (!inverted && glyphMechanism.isInvertedLimitReached()) {

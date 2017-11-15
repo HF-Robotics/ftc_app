@@ -119,6 +119,24 @@ public class GlyphMechanism {
         upperGripper.setPosition(GRIPPER_CLOSED);
     }
 
+    public void toggleUpper() {
+        // position is floating point, shouldn't compare directly, must use delta
+        if (Math.abs(upperGripper.getPosition() - GRIPPER_CLOSED) < 0.05) {
+            upperOpen();
+        } else {
+            upperClose();
+        }
+    }
+
+    public void toggleLower() {
+        // position is floating point, shouldn't compare directly, must use delta
+        if (Math.abs(lowerGripper.getPosition() - GRIPPER_CLOSED) < 0.05) {
+            lowerOpen();
+        } else {
+            lowerClose();
+        }
+    }
+
     public boolean isUprightLimitReached() {
         if (uprightLimitSwitch == null) {
             return false;
