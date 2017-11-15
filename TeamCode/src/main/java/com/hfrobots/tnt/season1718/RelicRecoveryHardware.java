@@ -426,21 +426,17 @@ public abstract class RelicRecoveryHardware extends OpMode {
     private void setupOperatorControls() {
         // Operator controls
         operatorsGamepad = new NinjaGamePad(gamepad2);
-
-        rotateGlyphButton = new DebouncedButton(operatorsGamepad.getBButton());
-        stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getXButton());
         toggleTopGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
         toggleBottomGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
+        rotateGlyphButton = new DebouncedButton(operatorsGamepad.getBButton());
+        stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getXButton());
         liftControl = operatorsGamepad.getLeftStickY();
     }
 
     private void setupDriverControls() {
         driversGamepad = new NinjaGamePad(gamepad1);
-        driverLeftStickX = driversGamepad.getLeftStickX(); // we never actually use?
-        driverLeftStickY = driversGamepad.getLeftStickY(); // we never actually use?
-
-        //Also, why do we do these assignments in init instead of during main loop?
-
+        driverLeftStickX = driversGamepad.getLeftStickX();
+        driverLeftStickY = driversGamepad.getLeftStickY();
         driverDpadDown = new DebouncedButton(driversGamepad.getDpadDown());
         driverDpadUp = new DebouncedButton(driversGamepad.getDpadUp());
         driverDpadLeft = new DebouncedButton(driversGamepad.getDpadLeft());
