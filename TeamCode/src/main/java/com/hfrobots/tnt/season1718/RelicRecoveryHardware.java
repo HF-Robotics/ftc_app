@@ -27,7 +27,9 @@ import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.hfrobots.tnt.corelib.control.OnOffButton;
 import com.hfrobots.tnt.corelib.control.RangeInput;
+import com.hfrobots.tnt.corelib.control.RangeInputButton;
 import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.state.State;
@@ -115,6 +117,14 @@ public abstract class RelicRecoveryHardware extends OpMode {
     protected DebouncedButton lockButton;
 
     protected DebouncedButton unlockButton;
+
+    protected OnOffButton driveInvertedButton;
+
+    protected OnOffButton driveSlowButton;
+
+    protected OnOffButton driveBumpStrafeRightButton;
+
+    protected OnOffButton driveBumpStrafeLeftButton;
 
     // Glyph hardware/sensors
 
@@ -462,6 +472,10 @@ public abstract class RelicRecoveryHardware extends OpMode {
         driverRightBumper = new DebouncedButton(driversGamepad.getRightBumper());
         lockButton = new DebouncedButton(driversGamepad.getLeftStickButton());
         unlockButton = new DebouncedButton(driversGamepad.getRightStickButton());
+        driveSlowButton = new RangeInputButton(driversGamepad.getLeftTrigger(), 0.65f);
+        driveInvertedButton = new RangeInputButton(driversGamepad.getRightTrigger(), 0.65f);
+        driveBumpStrafeLeftButton = driversGamepad.getLeftBumper();
+        driveBumpStrafeRightButton = driversGamepad.getRightBumper();
     }
 
     protected void handleGlyphGripper() {

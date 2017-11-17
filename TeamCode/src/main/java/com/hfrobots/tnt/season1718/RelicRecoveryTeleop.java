@@ -24,6 +24,7 @@ import android.util.Log;
 
 import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
 /**
@@ -45,15 +46,16 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
      */
     @Override
     public void init() {
+
         super.init();
+
+        for (DcMotor motor : mecanumDrive.motors) {
+            motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
     }
 
 
     /**
-     * Implement a state machine that controls the robot during
-     * manual-operation.  The state machine uses gamepad input to transition
-     * between states.
-     *
      * The system calls this member repeatedly while the OpMode is running.
      */
     @Override public void loop ()
@@ -94,15 +96,43 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         y = -y;
         rot = -rot;
 
+
+        final boolean driveInverted;
+
+        if (driveInvertedButton.isPressed()) {
+            driveInverted = true;
+        } else {
+            driveInverted = false;
+        }
+
         double xScaled = scaleThrottleValue(x);
         double yScaled = scaleThrottleValue(y);
         double rotateScaled = scaleThrottleValue(rot);
+
+        // do this first, it will be cancelled out by bump-strafe
+        if (driveSlowButton.isPressed()) {
+            xScaled /= 2.5;
+            yScaled /= 2.5;
+            rotateScaled /= 2.5;
+        }
+
+        // we check both bumpers - because both being pressed is driver 'panic', and we
+        // don't want unexpected behavior!
+        if (driveBumpStrafeLeftButton.isPressed() && !driveBumpStrafeRightButton.isPressed()) {
+            xScaled = -.6;
+            yScaled = 0;
+            rotateScaled = 0;
+        } else if (driveBumpStrafeRightButton.isPressed() && !driveBumpStrafeLeftButton.isPressed()) {
+            xScaled = .6;
+            yScaled = 0;
+            rotateScaled = 0;
+        }
 
         xThrottleHistogram.accumulate(xScaled);
         yThrottleHistogram.accumulate(yScaled);
         rotateThrottleHistogram.accumulate(rotateScaled);
 
-        mecanumDrive.driveCartesian(xScaled, yScaled, rotateScaled, false, 0.0);
+        mecanumDrive.driveCartesian(xScaled, yScaled, rotateScaled, driveInverted, 0.0);
     }
 
     private Histogram xThrottleHistogram = new Histogram();

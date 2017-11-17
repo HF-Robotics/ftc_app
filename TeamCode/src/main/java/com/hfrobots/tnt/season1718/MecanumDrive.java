@@ -186,11 +186,11 @@ public class MecanumDrive {
         //    rotation += TrcUtil.clipRange(gyroAssistKp*(rotation - gyroRateScale*gyro.getZRotationRate().value));
         //}
 
-        // leftFront, rightFront, leftRear, rightRear
-        WheelSpeeds wheelSpeeds = new WheelSpeeds(xPower + yPower + rotationPower,
-                -xPower + yPower - rotationPower,
-                -xPower + yPower + rotationPower,
-                xPower + yPower - rotationPower);
+        WheelSpeeds wheelSpeeds = new WheelSpeeds(
+                xPower + yPower + rotationPower,  // left front
+                -xPower + yPower - rotationPower, // right front
+                -xPower + yPower + rotationPower, // left rear
+                xPower + yPower - rotationPower); // right rear
         normalizeAndSetMotorPower(wheelSpeeds);
     }
 
@@ -210,8 +210,6 @@ public class MecanumDrive {
         if (rightRearDriveMotor != null) {
             rightRearDriveMotor.setPower(wheelSpeeds.rightRear);
         }
-
-        //Log.d(LOG_TAG, wheelSpeeds.toString());
     }
 
     /**
