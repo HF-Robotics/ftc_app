@@ -39,8 +39,8 @@ public class GlyphMechanism {
 
     protected int liftStartPosition;
 
-    private static final double GRIPPER_OPEN = 0.370;
-    private static final double GRIPPER_CLOSED = 0;
+    private static final double GRIPPER_OPEN = 0.330;
+    private static final double GRIPPER_CLOSED = .10;
 
 
     public GlyphMechanism(Servo naturalTopGripper, Servo naturalBottomGripper, Servo rotateServo,
@@ -67,6 +67,8 @@ public class GlyphMechanism {
 
     /* @robot start: upperGripper is gripper1; lowerGripper is gripper2; */
     public void flip(boolean inverted) {
+        lowerClose();
+        upperClose();
         // don't allow flip unless move 3in up
 
         //if (Math.abs(lift.liftMotor.getCurrentPosition() - liftStartPosition) < 600) {
