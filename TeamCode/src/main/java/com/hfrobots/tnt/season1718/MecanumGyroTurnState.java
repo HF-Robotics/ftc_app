@@ -34,22 +34,22 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
-/**
- * Proof of concept of an IMU-based turn for the Mecanum drive
- */
 public class MecanumGyroTurnState extends TimeoutSafetyState
 {
-    private static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
-    private double     P_TURN_COEFF            = 0.03;     // Larger is more responsive, but also less stable
-    private static final double MAX_POWER = 0.4;
+    private static final double HEADING_THRESHOLD = 1 ; // As tight as we can make it with an integer gyro
+    private double pTurnCoeff = 0.02;     // Larger is more responsive, but also less stable
+    private double pLargeTurnCoeff = pTurnCoeff;
+    private double pSmallTurnCoeff = 0.04;
+    private double smallTurnThresholdDegrees;
+    private double maxPower = 0.3;
 
-    private boolean useEncoders = false;
+    private boolean useEncoders = true;
 
-    private boolean useBraking = false;
+    private boolean useBraking = true;
 
-    private final Turn turn;
+    private Turn turn;
 
-    private double powerCutOff = 0.02;
+    private double minPower = 0.02;
 
     private boolean initialized = false;
 
@@ -57,19 +57,104 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
 
     private float targetHeading;
 
-    private final MecanumDrive mecanumDrive;
+    private MecanumDrive mecanumDrive;
 
-    private final LynxEmbeddedIMU imu;
+    private LynxEmbeddedIMU imu;
 
     private long lastCycleTimestamp = 0;
 
-    private boolean doingTurn = false;
+    public static Builder builder() {
+        return new Builder();
+    }
 
-    public MecanumGyroTurnState(String name, Telemetry telemetry, MecanumDrive mecanumDrive, LynxEmbeddedIMU imu, Turn turn, long safetyTimeoutMillis) {
+    public static class Builder {
+        private String name;
+        private Telemetry telemetry;
+        private MecanumDrive mecanumDrive;
+        private LynxEmbeddedIMU imu;
+        private Turn turn;
+        private double maxPower;
+        private double minPower;
+        private double pLargeTurnCoeff;
+        private double smallTurnThresholdDegrees;
+        private double pSmallTurnCoeff;
+        private long safetyTimeoutMillis;
+
+        private Builder() {}
+
+        public Builder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder setTelemetry(Telemetry telemetry) {
+            this.telemetry = telemetry;
+            return this;
+        }
+
+        public Builder setMecanumDrive(MecanumDrive mecanumDrive) {
+            this.mecanumDrive = mecanumDrive;
+            return this;
+        }
+
+        public Builder setImu(LynxEmbeddedIMU imu) {
+            this.imu = imu;
+            return this;
+        }
+
+        public Builder setTurn(Turn turn) {
+            this.turn = turn;
+            return this;
+        }
+
+        public Builder setPLargeTurnCoeff(double pLargeTurnCoeff) {
+            this.pLargeTurnCoeff = pLargeTurnCoeff;
+            return this;
+        }
+
+        public Builder setSmallTurnThresholdDegrees(double smallTurnThresholdDegrees) {
+            this.smallTurnThresholdDegrees = smallTurnThresholdDegrees;
+            return this;
+        }
+
+        public Builder setPSmallTurnCoeff(double pSmallTurnCoeff) {
+            this.pSmallTurnCoeff = pSmallTurnCoeff;
+            return this;
+        }
+
+        public Builder setSafetyTimeoutMillis(long safetyTimeoutMillis) {
+            this.safetyTimeoutMillis = safetyTimeoutMillis;
+            return this;
+        }
+
+        public Builder setMaxPower(double maxPower) {
+            this.maxPower = maxPower;
+            return this;
+        }
+
+        public Builder setMinPower(double minPower) {
+            this.minPower = minPower;
+            return this;
+        }
+
+        public MecanumGyroTurnState build() {
+            // TODO: Check that all required arguments are set
+            MecanumGyroTurnState mgts = new MecanumGyroTurnState(name, telemetry, safetyTimeoutMillis);
+            mgts.mecanumDrive = mecanumDrive;
+            mgts.imu = imu;
+            mgts.turn = turn;
+            mgts.maxPower = maxPower;
+            mgts.minPower = minPower;
+            mgts.pLargeTurnCoeff = pLargeTurnCoeff;
+            mgts.smallTurnThresholdDegrees = smallTurnThresholdDegrees;
+            mgts.pSmallTurnCoeff = pSmallTurnCoeff;
+
+            return mgts;
+        }
+    }
+
+    private MecanumGyroTurnState(String name, Telemetry telemetry, long safetyTimeoutMillis) {
         super(name, telemetry, safetyTimeoutMillis);
-        this.mecanumDrive = mecanumDrive;
-        this.imu = imu;
-        this.turn = turn;
     }
 
     public State doStuffAndGetNextState() {
@@ -78,78 +163,38 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
         }
 
         if (isTimedOut()) {
-            Log.e(LOG_TAG, "Gyro turn timeout reached - stopping drive");
-
-            mecanumDrive.stopAllDriveMotors();
-
-            return nextState;
-        }
-
-        reachedTarget = onHeading(targetHeading);
-
-        if (lastCycleTimestamp != 0) {
-            long elapsedCycleTimeMs = System.currentTimeMillis() - lastCycleTimestamp;
-            Log.d(LOG_TAG, "Cycle time ms: " + elapsedCycleTimeMs);
-        }
-
-        lastCycleTimestamp = System.currentTimeMillis();
-
-        if (reachedTarget) {
-            Log.d(LOG_TAG, "Gyro turn heading reached - stopping drive");
+            Log.d(LOG_TAG, "Timed out a.k.a we done goofed ");
 
             mecanumDrive.driveCartesian(0, 0, 0, false, 0.0);
 
             mecanumDrive.stopAllDriveMotors();
-            doingTurn = false;
 
             return nextState;
         }
 
-        return this;
-    }
+        if (!reachedTarget) {
+            reachedTarget = onHeading(targetHeading);
 
-    private void initialize() {
-        // not-yet initialized
-        // First angle is heading, second is roll, third is pitch
-        reachedTarget = false;
-        float currentHeading = imu.getAngularOrientation().firstAngle;
-        float turnHeading = turn.getHeading();
-        targetHeading = currentHeading + turnHeading;
-
-        configureMotorParameters();
-
-        Log.d(LOG_TAG, "Gyro turn initialized - current heading: " + currentHeading + ", relative turn heading: " + turnHeading + ", target heading: " + targetHeading);
-        initialized = true;
-    }
-
-    @Override
-    public void resetToStart() {
-        super.resetToStart();
-        initialize();
-    }
-
-    @Override
-    public void liveConfigure(DebouncedGamepadButtons buttons) {
-
-    }
-
-    private void configureMotorParameters() {
-        for (DcMotor motor : mecanumDrive.motors) {
-            if (useEncoders) {
-                motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            } else {
-                motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            if (lastCycleTimestamp != 0) {
+                long elapsedCycleTimeMs = System.currentTimeMillis() - lastCycleTimestamp;
+                Log.d(LOG_TAG, "Cycle time ms: " + elapsedCycleTimeMs);
             }
 
-            if (useBraking) {
-                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            } else {
-                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            lastCycleTimestamp = System.currentTimeMillis();
+
+            if (reachedTarget) {
+                Log.d(LOG_TAG, "Gyro turn heading reached - stopping drive");
+
+                mecanumDrive.driveCartesian(0, 0, 0, false, 0.0);
+
+                mecanumDrive.stopAllDriveMotors();
+
+                return nextState;
             }
         }
-    }
 
-    // re-use of Pushbot gyro steer
+        return this;
+    }
 
     /**
      * Perform one cycle of closed loop heading control.
@@ -186,14 +231,14 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
             steer = 0.0;
             onTarget = true;
         } else {
-            steer = Range.clip(error * P_TURN_COEFF, -MAX_POWER, MAX_POWER);
+            steer = Range.clip(error * pTurnCoeff, -maxPower, maxPower);
         }
 
-        if (Math.abs (steer) <= powerCutOff) {
+        if (Math.abs (steer) <= minPower) {
             if (steer >= 0) {
-                steer = powerCutOff;
+                steer = minPower;
             } else {
-                steer = -powerCutOff;
+                steer = -minPower;
             }
         }
 
@@ -205,8 +250,61 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
         Log.d(LOG_TAG, String.format("Target, Curr, Err, St %5.2f , %5.2f , %5.2f , %f",
                 target, currentHeading, error, steer));
 
-        mecanumDrive.driveCartesian(0, 0, -steer, false, 0.0);
+        mecanumDrive.driveCartesian(0, 0, steer, false, 0.0);
 
         return onTarget;
+    }
+
+    private void initialize() {
+        // not-yet initialized
+        // First angle is heading, second is roll, third is pitch
+        reachedTarget = false;
+
+        float currentHeading = imu.getAngularOrientation().firstAngle;
+        float turnHeading = turn.getHeading();
+        targetHeading = currentHeading + turnHeading;
+
+        if (turnHeading < smallTurnThresholdDegrees) {
+            pTurnCoeff = pSmallTurnCoeff;
+        } else {
+            pTurnCoeff = pLargeTurnCoeff;
+        }
+
+        configureMotorParameters();
+
+        Log.d(LOG_TAG, "Gyro turn initialized - current heading: " + currentHeading + ", relative turn heading: " + turnHeading + ", target heading: " + targetHeading);
+        initialized = true;
+
+        configureMotorParameters();
+
+        //Log.d(LOG_TAG, "Gyro turn initialized - current heading: " + currentHeading + ", relative turn heading: " + turnHeading + ", target heading: " + targetHeading);
+        initialized = true;
+    }
+
+    @Override
+    public void resetToStart() {
+        super.resetToStart();
+        initialize();
+    }
+
+    @Override
+    public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+    }
+
+    private void configureMotorParameters() {
+        for (DcMotor motor : mecanumDrive.motors) {
+            if (useEncoders) {
+                motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            } else {
+                motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+
+            if (useBraking) {
+                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            } else {
+                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            }
+        }
     }
 }
