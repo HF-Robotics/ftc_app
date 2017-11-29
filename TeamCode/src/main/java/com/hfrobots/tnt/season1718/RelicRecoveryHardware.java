@@ -38,6 +38,7 @@ import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -238,6 +239,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
         try {
             rightFrontDriveMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("rightFrontDriveMotor"));
+            rightFrontDriveMotor.setDirection(DcMotor.Direction.FORWARD);
         } catch (Exception ex) {
             appendWarningMessage("rightFrontDriveMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
@@ -247,6 +249,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
         try {
             rightRearDriveMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("rightRearDriveMotor"));
+            rightRearDriveMotor.setDirection(DcMotor.Direction.FORWARD);
         } catch (Exception ex) {
             appendWarningMessage("rightRearDriveMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
@@ -444,8 +447,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
         operatorsGamepad = new NinjaGamePad(gamepad2);
         toggleUpperGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
         toggleLowerGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
-        rotateGlyphButton = new DebouncedButton(operatorsGamepad.getBButton());
-        stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getXButton());
+        rotateGlyphButton = new DebouncedButton(operatorsGamepad.getRightBumper());
+        stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getLeftBumper());
         liftControl = operatorsGamepad.getLeftStickY();
     }
 
