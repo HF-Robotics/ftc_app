@@ -57,4 +57,10 @@ public interface ExtendedDcMotor extends DcMotor {
      * @return relative target position
      */
     int getCurrentRelativePosition();
+
+    /**
+     * Resets the logical encoder count ... using STOP_AND_RESET_ENCODERS is an expensive
+     * operation (it requires cycles).
+     */
+    void resetLogicalEncoderCount();
 }

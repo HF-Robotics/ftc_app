@@ -245,4 +245,10 @@ public class DualDcMotor implements ExtendedDcMotor {
     public int getCurrentRelativePosition() {
         return firstMotor.getCurrentRelativePosition();
     }
+
+    @Override
+    public void resetLogicalEncoderCount() {
+        firstMotor.resetLogicalEncoderCount();
+        secondMotor.resetLogicalEncoderCount();
+    }
 }

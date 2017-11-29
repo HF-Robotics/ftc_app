@@ -39,6 +39,7 @@ public class NinjaMotor implements ExtendedDcMotor {
     private final DcMotor dcMotor;
     private int absoluteTargetPosition;
     private final Rotation motorNativeDirection;
+    private int zeroEncoderValue;
 
     public static ExtendedDcMotor wrap32Motor(DcMotor dcMotor) {
         MotorConfigurationType type = dcMotor.getMotorType();
@@ -103,6 +104,7 @@ public class NinjaMotor implements ExtendedDcMotor {
         this.encoderCountsPerRevolution = encoderCountsPerRevolution;
         this.dcMotor = dcMotor;
         this.motorNativeDirection = motorNativeDirection;
+        zeroEncoderValue = dcMotor.getCurrentPosition(); // it's expensive to reset this via the SDK!
     }
 
     /**
@@ -180,8 +182,16 @@ public class NinjaMotor implements ExtendedDcMotor {
     }
 
     @Override
+    public void resetLogicalEncoderCount() {
+        zeroEncoderValue = dcMotor.getCurrentPosition();
+    }
+
+    @Override
     public int getCurrentPosition() {
-        return dcMotor.getCurrentPosition();
+
+        int currentEncoderPosition = dcMotor.getCurrentPosition();
+
+        return currentEncoderPosition - zeroEncoderValue;
     }
 
     @Override

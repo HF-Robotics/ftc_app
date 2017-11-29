@@ -245,4 +245,25 @@ public class MecanumDrive {
                 sinD * magnitude - rotation);
         normalizeAndSetMotorPower(wheelSpeeds);
     }
+
+    public void resetOdometry() {
+        for (ExtendedDcMotor motor : motors) {
+            motor.resetLogicalEncoderCount();
+        }
+    }
+
+    /**
+     * Returns the encoder-valued position of the drive base
+     * using the encoder values from all four motors
+     */
+    public int getYPosition() {
+        //leftFrontDriveMotor.getCurrentPosition();
+         return (leftFrontDriveMotor.getCurrentPosition() + leftRearDriveMotor.getCurrentPosition() +
+                rightFrontDriveMotor.getCurrentPosition() + rightRearDriveMotor.getCurrentPosition())/4;
+    }
+
+    public int getXPosition() {
+        return (leftFrontDriveMotor.getCurrentPosition() + rightRearDriveMotor.getCurrentPosition() -
+                (leftRearDriveMotor.getCurrentPosition() + rightFrontDriveMotor.getCurrentPosition()))/4;
+    }
 }
