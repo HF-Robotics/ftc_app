@@ -87,15 +87,18 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
     }
 
     private void handleDrivingInputs() {
-        double x = driveStrafe.getPosition();
+        double x = - driveStrafe.getPosition(); // positive robot x axis is negative joystick axis
         double y = - driveForwardReverse.getPosition();
-        double rot = driveRotate.getPosition();
+        double rot = - driveRotate.getPosition(); // positive robot z rotation (human-normal) is negative joystick x axis
 
-        // FIXME: Wiring issue? Not going to debug now...
-        x = -x;
-        y = -y;
-        rot = -rot;
+        y = -y; // still need to figure this one out!
 
+        // do this first, it will be cancelled out by bump-strafe
+        if (driveSlowButton.isPressed()) {
+            y /= 1.75;
+            x /= 1.75;
+            rot /= 1.75;
+        }
 
         final boolean driveInverted;
 
@@ -108,13 +111,6 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         double xScaled = scaleThrottleValue(x);
         double yScaled = scaleThrottleValue(y);
         double rotateScaled = scaleThrottleValue(rot);
-
-        // do this first, it will be cancelled out by bump-strafe
-        if (driveSlowButton.isPressed()) {
-            xScaled /= 2.5;
-            yScaled /= 2.5;
-            rotateScaled /= 2.5;
-        }
 
         // we check both bumpers - because both being pressed is driver 'panic', and we
         // don't want unexpected behavior!
