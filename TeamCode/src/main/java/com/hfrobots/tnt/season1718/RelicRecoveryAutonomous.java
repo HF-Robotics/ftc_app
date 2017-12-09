@@ -28,7 +28,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
-@Autonomous(name="RR Auto")
+// @Autonomous(name="RR Auto OLD")
 @SuppressWarnings("unused")
 public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 

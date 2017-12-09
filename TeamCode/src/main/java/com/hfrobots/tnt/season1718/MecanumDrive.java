@@ -258,12 +258,14 @@ public class MecanumDrive {
      */
     public int getYPosition() {
         //leftFrontDriveMotor.getCurrentPosition();
-         return (leftFrontDriveMotor.getCurrentPosition() + leftRearDriveMotor.getCurrentPosition() +
-                rightFrontDriveMotor.getCurrentPosition() + rightRearDriveMotor.getCurrentPosition())/4;
+         return -((leftFrontDriveMotor.getCurrentPosition() + leftRearDriveMotor.getCurrentPosition() +
+                rightFrontDriveMotor.getCurrentPosition() + rightRearDriveMotor.getCurrentPosition())/4);
+        // // FIXME: 12/3/17; encoder move in opp direction than expected
     }
 
     public int getXPosition() {
-        return (leftFrontDriveMotor.getCurrentPosition() + rightRearDriveMotor.getCurrentPosition() -
-                (leftRearDriveMotor.getCurrentPosition() + rightFrontDriveMotor.getCurrentPosition()))/4;
+        return -((leftFrontDriveMotor.getCurrentPosition() + rightRearDriveMotor.getCurrentPosition() -
+                (leftRearDriveMotor.getCurrentPosition() + rightFrontDriveMotor.getCurrentPosition()))/4);
+        // // FIXME: 12/3/17; encoders move in opp direction than expected
     }
 }

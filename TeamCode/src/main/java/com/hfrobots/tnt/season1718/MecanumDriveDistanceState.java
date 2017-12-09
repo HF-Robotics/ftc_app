@@ -22,6 +22,7 @@ package com.hfrobots.tnt.season1718;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+import com.hfrobots.tnt.corelib.drive.PidController;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -36,31 +37,31 @@ public class MecanumDriveDistanceState extends TimeoutSafetyState {
 
     private final MecanumDrive mecanumDrive;
 
-    private final DcMotorSimple.Direction origLeftFrontDirection;
-    private final DcMotorSimple.Direction origLeftRearDirection;
-    private final DcMotorSimple.Direction origRightFrontDirection;
-    private final DcMotorSimple.Direction origRightRearDirection;
-
-    // NFNT could be cauesed by missicalculated cirumpfranc
-    // ENB corection work but we don't know what is the cause of needing it
     private double inchesToDrive;
 
     private double powerLevel = 0.5D;
 
+    private final PidController pid;
     public MecanumDriveDistanceState(String name, Telemetry telemetry, MecanumDrive mecanumDrive, double inchesToDrive, long timeoutMillis) {
         super(name, telemetry, timeoutMillis);
-        // set mecanum drive, and each drive motor
         this.mecanumDrive = mecanumDrive;
 
-        // compute "actual" distance to drive ... remember our experiment
-        // NFNT could be cauesed by missicalculated cirumpfranc
-        // ENB corection work but we don't know what is the cause of needing it
-        this.inchesToDrive = inchesToDrive * .9D;
+        this.inchesToDrive = inchesToDrive;
 
-        this.origLeftFrontDirection = mecanumDrive.leftFrontDriveMotor.getDirection();
-        this.origLeftRearDirection = mecanumDrive.leftRearDriveMotor.getDirection();
-        this.origRightFrontDirection = mecanumDrive.rightFrontDriveMotor.getDirection();
-        this.origRightRearDirection = mecanumDrive.rightRearDriveMotor.getDirection();
+        final double pidP;
+
+        if (inchesToDrive > RobotConstants.P_SMALL_Y_MOVE_THRESHOLD_INCHES) {
+            pidP = RobotConstants.P_LARGE_Y_MOVE_COEFF;
+        } else {
+            pidP = RobotConstants.P_SMALL_Y_MOVE_COEFF;
+        }
+
+        this.pid = PidController.builder().setKp(pidP).setTolerance(5).setSettlingTimeMs(100).build();
+        this.pid.setOutputRange(-.3, .3);
+        this.pid.setNoOscillation(true);
+        /* we are not Oscillating because we are driving in a striaght line, "hunting" for the correct value
+        takes time. Time >= than extreme accuracy.
+         */
     }
 
     @Override
@@ -71,32 +72,22 @@ public class MecanumDriveDistanceState extends TimeoutSafetyState {
             Log.e(LOG_TAG, "drive distance timeout reached - stopping drive");
 
             mecanumDrive.stopAllDriveMotors();
-            resetMotorsToOriginalState();
             return nextState;
         } else {
-            // (3) - Continue to check if the hub is driving the motors, stop doing stuff once done
+            // handle PID control
+            double power = pid.getOutput(mecanumDrive.getYPosition());
 
-            int curRightFrontPos = mecanumDrive.rightFrontDriveMotor.getCurrentPosition();
-            int curLeftFrontPos = mecanumDrive.leftFrontDriveMotor.getCurrentPosition();
-            int curRightRearPos = mecanumDrive.rightRearDriveMotor.getCurrentPosition();
-            int curLeftRearPos = mecanumDrive.leftRearDriveMotor.getCurrentPosition();
-            //ENB we don't see origoinal telemetry, refreshed so fast that we didn't see ir
-            telemetry.addData("RFP", curRightFrontPos);
-            telemetry.addData("RRP", curLeftFrontPos);
-            telemetry.addData("LFP", curRightRearPos);
-            telemetry.addData("LRP", curLeftRearPos);
-
-            Log.d(LOG_TAG, "curPos RF/RR/LF/LR " + curRightFrontPos + "/" + curRightRearPos + "/" + curLeftFrontPos + "/" + curLeftRearPos);
-            if (!mecanumDrive.rightFrontDriveMotor.isBusy()
-                    && !mecanumDrive.rightRearDriveMotor.isBusy()
-                    && !mecanumDrive.leftFrontDriveMotor.isBusy()
-                    && !mecanumDrive.leftRearDriveMotor.isBusy()) {
+            if (pid.isOnTarget()) {
                 mecanumDrive.stopAllDriveMotors();
-                telemetry.addData("END", "Reached target position");
 
-                resetMotorsToOriginalState();
                 return nextState;
             }
+
+            // FIXME: THis is inverted for some reason
+            power = - power;
+            mecanumDrive.driveCartesian(0, power, 0, false, 0);
+
+            // TODO: now that we have a power value what do we do with it?
         }
 
         return this;
@@ -112,63 +103,27 @@ public class MecanumDriveDistanceState extends TimeoutSafetyState {
 
         double wheelDiaInches = 4;
 
-        Log.d(LOG_TAG, "inches to drive (adj) " + inchesToDrive);
+        Log.d(LOG_TAG, "inches to drive " + inchesToDrive);
 
         double encoderCountForDistance = (inchesToDrive / (wheelDiaInches * Math.PI)) * encoderCountPerRev;
 
-        // ENB: right side rotates clockwise (backwards)
+        mecanumDrive.resetOdometry();
 
-        int curRightFrontPos = mecanumDrive.rightFrontDriveMotor.getCurrentPosition();
-        int curLeftFrontPos = mecanumDrive.leftFrontDriveMotor.getCurrentPosition();
-        int curRightRearPos = mecanumDrive.rightRearDriveMotor.getCurrentPosition();
-        int curLeftRearPos = mecanumDrive.leftRearDriveMotor.getCurrentPosition();
-
-        int rightFrontTargetPos = curRightFrontPos + (int) encoderCountForDistance;
-        mecanumDrive.rightFrontDriveMotor.setTargetPosition(rightFrontTargetPos);
-        int rightRearTargetPos = curRightRearPos + (int) encoderCountForDistance;
-        mecanumDrive.rightRearDriveMotor.setTargetPosition(rightRearTargetPos);
-        int leftFrontTargetPos = curLeftFrontPos + (int) encoderCountForDistance;
-        mecanumDrive.leftFrontDriveMotor.setTargetPosition(leftFrontTargetPos);
-        int leftRearTargetPos = curLeftRearPos + (int) encoderCountForDistance;
-        mecanumDrive.leftRearDriveMotor.setTargetPosition(leftRearTargetPos);
-
-        // ENB: Need to set motor mode to run_to_position, otherwise errors happen
-        for (DcMotor motor : mecanumDrive.motors) {
-            motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        }
-
-        Log.d(LOG_TAG, "encD " + encoderCountForDistance);
-        Log.d(LOG_TAG, "RFP " + rightFrontTargetPos);
-        Log.d(LOG_TAG, "RRP" + rightRearTargetPos);
-        Log.d(LOG_TAG, "LFP " + leftFrontTargetPos);
-        Log.d(LOG_TAG, "LRP" + leftRearTargetPos);
-        // (2) - Cartesian drive with the correct direction
-
-        for (DcMotor motor : mecanumDrive.motors) {
-            motor.setPower(powerLevel);
-        }
-
+        pid.setTarget(encoderCountForDistance, mecanumDrive.getYPosition());
         initialized = true;
     }
 
-    private void resetMotorsToOriginalState() {
-        Log.d(LOG_TAG, "reset drive motors to original state");
-        mecanumDrive.leftFrontDriveMotor.setDirection(origLeftFrontDirection);
-        mecanumDrive.leftRearDriveMotor.setDirection(origLeftRearDirection);
-        mecanumDrive.rightFrontDriveMotor.setDirection(origRightFrontDirection);
-        mecanumDrive.rightRearDriveMotor.setDirection(origLeftRearDirection);
-    }
-
     private void initializeMotors() {
-        mecanumDrive.rightFrontDriveMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        mecanumDrive.rightRearDriveMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        mecanumDrive.leftFrontDriveMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        mecanumDrive.leftRearDriveMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        for (DcMotor motor : mecanumDrive.motors) {
+            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
     }
 
     @Override
     public void resetToStart() {
         super.resetToStart();
+        pid.reset();
         initialize();
     }
 

@@ -19,27 +19,27 @@
 
 package com.hfrobots.tnt.season1718;
 
-public interface RobotConstants {
-    double P_LARGE_TURN_COEFF = .02D;
+public class RobotConstants {
+    public final static double P_LARGE_TURN_COEFF = .02D;
 
-    double P_SMALL_TURN_COEFF = .04D;
+    public final static double P_SMALL_TURN_COEFF = .04D;
 
-    double P_SMALL_TURN_THRESHOLD_DEGREES = 15;
+    public final static double  P_SMALL_TURN_THRESHOLD_DEGREES = 15;
 
-    double TURN_MAX_POWER = 0.4D;
+    public final static double  TURN_MAX_POWER = 0.4D;
 
-    double TURN_MIN_POWER = 0.02D;
+    public final static double  TURN_MIN_POWER = 0.02D;
 
-    double P_LARGE_X_MOVE_COEFF = 0;
+    public final static double  P_LARGE_X_MOVE_COEFF = .02D;
 
-    double P_SMALL_X_MOVE_COEFF = 0;
+    public final static double  P_SMALL_X_MOVE_COEFF = .04D;
 
-    double P_SMALL_X_MOVE_THRESHOLD_INCHES = 0;
+    public final static double  P_SMALL_X_MOVE_THRESHOLD_INCHES = 2;
 
-    double P_LARGE_Y_MOVE_COEFF = 0;
+    public final static double  P_LARGE_Y_MOVE_COEFF = .02D;
 
-    double P_SMALL_Y_MOVE_COEFF = 0;
+    public final static double  P_SMALL_Y_MOVE_COEFF = .04D;
 
-    double P_SMALL_Y_MOVE_THRESHOLD_INCHES = 0;
+    public final static double  P_SMALL_Y_MOVE_THRESHOLD_INCHES = 2;
 
 }

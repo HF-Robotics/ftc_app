@@ -21,6 +21,7 @@ package com.hfrobots.tnt.corelib.drive;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.configuration.MotorConfigurationType;
@@ -40,6 +41,7 @@ public class NinjaMotor implements ExtendedDcMotor {
     private int absoluteTargetPosition;
     private final Rotation motorNativeDirection;
     private int zeroEncoderValue;
+    private int prevEncoderPosition;
 
     public static ExtendedDcMotor wrap32Motor(DcMotor dcMotor) {
         MotorConfigurationType type = dcMotor.getMotorType();
@@ -190,6 +192,18 @@ public class NinjaMotor implements ExtendedDcMotor {
     public int getCurrentPosition() {
 
         int currentEncoderPosition = dcMotor.getCurrentPosition();
+
+        if (currentEncoderPosition == 0 && Math.abs(prevEncoderPosition) > 1000) {
+            // ESD event or encoder bug? Don't handle for now, just log
+            // REF https://ftcforum.usfirst.org/forum/ftc-technology/58524-rev-expansion-hub-firmware-1-7-bug
+            // REF https://www.reddit.com/r/FTC/comments/7hdbd4/rev_expansion_hub_flash_17_possible_issue/
+
+            Log.e(Constants.LOG_TAG,
+                    String.format("Detected possible ESD or encoder failure on port %d",
+                            dcMotor.getPortNumber()));
+        } else {
+            prevEncoderPosition = currentEncoderPosition;
+        }
 
         return currentEncoderPosition - zeroEncoderValue;
     }

@@ -24,12 +24,16 @@ import android.util.Log;
 import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.drive.Turn;
+import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
+import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * All of the code that knows how to operate the jewel mechanism
@@ -74,16 +78,14 @@ public class JewelMechanism {
         return new JewelMechanismDetectAndTurn("detect and turn", telemetry, alliance,drive);
     }
 
+    public JewelMechanismDetectAndTurnWithMoreStuff getDetectAndTurnStateWithMoreStuff(Telemetry telemetry, Constants.Alliance alliance, LynxEmbeddedIMU imu, MecanumDrive drive) {
+        return new JewelMechanismDetectAndTurnWithMoreStuff("detect and turn", telemetry, alliance, imu, drive);
+    }
+
     public Rotation getTurnDirectionForDetectedJewel(Constants.Alliance alliance) {
         int blue = jewelSensor.blue();
         int red = jewelSensor.red();
         int green = jewelSensor.green();
-
-
-        /* jewel mech detected RGB 8 10 7 for alliance BLUE
-11-11 09:20:49.706  2762  7508 D TNT     : jewel mech thinks we saw red
-11-11 09:20:49.706  2762  7508 D TNT     : jewel mech turning CCW
-*/
 
         Log.d(Constants.LOG_TAG, "jewel mech detected RGB " + red + " " + green + " " + blue + " for alliance " + alliance);
 
@@ -189,8 +191,70 @@ public class JewelMechanism {
                     return nextState;
                 }
 
+                // TODO: This needs to handle turning, stowing, waiting, "un"-turning
                 turnState = new MecanumTimedTurnState("turn for jewel", telemetry, drive, directionToTurn, 250);
                 turnState.setNextState(nextState);
+            }
+
+            return turnState.doStuffAndGetNextState();
+        }
+    }
+
+    class JewelMechanismDetectAndTurnWithMoreStuff extends State {
+        Constants.Alliance alliance;
+        boolean detected = false;
+        State turnState = null;
+        final MecanumDrive drive;
+        final LynxEmbeddedIMU imu;
+
+        JewelMechanismDetectAndTurnWithMoreStuff(String name, Telemetry telemetry, Constants.Alliance alliance, LynxEmbeddedIMU imu, MecanumDrive drive) {
+            super(name, telemetry);
+            this.alliance = alliance;
+            this.drive = drive;
+            this.imu = imu;
+        }
+
+        @Override
+        public void resetToStart() {
+
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+
+        public State doStuffAndGetNextState() {
+            if (!detected) {
+                Rotation directionToTurn = getTurnDirectionForDetectedJewel(this.alliance);
+                detected = true;
+
+                if (directionToTurn == null) {
+                    return nextState;
+                }
+
+                Turn turn = new Turn(directionToTurn, 15);
+
+                MecanumGyroTurnState.Builder turnBuilder = MecanumGyroTurnState.builder();
+                turnBuilder.setTurn(turn).setImu(imu).setMecanumDrive(drive).setPLargeTurnCoeff(RobotConstants.P_LARGE_TURN_COEFF)
+                        .setPSmallTurnCoeff(RobotConstants.P_SMALL_TURN_COEFF).setName("Turn towards opposing jewel")
+                        .setSafetyTimeoutMillis(TimeUnit.SECONDS.toMillis(15));
+
+                turnState = turnBuilder.build();
+
+                JewelMechanism.JewelMechanismStowSensorState stowSensorState = getStowSensorState(telemetry);
+                turnState.setNextState(stowSensorState);
+                State waitToStow = new DelayState( "waiting for stow", telemetry,  2);
+                stowSensorState.setNextState(waitToStow);
+
+                turnBuilder = MecanumGyroTurnState.builder();
+                turnBuilder.setTurn(turn.invert()).setImu(imu).setMecanumDrive(drive).setPLargeTurnCoeff(RobotConstants.P_LARGE_TURN_COEFF)
+                        .setPSmallTurnCoeff(RobotConstants.P_SMALL_TURN_COEFF).setName("Turn away from opposing jewel")
+                        .setSafetyTimeoutMillis(TimeUnit.SECONDS.toMillis(15));
+
+                State turnBackState = turnBuilder.build();
+                waitToStow.setNextState(turnBackState);
+                turnBackState.setNextState(nextState);
             }
 
             return turnState.doStuffAndGetNextState();

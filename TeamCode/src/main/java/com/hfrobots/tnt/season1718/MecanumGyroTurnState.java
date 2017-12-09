@@ -37,6 +37,9 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 public class MecanumGyroTurnState extends TimeoutSafetyState
 {
     private static final double HEADING_THRESHOLD = 1 ; // As tight as we can make it with an integer gyro
+    private static final double DEFAULT_MAX_POWER = 0.3D;
+    private static final double DEFAULT_MIN_POWER = 0.02D;
+
     private double pTurnCoeff = 0.02;     // Larger is more responsive, but also less stable
     private double pLargeTurnCoeff = pTurnCoeff;
     private double pSmallTurnCoeff = 0.04;
@@ -73,8 +76,8 @@ public class MecanumGyroTurnState extends TimeoutSafetyState
         private MecanumDrive mecanumDrive;
         private LynxEmbeddedIMU imu;
         private Turn turn;
-        private double maxPower;
-        private double minPower;
+        private double maxPower = DEFAULT_MAX_POWER; // sane defaults
+        private double minPower = DEFAULT_MIN_POWER; // sane defaults
         private double pLargeTurnCoeff;
         private double smallTurnThresholdDegrees;
         private double pSmallTurnCoeff;

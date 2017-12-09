@@ -54,6 +54,10 @@ public class PidController {
     private double dTerm;
     private double fTerm;
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public static class Builder {
         private String       instanceName;
         private double       kP;

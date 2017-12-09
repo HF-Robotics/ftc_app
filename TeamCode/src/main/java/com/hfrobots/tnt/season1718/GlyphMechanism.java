@@ -21,9 +21,14 @@ package com.hfrobots.tnt.season1718;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+import com.hfrobots.tnt.corelib.state.State;
+import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
@@ -204,6 +209,99 @@ public class GlyphMechanism {
 
                 return true;
             }
+        }
+    }
+
+    public GripperCloseState getGripperCloseState(Telemetry telemetry) {
+        return new GripperCloseState(telemetry);
+    }
+
+    public GripperOpenState getGripperOpenState(Telemetry telemetry) {
+        return new GripperOpenState(telemetry);
+    }
+
+    public LiftMoveUpState getLiftMoveUpState(Telemetry telemetry) {
+        return new LiftMoveUpState(telemetry);
+    }
+
+    class GripperCloseState extends State {
+
+        GripperCloseState(Telemetry telemetry) {
+            super("Gripper close", telemetry);
+        }
+
+        @Override
+        public void resetToStart() {
+            // what would it look like if we needed to go back to the state before this one?
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+
+        public State doStuffAndGetNextState() {
+            lowerClose();
+
+            return nextState;
+        }
+    }
+
+    class GripperOpenState extends State {
+
+        GripperOpenState(Telemetry telemetry) {
+            super("Gripper open", telemetry);
+        }
+
+        @Override
+        public void resetToStart() {
+            // what would it look like if we needed to go back to the state before this one?
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+
+        public State doStuffAndGetNextState() {
+            lowerOpen();
+
+            return nextState; // what should we really return?
+        }
+    }
+
+    class LiftMoveUpState extends TimeoutSafetyState {
+
+        boolean started = false;
+
+        LiftMoveUpState(Telemetry telemetry) {
+            super("Lift move up", telemetry, 500 /* millis */);
+        }
+
+        @Override
+        public void resetToStart() {
+            // what would it look like if we needed to go back to the state before this one?
+            started = false;
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+
+        public State doStuffAndGetNextState() {
+            if (!started) {
+                lift.moveUp(.5);
+                started = true;
+            }
+
+            if (isTimedOut()) {
+                lift.stop();
+
+                return nextState;
+            }
+
+            return this;
         }
     }
 }
