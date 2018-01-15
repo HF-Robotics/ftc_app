@@ -233,12 +233,12 @@ public class JewelMechanism {
                     return nextState;
                 }
 
-                Turn turn = new Turn(directionToTurn, 15);
+                Turn turn = new Turn(directionToTurn, 10);
 
                 MecanumGyroTurnState.Builder turnBuilder = MecanumGyroTurnState.builder();
                 turnBuilder.setTurn(turn).setImu(imu).setMecanumDrive(drive).setPLargeTurnCoeff(RobotConstants.P_LARGE_TURN_COEFF)
                         .setPSmallTurnCoeff(RobotConstants.P_SMALL_TURN_COEFF).setName("Turn towards opposing jewel")
-                        .setSafetyTimeoutMillis(TimeUnit.SECONDS.toMillis(15));
+                        .setSafetyTimeoutMillis(TimeUnit.SECONDS.toMillis(15)).setMaxPower(0.2D);
 
                 turnState = turnBuilder.build();
 
@@ -250,7 +250,7 @@ public class JewelMechanism {
                 turnBuilder = MecanumGyroTurnState.builder();
                 turnBuilder.setTurn(turn.invert()).setImu(imu).setMecanumDrive(drive).setPLargeTurnCoeff(RobotConstants.P_LARGE_TURN_COEFF)
                         .setPSmallTurnCoeff(RobotConstants.P_SMALL_TURN_COEFF).setName("Turn away from opposing jewel")
-                        .setSafetyTimeoutMillis(TimeUnit.SECONDS.toMillis(15));
+                        .setSafetyTimeoutMillis(TimeUnit.SECONDS.toMillis(15)).setMaxPower(0.2D);;
 
                 State turnBackState = turnBuilder.build();
                 waitToStow.setNextState(turnBackState);

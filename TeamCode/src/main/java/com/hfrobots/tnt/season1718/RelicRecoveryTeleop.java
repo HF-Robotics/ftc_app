@@ -96,7 +96,7 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         // do this first, it will be cancelled out by bump-strafe
         if (driveSlowButton.isPressed()) {
             y /= 1.75;
-            x /= 1.75;
+            x /= 1.25;
             rot /= 1.75;
         }
 

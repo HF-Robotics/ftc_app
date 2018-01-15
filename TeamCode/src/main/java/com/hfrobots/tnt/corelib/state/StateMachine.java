@@ -21,6 +21,7 @@ package com.hfrobots.tnt.corelib.state;
 import android.util.Log;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
@@ -58,7 +59,7 @@ public class StateMachine {
     private Telemetry telemetry;
 
     public void addNewState(State newState) {
-        Log.d("VV", "addNewState(" + newState + ")");
+        Log.d(LOG_TAG, "addNewState(" + newState + ")");
         allStates.add(newState);
     }
 
@@ -102,14 +103,14 @@ public class StateMachine {
      * is not already defined.
      */
     public void addSequential(State nextState) {
-        Log.d("VV", "addSequential(" + nextState.getName() + ")");
+        Log.d(LOG_TAG, "addSequential(" + nextState.getName() + ")");
         if (lastSequentialState != null) {
-            Log.d("VV", "addSequential() " + lastSequentialState.getName() + " - next -> " + nextState.getName());
+            Log.d(LOG_TAG, "addSequential() " + lastSequentialState.getName() + " - next -> " + nextState.getName());
             lastSequentialState.setNextState(nextState);
         }
 
         if (currentState == null) {
-            Log.d("VV", "addSequential() - no current first state, setting first state");
+            Log.d(LOG_TAG, "addSequential() - no current first state, setting first state");
             setFirstState(nextState);
         } else {
             addNewState(nextState);
@@ -127,7 +128,7 @@ public class StateMachine {
      * @throws  IllegalStateException if this method has already been called
      */
     public void setFirstState(State state) {
-        Log.d("VV", "setFirstState(" + state.getName() + ")");
+        Log.d(LOG_TAG, "setFirstState(" + state.getName() + ")");
         if (currentState != null) {
             throw new IllegalArgumentException("State machine already has the first state set");
         }
@@ -193,7 +194,7 @@ public class StateMachine {
                     isStateMachinePaused ? "||" : ">", currentState.getName()));
         } catch (Throwable t) {
             // Better logging than the FTC SDK provides :(
-            Log.e("VV", "Exception during state machine", t);
+            Log.e(LOG_TAG, "Exception during state machine", t);
 
             if (t instanceof RuntimeException) {
                 throw (RuntimeException)t;

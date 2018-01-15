@@ -19,32 +19,33 @@
 
 package com.hfrobots.tnt.season1718;
 
-import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.drive.Turn;
-import com.hfrobots.tnt.corelib.state.DelayState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
+import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
-//@Autonomous(name="RR Auto More")
+@Autonomous(name="RR Auto")
 @SuppressWarnings("unused")
-public class RelicRecoveryAutonomousMore extends RelicRecoveryHardware {
+public class RelicRecoveryAutonomousMoreWithVuMark extends RelicRecoveryHardware {
 
     private State currentState = null;
 
     // The routes our robot knows how to do
     private enum Routes {
+        STONE_CLOSE_TO_RELIC_ZONE("Stone close to relic zone"),
         STONE_FAR_FROM_RELIC_ZONE("Stone far from relic zone"),
-        JEWEL_ONLY("Jewel only"),
-        STONE_CLOSE_TO_RELIC_ZONE("Stone close to relic zone");
+        JEWEL_ONLY("Jewel only");
 
         final String description;
 
@@ -61,7 +62,7 @@ public class RelicRecoveryAutonomousMore extends RelicRecoveryHardware {
 
     private Routes[] possibleRoutes = Routes.values();
 
-    ;
+    private final Queue<RelicRecoveryVuMark> vuMarkQueue = new ConcurrentLinkedQueue<>();
 
     // Which alliance are we? (the robot is programmed from the point-of-view of the red alliance
     // but we can also have it run the blue one if selected
@@ -314,6 +315,11 @@ public class RelicRecoveryAutonomousMore extends RelicRecoveryHardware {
     }
 
     private State stoneCloseToRelicZoneStateMachine() {
+        VuMarkDetectionState vuMarkDetectionState = new VuMarkDetectionState("Detect VuMark",
+                telemetry,
+                hardwareMap, vuMarkQueue, TimeUnit.SECONDS.toMillis(5));
+        State firstState = vuMarkDetectionState;
+
         // COMMON - copy from here (haven't figured out how to extract to a method yet
         final JewelMechanism jewelMechUsed;
 
@@ -323,9 +329,16 @@ public class RelicRecoveryAutonomousMore extends RelicRecoveryHardware {
             jewelMechUsed = redAllianceJewelMech;
         }
 
-        JewelMechanism.JewelMechanismDeploySensorState firstState = jewelMechUsed.getDeploySensorState(telemetry);
+        // YOUR MISSION
+        // Make vuMarkDetectionState the *first* state
+        // Make the current firstState (JewelMechanism.JewelMechanismDeploySensorState) the next
+        // state for the VuMarkDetectionState
+
+        JewelMechanism.JewelMechanismDeploySensorState firstJewelState = jewelMechUsed.getDeploySensorState(telemetry);
+
+        firstState.setNextState(firstJewelState);
         State waitToDeploy = newDelayState("waiting for deploy", 2);
-        firstState.setNextState(waitToDeploy);
+        firstJewelState.setNextState(waitToDeploy);
         JewelMechanism.JewelMechanismDetectAndTurnWithMoreStuff detectAndTurnState
                 = jewelMechUsed.getDetectAndTurnStateWithMoreStuff(telemetry, currentAlliance, imu, mecanumDrive);
         waitToDeploy.setNextState(detectAndTurnState);
@@ -348,14 +361,8 @@ public class RelicRecoveryAutonomousMore extends RelicRecoveryHardware {
         // Center value: 34.0
         // Right value: 40.0
 
-        MecanumDriveDistanceState driveForwardState = new MecanumDriveDistanceState("Drive off stone",
-                telemetry, mecanumDrive, 40.0, TimeUnit.SECONDS.toMillis(5));
-        // left = 25
-        //center = 34
-        //right = 40
-
-        // Uncomment to remove glyph states
-        // detectAndTurnState.setNextState(driveForwardState);
+        DriveVuMarkDistanceState driveForwardState = new DriveVuMarkDistanceState("Drive off stone",
+                telemetry, mecanumDrive, vuMarkQueue, TimeUnit.SECONDS.toMillis(8));
 
         liftMoveUpState.setNextState(driveForwardState);
 

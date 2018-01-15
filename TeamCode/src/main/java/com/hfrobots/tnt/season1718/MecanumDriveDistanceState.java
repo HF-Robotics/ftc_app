@@ -39,16 +39,21 @@ public class MecanumDriveDistanceState extends TimeoutSafetyState {
 
     private double inchesToDrive;
 
-    private double powerLevel = 0.5D;
+    private double powerLevel = 0.3D;
 
-    private final PidController pid;
+    private double pidP;
+
+    private double pidD = 0.0D;
+
+    private double pidI = 0.0D;
+
+    private PidController pid;
+
     public MecanumDriveDistanceState(String name, Telemetry telemetry, MecanumDrive mecanumDrive, double inchesToDrive, long timeoutMillis) {
         super(name, telemetry, timeoutMillis);
         this.mecanumDrive = mecanumDrive;
 
         this.inchesToDrive = inchesToDrive;
-
-        final double pidP;
 
         if (inchesToDrive > RobotConstants.P_SMALL_Y_MOVE_THRESHOLD_INCHES) {
             pidP = RobotConstants.P_LARGE_Y_MOVE_COEFF;
@@ -56,12 +61,16 @@ public class MecanumDriveDistanceState extends TimeoutSafetyState {
             pidP = RobotConstants.P_SMALL_Y_MOVE_COEFF;
         }
 
-        this.pid = PidController.builder().setKp(pidP).setTolerance(5).setSettlingTimeMs(100).build();
-        this.pid.setOutputRange(-.3, .3);
-        this.pid.setNoOscillation(true);
+        setupPidController();
         /* we are not Oscillating because we are driving in a striaght line, "hunting" for the correct value
         takes time. Time >= than extreme accuracy.
          */
+    }
+
+    private void setupPidController() {
+        this.pid = PidController.builder().setInstanceName("y-axis-drive").setKp(pidP).setTolerance(5).setSettlingTimeMs(100).build();
+        this.pid.setOutputRange(-powerLevel, powerLevel);
+        this.pid.setNoOscillation(true);
     }
 
     @Override
@@ -136,11 +145,42 @@ public class MecanumDriveDistanceState extends TimeoutSafetyState {
         }
 
         if (buttons.getaButton().getRise()) {
-            powerLevel -= .1;
+            powerLevel -= .025;
         } else if (buttons.getyButton().getRise()) {
-            powerLevel += .1;
+            powerLevel += .025;
         }
 
+        boolean pidChanged = false;
+
+        if (buttons.getDpadUp().getRise()) {
+            pidP += .01;
+            pidChanged = true;
+        } else if (buttons.getDpadDown().getRise()) {
+            pidP -= 01;
+            pidChanged = true;
+        }
+
+        if (buttons.getDpadLeft().getRise()) {
+            pidI -= .01;
+            pidChanged = true;
+        } else if (buttons.getDpadRight().getRise()) {
+            pidI += .01;
+            pidChanged = true;
+        }
+
+        if (buttons.getLeftStickButton().getRise()) {
+            pidD -= .01;
+            pidChanged = true;
+        } else if (buttons.getRightStickButton().getRise()) {
+            pidD += .01;
+            pidChanged = true;
+        }
+
+        if (pidChanged) {
+            setupPidController();
+        }
+
+        telemetry.addData("01", "PID %f/%f/%f", pidP, pidI, pidD);
         telemetry.addData("03", "power level " + powerLevel);
         telemetry.addData("04", "inches to drive " + inchesToDrive);
     }

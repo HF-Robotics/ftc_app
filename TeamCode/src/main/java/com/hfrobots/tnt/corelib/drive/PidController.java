@@ -22,6 +22,10 @@
 
 package com.hfrobots.tnt.corelib.drive;
 
+import android.util.Log;
+
+import com.hfrobots.tnt.corelib.Constants;
+
 // A simplification of Titan Robotic's PID controller
 public class PidController {
 
@@ -66,6 +70,15 @@ public class PidController {
         private double       kF;
         private double       tolerance;
         private long         settlingTimeMs;
+
+        /**
+         * @param instanceName the name used in debug logging and telemetry output
+         */
+        public Builder setInstanceName(String instanceName) {
+            this.instanceName = instanceName;
+
+            return this;
+        }
 
         /**
          * @param kP specifies the proportional constant.
@@ -122,6 +135,10 @@ public class PidController {
         }
 
         public PidController build() {
+            if (instanceName == null) {
+                instanceName = "unnamed";
+            }
+
             PidController built = new PidController(instanceName);
             built.kP = Math.abs(kP);
             built.kI = Math.abs(kI);
@@ -188,10 +205,9 @@ public class PidController {
             output = minOutput;
         }
 
-        //if (debugTracer != null)
-        //{
-            // printPidInfo(debugTracer);
-        //}
+        Log.d(Constants.LOG_TAG, String.format(
+                "PID %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, dT=%6.3f, PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
+                instanceName, setPoint, input, currError, deltaTime, pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput));
 
         return output;
     }
