@@ -147,8 +147,7 @@ public class VuMarkThread extends Thread {
 
         if (vuMarkQueue.isEmpty()) {
             Log.d(LOG_TAG, "VuMark not seen");
-            textToSpeech.speak("Error 404 vuMark not found ", TextToSpeech.QUEUE_FLUSH,null);
-            break;
+            textToSpeech.speak("Error four oh four vuMark not found ", TextToSpeech.QUEUE_FLUSH,null);
         }
     }
 

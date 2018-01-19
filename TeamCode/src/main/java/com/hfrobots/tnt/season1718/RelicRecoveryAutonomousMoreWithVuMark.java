@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
-@Autonomous(name="RR Auto")
+//@Autonomous(name="RR Auto")
 @SuppressWarnings("unused")
 public class RelicRecoveryAutonomousMoreWithVuMark extends RelicRecoveryHardware {
 
@@ -254,6 +254,11 @@ public class RelicRecoveryAutonomousMoreWithVuMark extends RelicRecoveryHardware
 
     // This is the left stone only when on the blue alliance
     private State stoneFarFromRelicZoneStateMachine() {
+        VuMarkDetectionState vuMarkDetectionState = new VuMarkDetectionState("Detect VuMark",
+                telemetry,
+                hardwareMap, vuMarkQueue, TimeUnit.SECONDS.toMillis(5));
+        State firstState = vuMarkDetectionState;
+
         // COMMON - copy from close state when changed (haven't figured out how to extract to a method yet
         final JewelMechanism jewelMechUsed;
 
@@ -263,9 +268,11 @@ public class RelicRecoveryAutonomousMoreWithVuMark extends RelicRecoveryHardware
             jewelMechUsed = redAllianceJewelMech;
         }
 
-        JewelMechanism.JewelMechanismDeploySensorState firstState = jewelMechUsed.getDeploySensorState(telemetry);
+        JewelMechanism.JewelMechanismDeploySensorState firstJewelState = jewelMechUsed.getDeploySensorState(telemetry);
+        firstState.setNextState(firstJewelState);
+
         State waitToDeploy = newDelayState("waiting for deploy", 2);
-        firstState.setNextState(waitToDeploy);
+        firstJewelState.setNextState(waitToDeploy);
         JewelMechanism.JewelMechanismDetectAndTurnWithMoreStuff detectAndTurnState
                 = jewelMechUsed.getDetectAndTurnStateWithMoreStuff(telemetry, currentAlliance, imu, mecanumDrive);
         waitToDeploy.setNextState(detectAndTurnState);
@@ -283,33 +290,44 @@ public class RelicRecoveryAutonomousMoreWithVuMark extends RelicRecoveryHardware
         waitForGrip.setNextState(liftMoveUpState);
 
         MecanumDriveDistanceState driveOffStoneState = new MecanumDriveDistanceState("Drive off stone",
-                telemetry, mecanumDrive, 15, TimeUnit.SECONDS.toMillis(5));
+                telemetry, mecanumDrive, 26, TimeUnit.SECONDS.toMillis(5));
 
         // without glyph, uncomment
         // detectAndTurnState.setNextState(driveOffStoneState);
 
         liftMoveUpState.setNextState(driveOffStoneState);
 
-        MecanumStrafeDistanceState strafeInwardState = new MecanumStrafeDistanceState("STRAFE!!!!!!",
-                telemetry, mecanumDrive,15, TimeUnit.SECONDS.toMillis(8));
+        // RIGHT:  18
+        // CENTER: 11
+        // LEFT:    3
+
+        StrafeVuMarkDistanceState strafeInwardState = new StrafeVuMarkDistanceState("STRAFE!!!!!!",
+                telemetry, mecanumDrive, currentAlliance, vuMarkQueue, TimeUnit.SECONDS.toMillis(8));
+
+        /*MecanumStrafeDistanceState strafeInwardState = new MecanumStrafeDistanceState("STRAFE!!!!!!",
+                telemetry, mecanumDrive, 18, TimeUnit.SECONDS.toMillis(8));*/
 
         driveOffStoneState.setNextState(strafeInwardState);
 
         MecanumDriveDistanceState driveForwardFourState = new MecanumDriveDistanceState("Drive to cryptobox",
-                telemetry, mecanumDrive, 11, TimeUnit.SECONDS.toMillis(5));
+                telemetry, mecanumDrive, 5, TimeUnit.SECONDS.toMillis(5));
 
         strafeInwardState.setNextState(driveForwardFourState);
 
         GlyphMechanism.GripperOpenState gripperOpenState = glyphMechanism.getGripperOpenState(telemetry);
         driveForwardFourState.setNextState(gripperOpenState);
 
+        // FIXME: Add a delay state to let the grippers release
+        State waitForRelease = newDelayState("wait for release",1);
+
         MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
                 telemetry, mecanumDrive, -2.0, TimeUnit.SECONDS.toMillis(5));
-        gripperOpenState.setNextState(driveBackwardsTwoState);
+
+        gripperOpenState.setNextState(waitForRelease);
+
+        waitForRelease.setNextState(driveBackwardsTwoState);
 
         driveBackwardsTwoState.setNextState(newDoneState("done"));
-
-        //waitToStow.setNextState(newDoneState("Done"));
 
         return firstState;
     }

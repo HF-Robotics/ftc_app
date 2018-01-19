@@ -26,20 +26,26 @@ import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.state.State;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
+import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
-// @Autonomous(name="RR Auto OLD")
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
+@Autonomous(name="RR Auto")
 @SuppressWarnings("unused")
 public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 
-
-    private static final String LOG_TAG = "TNT Auto";
     private State currentState = null;
 
     // The routes our robot knows how to do
-    private enum Routes { LEFT_STONE("Left stone"),
-        //RIGHT_STONE_RIGHT_CRYPTO("Right stone to right crypto "),
-        RIGHT_STONE("Right stone");
+    private enum Routes {
+        STONE_CLOSE_TO_RELIC_ZONE("Stone close to relic zone"),
+        STONE_FAR_FROM_RELIC_ZONE("Stone far from relic zone"),
+        JEWEL_ONLY("Jewel only");
 
         final String description;
 
@@ -56,7 +62,7 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 
     private Routes[] possibleRoutes = Routes.values();
 
-    ;
+    private final Queue<RelicRecoveryVuMark> vuMarkQueue = new ConcurrentLinkedQueue<>();
 
     // Which alliance are we? (the robot is programmed from the point-of-view of the red alliance
     // but we can also have it run the blue one if selected
@@ -94,6 +100,8 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
     // Called repeatedly after init button has been pressed and init() has completed (we think)
     @Override
     public void init_loop() {
+        // TODO: Test continually "storing" jewel sensors...
+
         if (driversGamepad == null) { // safety, need to double check whether we actually need this
             // not ready yet init() hasn't been called
             return;
@@ -176,15 +184,15 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
                 Routes selectedRoute = possibleRoutes[selectedRoutesIndex];
 
                 switch (selectedRoute) {
-                    case LEFT_STONE:
-                        selectedState = leftStoneStateMachine();
+                    case STONE_FAR_FROM_RELIC_ZONE:
+                        selectedState = stoneFarFromRelicZoneStateMachine();
                         break;
-                    case RIGHT_STONE:
-                        selectedState = rightStoneStateMachine();
+                    case STONE_CLOSE_TO_RELIC_ZONE:
+                        selectedState = stoneCloseToRelicZoneStateMachine();
                         break;
-                    //case RIGHT_STONE_RIGHT_CRYPTO:
-                    //    selectedState = rightStoneRightCryptoStateMachine();
-                    //    break;
+                    case JEWEL_ONLY:
+                        selectedState = jewelOnlyStateMachine();
+                        break;
                     default:
                         selectedState = newDoneState("Default done");
                 }
@@ -202,7 +210,8 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
             if (nextState != currentState) {
                 // We've changed states alert the driving team, log for post-match analysis
                 telemetry.addData("00-State", "From %s to %s", currentState, nextState);
-                Log.d(LOG_TAG, String.format("State transition from %s to %s", currentState, nextState));
+                Log.d(LOG_TAG, String.format("State transition from %s to %s", currentState.getClass()
+                        + "(" + currentState.getName() + ")", nextState.getClass() + "(" + nextState.getName() + ")"));
             }
 
             currentState = nextState;
@@ -235,15 +244,180 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
      * mirror image, to get our routes working for the blue alliance we simply need to
      * reverse the direction of the turn
      */
-    private Turn adjustTurnForAlliance(Turn origTurn) {
-        if (currentAlliance == Constants.Alliance.RED) {
+    private Turn adjustTurnFromBlueForCurrentAlliance(Turn origTurn) {
+        if (currentAlliance == Constants.Alliance.BLUE) {
             return origTurn;
         }
 
         return origTurn.invert();
     }
 
-    private State leftStoneStateMachine() {
+    // This is the left stone only when on the blue alliance
+    private State stoneFarFromRelicZoneStateMachine() {
+        VuMarkDetectionState vuMarkDetectionState = new VuMarkDetectionState("Detect VuMark",
+                telemetry,
+                hardwareMap, vuMarkQueue, TimeUnit.SECONDS.toMillis(5));
+        State firstState = vuMarkDetectionState;
+
+        // COMMON - copy from close state when changed (haven't figured out how to extract to a method yet
+        final JewelMechanism jewelMechUsed;
+
+        if (currentAlliance.equals(Constants.Alliance.BLUE)) {
+            jewelMechUsed = blueAllianceJewelMech;
+        } else {
+            jewelMechUsed = redAllianceJewelMech;
+        }
+
+        JewelMechanism.JewelMechanismDeploySensorState firstJewelState = jewelMechUsed.getDeploySensorState(telemetry);
+        firstState.setNextState(firstJewelState);
+
+        State waitToDeploy = newDelayState("waiting for deploy", 2);
+        firstJewelState.setNextState(waitToDeploy);
+        JewelMechanism.JewelMechanismDetectAndTurnWithMoreStuff detectAndTurnState
+                = jewelMechUsed.getDetectAndTurnStateWithMoreStuff(telemetry, currentAlliance, imu, mecanumDrive);
+        waitToDeploy.setNextState(detectAndTurnState);
+        // COMMON - ends here
+
+        // Pick up glyph now so setup of robot doesn't change before jewel detection
+        // Order close gripper, wait(1s), lift
+
+        GlyphMechanism.GripperCloseState gripperCloseState = glyphMechanism.getGripperCloseState(telemetry);
+        State waitForGrip = newDelayState("waitForGrip", 1);
+        GlyphMechanism.LiftMoveUpState liftMoveUpState = glyphMechanism.getLiftMoveUpState(telemetry);
+
+        detectAndTurnState.setNextState(gripperCloseState);
+        gripperCloseState.setNextState(waitForGrip);
+        waitForGrip.setNextState(liftMoveUpState);
+
+        MecanumDriveDistanceState driveOffStoneState = new MecanumDriveDistanceState("Drive off stone",
+                telemetry, mecanumDrive, 26, TimeUnit.SECONDS.toMillis(5));
+
+        // without glyph, uncomment
+        // detectAndTurnState.setNextState(driveOffStoneState);
+
+        liftMoveUpState.setNextState(driveOffStoneState);
+
+        // RIGHT:  18
+        // CENTER: 11
+        // LEFT:    3
+
+        StrafeVuMarkDistanceState strafeInwardState = new StrafeVuMarkDistanceState("STRAFE!!!!!!",
+                telemetry, mecanumDrive, currentAlliance, vuMarkQueue, TimeUnit.SECONDS.toMillis(8));
+
+        /*MecanumStrafeDistanceState strafeInwardState = new MecanumStrafeDistanceState("STRAFE!!!!!!",
+                telemetry, mecanumDrive, 18, TimeUnit.SECONDS.toMillis(8));*/
+
+        driveOffStoneState.setNextState(strafeInwardState);
+
+        MecanumDriveDistanceState driveForwardFourState = new MecanumDriveDistanceState("Drive to cryptobox",
+                telemetry, mecanumDrive, 5, TimeUnit.SECONDS.toMillis(5));
+
+        strafeInwardState.setNextState(driveForwardFourState);
+
+        GlyphMechanism.GripperOpenState gripperOpenState = glyphMechanism.getGripperOpenState(telemetry);
+        driveForwardFourState.setNextState(gripperOpenState);
+
+        // FIXME: Add a delay state to let the grippers release
+        State waitForRelease = newDelayState("wait for release",1);
+
+        MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
+                telemetry, mecanumDrive, -2.0, TimeUnit.SECONDS.toMillis(5));
+
+        gripperOpenState.setNextState(waitForRelease);
+
+        waitForRelease.setNextState(driveBackwardsTwoState);
+
+        driveBackwardsTwoState.setNextState(newDoneState("done"));
+
+        return firstState;
+    }
+
+    private State stoneCloseToRelicZoneStateMachine() {
+        VuMarkDetectionState vuMarkDetectionState = new VuMarkDetectionState("Detect VuMark",
+                telemetry,
+                hardwareMap, vuMarkQueue, TimeUnit.SECONDS.toMillis(5));
+        State firstState = vuMarkDetectionState;
+
+        // COMMON - copy from here (haven't figured out how to extract to a method yet
+        final JewelMechanism jewelMechUsed;
+
+        if (currentAlliance.equals(Constants.Alliance.BLUE)) {
+            jewelMechUsed = blueAllianceJewelMech;
+        } else {
+            jewelMechUsed = redAllianceJewelMech;
+        }
+
+        // YOUR MISSION
+        // Make vuMarkDetectionState the *first* state
+        // Make the current firstState (JewelMechanism.JewelMechanismDeploySensorState) the next
+        // state for the VuMarkDetectionState
+
+        JewelMechanism.JewelMechanismDeploySensorState firstJewelState = jewelMechUsed.getDeploySensorState(telemetry);
+
+        firstState.setNextState(firstJewelState);
+        State waitToDeploy = newDelayState("waiting for deploy", 2);
+        firstJewelState.setNextState(waitToDeploy);
+        JewelMechanism.JewelMechanismDetectAndTurnWithMoreStuff detectAndTurnState
+                = jewelMechUsed.getDetectAndTurnStateWithMoreStuff(telemetry, currentAlliance, imu, mecanumDrive);
+        waitToDeploy.setNextState(detectAndTurnState);
+        // COMMON - ends here
+
+        // Pick up glyph now so setup of robot doesn't change before jewel detection
+        // Order close gripper, wait(1s), lift
+
+        GlyphMechanism.GripperCloseState gripperCloseState = glyphMechanism.getGripperCloseState(telemetry);
+        State waitForGrip = newDelayState("waitForGrip", 1);
+        GlyphMechanism.LiftMoveUpState liftMoveUpState = glyphMechanism.getLiftMoveUpState(telemetry);
+
+        detectAndTurnState.setNextState(gripperCloseState);
+        gripperCloseState.setNextState(waitForGrip);
+        waitForGrip.setNextState(liftMoveUpState);
+
+        // go forward till clear of the stone
+        //
+        // Left value: 25.0
+        // Center value: 34.0
+        // Right value: 40.0
+
+        DriveVuMarkDistanceState driveForwardState = new DriveVuMarkDistanceState("Drive off stone",
+                telemetry, mecanumDrive, vuMarkQueue, TimeUnit.SECONDS.toMillis(8));
+
+        liftMoveUpState.setNextState(driveForwardState);
+
+        //turn conterclockwise 90 and align w/cryptobox
+
+        final Turn allianceAwareTurn = adjustTurnFromBlueForCurrentAlliance(new Turn(Rotation.CCW, 90));
+
+        MecanumGyroTurnState.Builder turnBuilder = MecanumGyroTurnState.builder();
+        turnBuilder.setTurn(allianceAwareTurn).setImu(imu)
+                .setMecanumDrive(mecanumDrive)
+                .setPLargeTurnCoeff(RobotConstants.P_LARGE_TURN_COEFF)
+                .setPSmallTurnCoeff(RobotConstants.P_SMALL_TURN_COEFF)
+                .setName("Turn towards cryptobox")
+                .setSafetyTimeoutMillis(TimeUnit.SECONDS.toMillis(15));
+
+        MecanumGyroTurnState turnTowardsCryptoBox = turnBuilder.build();
+        driveForwardState.setNextState(turnTowardsCryptoBox);
+
+        // move foward
+        MecanumDriveDistanceState driveForwardFourState = new MecanumDriveDistanceState("Drive towards cryptobox",
+                telemetry, mecanumDrive, 11.0, TimeUnit.SECONDS.toMillis(5));
+        turnTowardsCryptoBox.setNextState(driveForwardFourState);
+        GlyphMechanism.GripperOpenState gripperOpenState = glyphMechanism.getGripperOpenState(telemetry);
+        driveForwardFourState.setNextState(gripperOpenState);
+
+        MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
+                telemetry, mecanumDrive, -2.0, TimeUnit.SECONDS.toMillis(5));
+        gripperOpenState.setNextState(driveBackwardsTwoState);
+
+        driveBackwardsTwoState.setNextState(newDoneState("done"));
+
+
+        return firstState;
+    }
+
+    private State jewelOnlyStateMachine() {
+        // COMMON - copy from close state when changed (haven't figured out how to extract to a method yet
         final JewelMechanism jewelMechUsed;
 
         if (currentAlliance.equals(Constants.Alliance.BLUE)) {
@@ -255,23 +429,16 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
         JewelMechanism.JewelMechanismDeploySensorState firstState = jewelMechUsed.getDeploySensorState(telemetry);
         State waitToDeploy = newDelayState("waiting for deploy", 2);
         firstState.setNextState(waitToDeploy);
-        JewelMechanism.JewelMechanismDetectAndTurn detectAndTurnState
-                = jewelMechUsed.getDetectAndTurnState(telemetry, currentAlliance, mecanumDrive);
+        JewelMechanism.JewelMechanismDetectAndTurnWithMoreStuff detectAndTurnState
+                = jewelMechUsed.getDetectAndTurnStateWithMoreStuff(telemetry, currentAlliance, imu, mecanumDrive);
         waitToDeploy.setNextState(detectAndTurnState);
-        JewelMechanism.JewelMechanismStowSensorState stowSensorState = jewelMechUsed.getStowSensorState(telemetry);
-        detectAndTurnState.setNextState(stowSensorState);
-        State waitToStow = newDelayState("waiting for stow", 2);
-        stowSensorState.setNextState(waitToStow);
-        waitToStow.setNextState(newDoneState("Done"));
+        // COMMON - ends here
+
+        // Pick up glyph now so setup of robot doesn't change before jewel detection
+        // Order close gripper, wait(1s), lift
+
+        detectAndTurnState.setNextState(newDoneState("Done."));
 
         return firstState;
-    }
-
-    private State rightStoneStateMachine() {
-        return leftStoneStateMachine(); /* no different atm */
-    }
-
-    private State rightStoneRightCryptoStateMachine() {
-        return newDoneState("Right Stone, Right Crypto - TODO");
     }
 }
