@@ -317,7 +317,6 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
         GlyphMechanism.GripperOpenState gripperOpenState = glyphMechanism.getGripperOpenState(telemetry);
         driveForwardFourState.setNextState(gripperOpenState);
 
-        // FIXME: Add a delay state to let the grippers release
         State waitForRelease = newDelayState("wait for release",1);
 
         MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
@@ -408,11 +407,14 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 
         MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
                 telemetry, mecanumDrive, -2.0, TimeUnit.SECONDS.toMillis(5));
-        gripperOpenState.setNextState(driveBackwardsTwoState);
+
+        State waitForRelease = newDelayState("wait for release",1);
+
+        gripperOpenState.setNextState(waitForRelease);
+        waitForRelease.setNextState(driveBackwardsTwoState);
 
         driveBackwardsTwoState.setNextState(newDoneState("done"));
-
-
+        
         return firstState;
     }
 
