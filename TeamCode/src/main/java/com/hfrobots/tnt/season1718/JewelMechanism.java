@@ -89,7 +89,13 @@ public class JewelMechanism {
 
         Log.d(Constants.LOG_TAG, "jewel mech detected RGB " + red + " " + green + " " + blue + " for alliance " + alliance);
 
+
+        if (Math.abs(blue-red) < 4) {
+            return null;
+        }
+
         if (blue > red) {
+
             Log.d(Constants.LOG_TAG, "jewel mech thinks we saw blue");
             // we saw blue
             if (alliance.equals(Constants.Alliance.BLUE)) {

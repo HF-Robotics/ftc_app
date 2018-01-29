@@ -64,8 +64,6 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         handleDrivingInputs();
         handleGlyphGripper();
 
-//        handleLimits();
-
         //
         // Send telemetry data to the driver station.
         //
@@ -73,10 +71,6 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         updateGamepadTelemetry();
 
     }
-
-//    private void handleLimits() {
-//        glyphMechanism.enforceLimits();
-//    }
 
     @Override
     public void stop() {
@@ -94,10 +88,10 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         y = -y; // still need to figure this one out!
 
         // do this first, it will be cancelled out by bump-strafe
-        if (driveSlowButton.isPressed()) {
-            y /= 1.75;
+        if (!driveFastButton.isPressed()) {
+            y /= 1.5;
             x /= 1.25;
-            rot /= 1.75;
+            rot /= 1.5;
         }
 
         final boolean driveInverted;
@@ -108,9 +102,9 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
             driveInverted = false;
         }
 
-        double xScaled = scaleThrottleValue(x);
-        double yScaled = scaleThrottleValue(y);
-        double rotateScaled = scaleThrottleValue(rot);
+        double xScaled = x;
+        double yScaled = y;
+        double rotateScaled = rot;
 
         // we check both bumpers - because both being pressed is driver 'panic', and we
         // don't want unexpected behavior!
@@ -127,6 +121,8 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         xThrottleHistogram.accumulate(xScaled);
         yThrottleHistogram.accumulate(yScaled);
         rotateThrottleHistogram.accumulate(rotateScaled);
+
+        telemetry.addData("pow", "y %.3f, x %.3f, r %.3f", yScaled, xScaled, rotateScaled);
 
         mecanumDrive.driveCartesian(xScaled, yScaled, rotateScaled, driveInverted, 0.0);
     }

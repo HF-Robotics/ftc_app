@@ -28,8 +28,10 @@ import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.hfrobots.tnt.corelib.control.OnOffButton;
+import com.hfrobots.tnt.corelib.control.ParametricScaledRangeInput;
 import com.hfrobots.tnt.corelib.control.RangeInput;
 import com.hfrobots.tnt.corelib.control.RangeInputButton;
+import com.hfrobots.tnt.corelib.control.LowPassFilteredRangeInput;
 import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.state.State;
@@ -38,7 +40,6 @@ import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -121,7 +122,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected OnOffButton driveInvertedButton;
 
-    protected OnOffButton driveSlowButton;
+    protected OnOffButton driveFastButton;
 
     protected OnOffButton driveBumpStrafeRightButton;
 
@@ -449,8 +450,12 @@ public abstract class RelicRecoveryHardware extends OpMode {
         toggleLowerGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
         rotateGlyphButton = new DebouncedButton(operatorsGamepad.getRightBumper());
         stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getLeftBumper());
-        liftControl = operatorsGamepad.getLeftStickY();
+        liftControl = new ParametricScaledRangeInput(
+                new LowPassFilteredRangeInput(operatorsGamepad.getLeftStickY(), lowPassFilterFactor),
+                throttleDeadband, throttleGain, throttleExponent);
     }
+
+    private final float lowPassFilterFactor = .12F;
 
     private void setupDriverControls() {
         driversGamepad = new NinjaGamePad(gamepad1);
@@ -459,9 +464,15 @@ public abstract class RelicRecoveryHardware extends OpMode {
         driverRightStickX = driversGamepad.getRightStickX();
         driverRightStickY = driversGamepad.getRightStickY();
 
-        driveStrafe = driverLeftStickX;
-        driveForwardReverse = driverLeftStickY;
-        driveRotate = driverRightStickX;
+        driveStrafe = new ParametricScaledRangeInput(
+                new LowPassFilteredRangeInput(driverLeftStickX, lowPassFilterFactor),
+                throttleDeadband, throttleGain, throttleExponent);
+
+        driveForwardReverse = new ParametricScaledRangeInput(
+                new LowPassFilteredRangeInput(driverLeftStickY, lowPassFilterFactor),
+            throttleDeadband, throttleGain, throttleExponent);
+
+        driveRotate = new LowPassFilteredRangeInput(driverRightStickX, lowPassFilterFactor);
 
         driverDpadDown = new DebouncedButton(driversGamepad.getDpadDown());
         driverDpadUp = new DebouncedButton(driversGamepad.getDpadUp());
@@ -475,11 +486,13 @@ public abstract class RelicRecoveryHardware extends OpMode {
         driverRightBumper = new DebouncedButton(driversGamepad.getRightBumper());
         lockButton = new DebouncedButton(driversGamepad.getLeftStickButton());
         unlockButton = new DebouncedButton(driversGamepad.getRightStickButton());
-        driveSlowButton = new RangeInputButton(driversGamepad.getLeftTrigger(), 0.65f);
+        driveFastButton = new RangeInputButton(driversGamepad.getLeftTrigger(), 0.65f);
         driveInvertedButton = new RangeInputButton(driversGamepad.getRightTrigger(), 0.65f);
         driveBumpStrafeLeftButton = driversGamepad.getLeftBumper();
         driveBumpStrafeRightButton = driversGamepad.getRightBumper();
     }
+
+    protected long rotationStartTimeMs = 0;
 
     protected void handleGlyphGripper() {
         if (toggleLowerGlyphGripper.getRise()) {
@@ -491,25 +504,32 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
 
         if (rotateGlyphButton.getRise()) {
+            rotationStartTimeMs = System.currentTimeMillis();
+
             inverted = !inverted;
             glyphMechanism.flip(inverted);
 
             Log.d(Constants.LOG_TAG, "Flip requested");
             telemetry.addData("02", "Flip requested");
         } else if (stopRotatingGlyphButton.getRise()) {
+            rotationStartTimeMs = 0;
             glyphMechanism.stopRotating();
             Log.d(Constants.LOG_TAG, "Stopping rotation requested");
         }
 
-        if (inverted && glyphMechanism.isUprightLimitReached()) {
+        if (rotationTimeExceeded()) {
+            Log.e(LOG_TAG, "Rotation timeout, stopping servo");
             glyphMechanism.stopRotating();
+            rotationStartTimeMs = 0;
+        } else if (inverted && glyphMechanism.isUprightLimitReached()) {
+            glyphMechanism.stopRotating();
+            rotationStartTimeMs = 0;
         } else if (!inverted && glyphMechanism.isInvertedLimitReached()) {
             glyphMechanism.stopRotating();
+            rotationStartTimeMs = 0;
         }
 
         double liftThrottle = liftControl.getPosition();
-
-        liftThrottle = scaleThrottleValue(liftThrottle);
 
         if (liftThrottle < 0) {
             glyphMechanism.lift.moveUp(Math.abs(liftThrottle));
@@ -520,9 +540,21 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
     }
 
-    double scaleThrottleValue(double unscaledPower) {
-        return (-1 * throttleDeadband) + (1 - throttleDeadband)
-                * (throttleGain * Math.pow(unscaledPower, throttleExponent)
-                + (1 - throttleGain) * unscaledPower);
+    protected final static long MAX_ROTATION_TIME_MS = TimeUnit.SECONDS.toMillis(4);
+
+    protected boolean rotationTimeExceeded() {
+        if (rotationStartTimeMs == 0) {
+            return false;
+        }
+
+        long nowMs = System.currentTimeMillis();
+
+        long elapsedTimeMs = nowMs - rotationStartTimeMs;
+
+        if (elapsedTimeMs >= MAX_ROTATION_TIME_MS) {
+            return true;
+        }
+
+        return false;
     }
 }

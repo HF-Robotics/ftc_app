@@ -41,11 +41,15 @@ public class DriveVuMarkDistanceState extends TimeoutSafetyState {
 
     private boolean initialized = false;
 
+    private final Constants.Alliance currentAlliance;
+
     public DriveVuMarkDistanceState(String name, Telemetry telemetry, MecanumDrive mecanumDrive,
+                                    Constants.Alliance alliance,
                                     Queue<RelicRecoveryVuMark> vumarkQueue, long safetyTimeoutMillis) {
         super(name, telemetry, safetyTimeoutMillis);
         this.vuMarkQueue = vumarkQueue;
         this.mecanumDrive =mecanumDrive;
+        this.currentAlliance = alliance;
     }
 
     @Override
@@ -68,13 +72,23 @@ public class DriveVuMarkDistanceState extends TimeoutSafetyState {
 
                 switch (detectedVuMark) {
                     case LEFT:
-                        distanceToDriveInches = 25;
+                        if (currentAlliance.equals(Constants.Alliance.RED)) {
+                            distanceToDriveInches = 40;
+                        } else {
+                            distanceToDriveInches = 25;
+                        }
+
                         break;
                     case CENTER:
                         distanceToDriveInches = 34;
                         break;
                     case RIGHT:
-                        distanceToDriveInches = 40;
+                        if (currentAlliance.equals(Constants.Alliance.RED)) {
+                            distanceToDriveInches = 25;
+                        } else {
+                            distanceToDriveInches = 40;
+                        }
+
                         break;
                 }
             } else {

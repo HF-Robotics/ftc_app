@@ -37,12 +37,6 @@ public abstract class RelicRecoveryTelemetry extends RelicRecoveryHardware {
         // Send telemetry data to the driver station.
         //
 
-        // First angle is heading, second is roll, third is pitch
-
-        if (imu != null) {
-            telemetry.addData("imu", "h: " + imu.getAngularOrientation().firstAngle);
-        }
-
         telemetry.addData("limits", "b:" + glyphLiftBottomLimit.getState() + " t:" + glyphLiftTopLimit.getState() + " cw:" + uprightGlyphLimit.getState() + " ccw:" + invertedGlyphLimit.getState());
         telemetry.addData("pos", "y: " + mecanumDrive.getYPosition() + ", x: " + mecanumDrive.getXPosition());
     }

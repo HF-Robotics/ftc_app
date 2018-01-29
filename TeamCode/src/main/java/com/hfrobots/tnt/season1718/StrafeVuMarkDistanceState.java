@@ -25,6 +25,7 @@ import android.util.Log;
 
 import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+import com.hfrobots.tnt.corelib.drive.PidController;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 
@@ -66,11 +67,7 @@ public class StrafeVuMarkDistanceState extends TimeoutSafetyState {
             // This distance is for the blue alliance
             double distanceToDriveInches = 11;
 
-            // We change for the red alliance
 
-            if (alliance.equals(Constants.Alliance.RED)) {
-                distanceToDriveInches = -distanceToDriveInches;
-            }
 
             if (!vuMarkQueue.isEmpty()) {
                 RelicRecoveryVuMark detectedVuMark = vuMarkQueue.poll();
@@ -79,29 +76,47 @@ public class StrafeVuMarkDistanceState extends TimeoutSafetyState {
 
                 switch (detectedVuMark) {
                     case LEFT:
-                        distanceToDriveInches = 3;
+                        if (alliance.equals(Constants.Alliance.RED)) {
+                            distanceToDriveInches = 18;
+                        } else {
+                            distanceToDriveInches = 3;
+                        }
+
                         break;
                     case CENTER:
                         distanceToDriveInches = 11;
                         break;
                     case RIGHT:
-                        distanceToDriveInches = 18;
+                        if (alliance.equals(Constants.Alliance.RED)) {
+                            distanceToDriveInches = 3;
+
+                        } else {
+                            distanceToDriveInches = 18;
+                        }
+
                         break;
                 }
             } else {
                 Log.d(Constants.LOG_TAG, "Did not see VuMark so we drove to center");
             }
 
+            // We change for the red alliance
 
-            MecanumDriveDistanceState driveForwardState = new MecanumDriveDistanceState("Drive off stone",
+            if (alliance.equals(Constants.Alliance.RED)) {
+
+                distanceToDriveInches = -(distanceToDriveInches +3);
+            }
+
+
+            MecanumStrafeDistanceState strafeInwardState = new MecanumStrafeDistanceState("STRAFE!!!!!!",
                     telemetry, mecanumDrive, distanceToDriveInches, safetyTimeoutMillis);
 
 
             initialized = true;
 
-            driveForwardState.setNextState(nextState);
+            strafeInwardState.setNextState(nextState);
 
-            return driveForwardState;
+            return strafeInwardState;
         }
 
         throw new IllegalArgumentException("We don't have code to run here!");
