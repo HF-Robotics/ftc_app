@@ -194,7 +194,12 @@ public class JewelMechanism {
                 detected = true;
 
                 if (directionToTurn == null) {
-                    return nextState;
+                    JewelMechanism.JewelMechanismStowSensorState stowSensorState = getStowSensorState(telemetry);
+                    State waitToStow = new DelayState( "waiting for stow", telemetry,  2);
+                    stowSensorState.setNextState(waitToStow);
+                    waitToStow.setNextState(nextState);
+
+                    return stowSensorState;
                 }
 
                 // TODO: This needs to handle turning, stowing, waiting, "un"-turning
@@ -236,7 +241,12 @@ public class JewelMechanism {
                 detected = true;
 
                 if (directionToTurn == null) {
-                    return nextState;
+                    JewelMechanism.JewelMechanismStowSensorState stowSensorState = getStowSensorState(telemetry);
+                    State waitToStow = new DelayState( "waiting for stow", telemetry,  2);
+                    stowSensorState.setNextState(waitToStow);
+                    waitToStow.setNextState(nextState);
+
+                    return stowSensorState;
                 }
 
                 Turn turn = new Turn(directionToTurn, 10);

@@ -70,6 +70,9 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         updateTelemetry(); // Update common telemetry
         updateGamepadTelemetry();
 
+        // Keep jewel mechanism stowed
+        redAllianceJewelMech.stowSensor();
+        blueAllianceJewelMech.stowSensor();
     }
 
     @Override

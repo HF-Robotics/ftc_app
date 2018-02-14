@@ -126,6 +126,14 @@ public class GlyphMechanism {
         upperGripper.setPosition(GRIPPER_CLOSED);
     }
 
+    public void maintainUpperGripperPosition() {
+       upperGripper.setPosition(upperGripper.getPosition());
+    }
+
+    public void maintainLowerGripperPosition() {
+       lowerGripper.setPosition(lowerGripper.getPosition());
+    }
+
     public void toggleUpper() {
         // position is floating point, shouldn't compare directly, must use delta
         if (Math.abs(upperGripper.getPosition() - GRIPPER_CLOSED) < 0.05) {

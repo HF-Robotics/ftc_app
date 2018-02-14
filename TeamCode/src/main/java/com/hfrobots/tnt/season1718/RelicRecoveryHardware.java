@@ -53,6 +53,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
     protected float throttleGain = 0.7F;
     protected float throttleExponent = 5; // MUST BE AN ODD NUMBER!
     protected float throttleDeadband = 0;
+    
     /**
      * Indicate whether a message is a available to the class user.
      */
@@ -161,6 +162,9 @@ public abstract class RelicRecoveryHardware extends OpMode {
     protected RangeInput liftControl;
 
     protected boolean inverted = false;
+
+    protected DebouncedButton rescueButton;
+
 
     // Jewel Mechanism
 
@@ -453,6 +457,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
         liftControl = new ParametricScaledRangeInput(
                 new LowPassFilteredRangeInput(operatorsGamepad.getLeftStickY(), lowPassFilterFactor),
                 throttleDeadband, throttleGain, throttleExponent);
+        rescueButton = new DebouncedButton(operatorsGamepad.getDpadUp());
     }
 
     private final float lowPassFilterFactor = .12F;
@@ -494,13 +499,38 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected long rotationStartTimeMs = 0;
 
+    protected boolean rescued = false;
+
     protected void handleGlyphGripper() {
-        if (toggleLowerGlyphGripper.getRise()) {
-            glyphMechanism.toggleLower();
+        if (!rescued) {
+            if (toggleLowerGlyphGripper.getRise()) {
+                glyphMechanism.toggleLower();
+            } else {
+                glyphMechanism.maintainLowerGripperPosition();
+            }
+
+            if (toggleUpperGlyphGripper.getRise()) {
+                glyphMechanism.toggleUpper();
+            } else {
+                glyphMechanism.maintainUpperGripperPosition();
+            }
+        } else {
+            if (toggleLowerGlyphGripper.getRise()){
+                glyphMechanism.toggleUpper();
+            } else {
+                glyphMechanism.maintainLowerGripperPosition();
+            }
+
+            if (toggleUpperGlyphGripper.getRise()){
+                glyphMechanism.toggleLower();
+            } else {
+                glyphMechanism.maintainUpperGripperPosition();
+            }
         }
 
-        if (toggleUpperGlyphGripper.getRise()){
-            glyphMechanism.toggleUpper();
+        if (rescueButton.getRise()){
+            rescued = !rescued;
+            Log.d(LOG_TAG, "rescued is now" + rescued);
         }
 
         if (rotateGlyphButton.getRise()) {
