@@ -407,7 +407,7 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
         MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
                 telemetry, mecanumDrive, -2.0, TimeUnit.SECONDS.toMillis(5));
 
-        State waitForRelease = newDelayState("wait for release",1);
+        State waitForRelease = newDelayState("wait for release", 1);
 
         gripperOpenState.setNextState(waitForRelease);
         waitForRelease.setNextState(driveBackwardsTwoState);
