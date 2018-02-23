@@ -76,22 +76,34 @@ public class StrafeVuMarkDistanceState extends TimeoutSafetyState {
 
                 switch (detectedVuMark) {
                     case LEFT:
+
                         if (alliance.equals(Constants.Alliance.RED)) {
-                            distanceToDriveInches = 18;
+                            // RED ALLIANCE
+                            distanceToDriveInches = 20;
                         } else {
-                            distanceToDriveInches = 3;
+                            // BLUE ALLIANCE
+                            distanceToDriveInches = 5;
                         }
 
                         break;
                     case CENTER:
-                        distanceToDriveInches = 11;
+
+                        if (alliance.equals(Constants.Alliance.RED)) {
+                            // RED ALLIANCE
+                            distanceToDriveInches = 15;
+                        } else {
+                            // BLUE ALLIANCE
+                            distanceToDriveInches = 13;
+                        }
                         break;
                     case RIGHT:
-                        if (alliance.equals(Constants.Alliance.RED)) {
-                            distanceToDriveInches = 3;
 
+                        if (alliance.equals(Constants.Alliance.RED)) {
+                            // RED ALLIANCE
+                            distanceToDriveInches = 8.5;
                         } else {
-                            distanceToDriveInches = 18;
+                            // BLUE ALLIANCE
+                            distanceToDriveInches = 20.5;
                         }
 
                         break;
@@ -104,6 +116,8 @@ public class StrafeVuMarkDistanceState extends TimeoutSafetyState {
 
             if (alliance.equals(Constants.Alliance.RED)) {
 
+                // FIXME: Eventually remove this padding and account for it above
+                //        since it's not a universal constant
                 distanceToDriveInches = -(distanceToDriveInches +3);
             }
 

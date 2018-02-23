@@ -48,7 +48,7 @@ SOFTWARE.
             <LynxColorSensor name="blueAllianceJewelColor"  port="0" bus="1" />
         </LynxModule>
 
-        <LynxModule name="Secondary Hub" port="1">
+        <LynxModule name="Secondary Hub" port="3">
             <LynxEmbeddedIMU name="imu 1" port="0" bus="0" />
 
             <NeveRest20Gearmotor name="liftMotor" port="0" />

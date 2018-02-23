@@ -290,7 +290,7 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
         // COMMON - ends here
 
         MecanumDriveDistanceState driveOffStoneState = new MecanumDriveDistanceState("Drive off stone",
-                telemetry, mecanumDrive, 26, TimeUnit.SECONDS.toMillis(5));
+                telemetry, mecanumDrive, 21, TimeUnit.SECONDS.toMillis(5));
 
         detectAndTurnState.setNextState(driveOffStoneState);
 
@@ -307,14 +307,14 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
         driveOffStoneState.setNextState(strafeInwardState);
 
         MecanumDriveDistanceState driveForwardFourState = new MecanumDriveDistanceState("Drive to cryptobox",
-                telemetry, mecanumDrive, 5, TimeUnit.SECONDS.toMillis(5));
+                telemetry, mecanumDrive, 10, TimeUnit.SECONDS.toMillis(5));
 
         strafeInwardState.setNextState(driveForwardFourState);
 
         GlyphMechanism.GripperOpenState gripperOpenState = glyphMechanism.getGripperOpenState(telemetry);
         driveForwardFourState.setNextState(gripperOpenState);
 
-        State waitForRelease = newDelayState("wait for release",1);
+        State waitForRelease = newDelayState("wait for release", 2);
 
         MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
                 telemetry, mecanumDrive, -2.0, TimeUnit.SECONDS.toMillis(5));
@@ -407,7 +407,7 @@ public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
         MecanumDriveDistanceState driveBackwardsTwoState = new MecanumDriveDistanceState("drive backwards 2 in",
                 telemetry, mecanumDrive, -2.0, TimeUnit.SECONDS.toMillis(5));
 
-        State waitForRelease = newDelayState("wait for release", 1);
+        State waitForRelease = newDelayState("wait for release", 2);
 
         gripperOpenState.setNextState(waitForRelease);
         waitForRelease.setNextState(driveBackwardsTwoState);

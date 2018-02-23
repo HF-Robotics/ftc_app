@@ -111,18 +111,22 @@ public class GlyphMechanism {
     }
 
     public void lowerOpen() {
+        Log.d(LOG_TAG, "Achievement Unlocked : Lower Opened");
         lowerGripper.setPosition(GRIPPER_OPEN);
     }
 
     public void lowerClose() {
+        Log.d(LOG_TAG, "Achievement Unlocked : Lower Closed");
         lowerGripper.setPosition(GRIPPER_CLOSED);
     }
 
     public void upperOpen() {
+        Log.d(LOG_TAG, "Achievement Unlocked : Upper Opened");
         upperGripper.setPosition(GRIPPER_OPEN);
     }
 
     public void upperClose() {
+        Log.d(LOG_TAG, "Achievement Unlocked : Upper Closed");
         upperGripper.setPosition(GRIPPER_CLOSED);
     }
 

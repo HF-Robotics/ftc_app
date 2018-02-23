@@ -25,7 +25,11 @@ import android.util.Log;
 import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
+
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 /**
  * Provide a basic manual operational mode that controls the tank drive.
@@ -37,6 +41,7 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
 
     @SuppressWarnings("unused")
     public RelicRecoveryTeleop() {
+        imuNeeded = false;
     }
 
     /**
@@ -73,13 +78,47 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         // Keep jewel mechanism stowed
         redAllianceJewelMech.stowSensor();
         blueAllianceJewelMech.stowSensor();
+
+        if (markLogButton.getRise()){
+            // log Glyph servos, limit switchs, jewel servos, battery
+            Log.d(LOG_TAG, " -- MARK --");
+            if (naturalTopGlyphServo != null) {
+                Log.d(LOG_TAG, "Natural Top Glyph Servo value : " + naturalTopGlyphServo.getPosition());
+            }
+
+            if (naturalBottomGlyphServo != null) {
+                Log.d(LOG_TAG, "Natural Bottom Glyph Servo value :" + naturalBottomGlyphServo.getPosition());
+            }
+
+            if (glyphRotateServo != null) {
+                Log.d(LOG_TAG, "Glyph Rotate Servo value :" + glyphRotateServo.getPosition());
+            }
+
+            if (invertedGlyphLimit != null) {
+                Log.d(LOG_TAG, "Inverted glyph limit : " + invertedGlyphLimit.getState());
+            }
+
+            if (uprightGlyphLimit != null) {
+                Log.d(LOG_TAG, "Upright Glyph limit : " + uprightGlyphLimit.getState());
+            }
+
+            if (glyphLiftBottomLimit != null) {
+                Log.d(LOG_TAG, "Lift Bottom Limit :" + glyphLiftBottomLimit.getState());
+            }
+
+            if (glyphLiftTopLimit != null) {
+                Log.d(LOG_TAG, "Lift Top Limit" + glyphLiftTopLimit.getState());
+            }
+
+            logBatteryState("-- requested by log mark --");
+        }
     }
 
     @Override
     public void stop() {
-        Log.d(Constants.LOG_TAG, "x-throttle-usage: " + xThrottleHistogram.toString());
-        Log.d(Constants.LOG_TAG, "y-throttle-usage: " + yThrottleHistogram.toString());
-        Log.d(Constants.LOG_TAG, "rot-throttle-usage: " + rotateThrottleHistogram.toString());
+        Log.d(LOG_TAG, "x-throttle-usage: " + xThrottleHistogram.toString());
+        Log.d(LOG_TAG, "y-throttle-usage: " + yThrottleHistogram.toString());
+        Log.d(LOG_TAG, "rot-throttle-usage: " + rotateThrottleHistogram.toString());
         super.stop();
     }
 

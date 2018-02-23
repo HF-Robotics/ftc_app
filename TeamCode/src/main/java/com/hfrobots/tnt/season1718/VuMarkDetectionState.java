@@ -50,6 +50,10 @@ public class VuMarkDetectionState extends TimeoutSafetyState {
         }
 
         if (!isTimedOut()) {
+            if (vuMarkQueue.peek() != null) {
+                return nextState;
+            }
+
             return this;
         } else {
             return nextState;

@@ -109,7 +109,11 @@ public class VuMarkThread extends Thread {
 
         threadStartedTimeMillis = System.currentTimeMillis();
 
+        Log.d(LOG_TAG, "Activating VuMark Trackables");
+
         relicTrackables.activate();
+
+        Log.d(LOG_TAG, "Starting to look for VuMarks");
 
         while (!isTimedOut()) {
 

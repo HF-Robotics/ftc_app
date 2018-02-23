@@ -53,7 +53,9 @@ public abstract class RelicRecoveryHardware extends OpMode {
     protected float throttleGain = 0.7F;
     protected float throttleExponent = 5; // MUST BE AN ODD NUMBER!
     protected float throttleDeadband = 0;
-    
+
+    protected boolean imuNeeded = true;
+
     /**
      * Indicate whether a message is a available to the class user.
      */
@@ -165,6 +167,8 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected DebouncedButton rescueButton;
 
+    protected DebouncedButton markLogButton;
+
 
     // Jewel Mechanism
 
@@ -197,7 +201,11 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
         setupJewelMechanism();
 
-        initImu();
+        if (imuNeeded) {
+            initImu();
+        } else {
+            Log.d(LOG_TAG, "IMU not required, not initializing");
+        }
 
         Iterator<VoltageSensor> voltageSensors = hardwareMap.voltageSensor.iterator();
 
@@ -458,6 +466,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
                 new LowPassFilteredRangeInput(operatorsGamepad.getLeftStickY(), lowPassFilterFactor),
                 throttleDeadband, throttleGain, throttleExponent);
         rescueButton = new DebouncedButton(operatorsGamepad.getDpadUp());
+        markLogButton = new DebouncedButton(new RangeInputButton(operatorsGamepad.getRightTrigger(), .3F));
     }
 
     private final float lowPassFilterFactor = .12F;

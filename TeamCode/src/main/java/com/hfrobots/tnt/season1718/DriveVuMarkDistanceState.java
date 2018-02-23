@@ -80,11 +80,15 @@ public class DriveVuMarkDistanceState extends TimeoutSafetyState {
 
                         break;
                     case CENTER:
-                        distanceToDriveInches = 34;
+                        if (currentAlliance.equals(Constants.Alliance.RED)) {
+                            distanceToDriveInches = 34;
+                        } else {
+                            distanceToDriveInches = 34;
+                        }
                         break;
                     case RIGHT:
                         if (currentAlliance.equals(Constants.Alliance.RED)) {
-                            distanceToDriveInches = 25;
+                            distanceToDriveInches = 26.5;
                         } else {
                             distanceToDriveInches = 40;
                         }
