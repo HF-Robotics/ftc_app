@@ -162,6 +162,24 @@ public class MecanumDrive {
 
     private final static double MAX_MOTOR_OUTPUT = 1.0;
 
+    public void driveTank(double leftPower, double rightPower, boolean inverted) {
+        leftPower = Range.clip(leftPower, -1.0, 1.0);
+        rightPower = Range.clip(rightPower, -1.0, 1.0);
+
+        if (leftFrontDriveMotor != null) {
+            leftFrontDriveMotor.setPower(leftPower);
+        }
+        if (rightFrontDriveMotor != null) {
+            rightFrontDriveMotor.setPower(rightPower);
+        }
+        if (leftRearDriveMotor != null) {
+            leftRearDriveMotor.setPower(leftPower);
+        }
+        if (rightRearDriveMotor != null) {
+            rightRearDriveMotor.setPower(rightPower);
+        }
+    }
+
     public void driveCartesian(double xPower, double yPower, double rotationPower, boolean inverted, double gyroAngle)
     {
         xPower = Range.clip(xPower, -1.0, 1.0);
