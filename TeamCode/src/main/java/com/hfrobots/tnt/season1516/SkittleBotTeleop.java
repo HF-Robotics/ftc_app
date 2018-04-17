@@ -20,10 +20,14 @@
 package com.hfrobots.tnt.season1516;
 
 
-import com.hfrobots.tnt.season1516.SkittleBotTelemetry;
+import com.hfrobots.tnt.corelib.control.DebouncedButton;
+import com.hfrobots.tnt.corelib.control.LowPassFilteredRangeInput;
+import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.hfrobots.tnt.corelib.control.ParametricScaledRangeInput;
+import com.hfrobots.tnt.corelib.control.RangeInput;
+
 import android.util.Log;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.Range;
 
@@ -47,6 +51,44 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
     public SkittleBotTeleop() {
     }
 
+    private NinjaGamePad driverGamePad;
+
+    private RangeInput leftX;
+
+    private LowPassFilteredRangeInput leftXFilter;
+
+    private ParametricScaledRangeInput leftXScaled;
+
+    private RangeInput leftY;
+
+    private LowPassFilteredRangeInput leftYFilter;
+
+    private ParametricScaledRangeInput leftYScaled;
+
+    private RangeInput rightX;
+
+    private LowPassFilteredRangeInput rightXFilter;
+
+    private ParametricScaledRangeInput rightXScaled;
+
+    private RangeInput rightY;
+
+    private LowPassFilteredRangeInput rightYFilter;
+
+    private ParametricScaledRangeInput rightYScaled;
+
+    private DebouncedButton lowPassIncrease;
+
+    private DebouncedButton lowPassDecrease;
+
+    private DebouncedButton curveExponentIncrease;
+
+    private DebouncedButton curveExponentDecrease;
+
+    private DebouncedButton curveGainIncrease;
+
+    private DebouncedButton curveGainDecrease;
+
     /**
      * Places the robot into the initial pre-running state.
      * Robot must fit within sizing guidelines (18x18)
@@ -62,10 +104,46 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
             runUsingEncoders();
         }
 
+        //runWithoutBraking();
+
+        driverGamePad = new NinjaGamePad(gamepad1);
+
+        lowPassDecrease = new DebouncedButton(driverGamePad.getDpadDown());
+        lowPassIncrease = new DebouncedButton(driverGamePad.getDpadUp());
+        curveExponentIncrease = new DebouncedButton(driverGamePad.getDpadRight());
+        curveExponentDecrease = new DebouncedButton(driverGamePad.getDpadLeft());
+        curveGainIncrease = new DebouncedButton(driverGamePad.getRightBumper());
+        curveGainDecrease = new DebouncedButton(driverGamePad.getLeftBumper());
+
+        setupFiltersAndCurves();
 
         // set servos to initial positions
         setClimberDumpServoPosition(.5); // sets CR servo to stop position
         setWinchAimServoPosition(.5); // sets CR servo to stop position
+    }
+
+    private float lowPassFilterFactor = 1.0F;
+
+    protected float throttleGain = 0F;
+    protected float throttleExponent = 5; // MUST BE AN ODD NUMBER!
+    protected float throttleDeadband = 0;
+
+    private void setupFiltersAndCurves() {
+        leftXFilter = new LowPassFilteredRangeInput(driverGamePad.getLeftStickX(), lowPassFilterFactor);
+        leftXScaled = new ParametricScaledRangeInput(leftXFilter, throttleDeadband, throttleGain, throttleExponent);
+        leftX = leftXFilter;
+
+        leftYFilter = new LowPassFilteredRangeInput(driverGamePad.getLeftStickY(), lowPassFilterFactor);
+        leftYScaled = new ParametricScaledRangeInput(leftYFilter, throttleDeadband, throttleGain, throttleExponent);
+        leftY = leftYFilter;
+
+        rightXFilter = new LowPassFilteredRangeInput(driverGamePad.getRightStickX(), lowPassFilterFactor);
+        rightXScaled = new ParametricScaledRangeInput(rightXFilter, throttleDeadband, throttleGain, throttleExponent);
+        rightX = rightXScaled;
+
+        rightYFilter = new LowPassFilteredRangeInput(driverGamePad.getRightStickY(), lowPassFilterFactor);
+        rightYScaled = new ParametricScaledRangeInput(rightYFilter, throttleDeadband, throttleGain, throttleExponent);
+        rightY = rightYScaled;
     }
 
 
@@ -85,6 +163,7 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
 
         // The climber dump servo is continuous rotation, 0.5 is stop,
         // 0 is one direction, 1 the other
+        /*
         if (gamepad2.dpad_down) {
             setClimberDumpServoPosition(1.0);
         } else if (gamepad2.dpad_up) {
@@ -96,13 +175,13 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
         handleWinchControls();
 
         colorSensorRecon();
+        */
 
         //
         // Send telemetry data to the driver station.
         //
+        telemetry.addData("01", "T_G: %.1f T_EXP: %.0f LP: %.2f", throttleGain, throttleExponent, lowPassFilterFactor);
         updateTelemetry(); // Update common telemetry
-        updateGamepadTelemetry();
-
     }
 
     private void colorSensorRecon() {
@@ -131,17 +210,19 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
         // class, but the power levels aren't applied until the loop() method ends.
         //
 
-        float spinControl = -gamepad1.right_stick_x;
+        handleParamterChanges();
+
+        float spinControl = -rightX.getPosition();
 
         final float yDrivePower;
         final float xDrivePower;
 
         if (Math.abs(spinControl) > 0) {
-            yDrivePower = xDrivePower = scaleMotorPower(spinControl);
+            yDrivePower = xDrivePower = spinControl;
             setDrivePower(xDrivePower, xDrivePower, yDrivePower, yDrivePower);
         } else {
-            float leftStickY = -gamepad1.left_stick_y;
-            float leftStickX = -gamepad1.left_stick_x;
+            float leftStickY = -leftY.getPosition();
+            float leftStickX = -leftX.getPosition();
 
             double orientationShiftDegrees = getOrientationShiftDegrees();
 
@@ -154,10 +235,66 @@ public class SkittleBotTeleop extends SkittleBotTelemetry
                 leftStickY = (float)leftStickYPrime;
             }
 
-            yDrivePower = scaleMotorPower(leftStickY);
-            xDrivePower = scaleMotorPower(leftStickX);
+            yDrivePower = leftStickY;
+            xDrivePower = leftStickX;
 
             setDrivePower(xDrivePower, -xDrivePower, yDrivePower, -yDrivePower);
+        }
+    }
+
+    private void handleParamterChanges() {
+        boolean parametersChanged = false;
+
+        if (lowPassDecrease.getRise()) {
+            lowPassFilterFactor -= .05;
+            if (lowPassFilterFactor < .05) {
+                lowPassFilterFactor = .05F;
+            }
+            parametersChanged = true;
+        } else if (lowPassIncrease.getRise()) {
+            lowPassFilterFactor += .05;
+
+            if (lowPassFilterFactor > 1) {
+                lowPassFilterFactor = 1.0F;
+            }
+
+            parametersChanged = true;
+        }
+
+        if (curveExponentDecrease.getRise()) {
+            throttleExponent -= 2;
+            if (throttleExponent < 1){
+                throttleExponent = 1;
+            }
+            parametersChanged = true;
+        } else if (curveExponentIncrease.getRise()) {
+            throttleExponent += 2;
+            if (throttleExponent > 15) {
+                throttleExponent = 15;
+            }
+            parametersChanged = true;
+        }
+
+        if (curveGainDecrease.getRise()) {
+            throttleGain -= .1;
+
+            if (throttleGain < 0) {
+                throttleGain = 0;
+            }
+
+            parametersChanged = true;
+        } else if (curveGainIncrease.getRise()) {
+            throttleGain += .1;
+
+            if (throttleGain > 1) {
+                throttleGain = 1;
+            }
+
+            parametersChanged = true;
+        }
+
+        if (parametersChanged) {
+            setupFiltersAndCurves();
         }
     }
 

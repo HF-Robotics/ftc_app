@@ -70,6 +70,7 @@ public abstract class SkittleBotHardware extends OpMode {
         // Connect the first color sensor (mapped as "mr")
         //
 
+        /*
         try {
             sensorRGB = hardwareMap.colorSensor.get("mr");
 
@@ -78,12 +79,13 @@ public abstract class SkittleBotHardware extends OpMode {
             Log.e(LOG_TAG, exception.getLocalizedMessage());
 
             sensorRGB = null;
-        }
+        } */
 
         //
         // Connect the touch sensor
         //
 
+        /*
         try {
             frontTouchSensor = hardwareMap.touchSensor.get("frontTouchSensor");
         } catch (Exception exception) {
@@ -91,7 +93,7 @@ public abstract class SkittleBotHardware extends OpMode {
             Log.e(LOG_TAG, exception.getLocalizedMessage());
 
             frontTouchSensor = null;
-        }
+        } */
 
         //
         // Connect the drive wheel motors.
@@ -133,6 +135,7 @@ public abstract class SkittleBotHardware extends OpMode {
             x2MotorDrive = null;
         }
 
+        /*
         try {
             climberDumpServo = hardwareMap.servo.get ("climberDumpServo");
         } catch (Exception exception) {
@@ -141,7 +144,9 @@ public abstract class SkittleBotHardware extends OpMode {
 
             climberDumpServo = null;
         }
+        */
 
+        /*
         try {
             winchDrive = hardwareMap.dcMotor.get("winchDrive");
         } catch (Exception exception) {
@@ -150,7 +155,8 @@ public abstract class SkittleBotHardware extends OpMode {
 
             winchDrive = null;
         }
-
+*/
+        /*
         try {
             winchAimServo = hardwareMap.servo.get ("winchAimServo");
         } catch (Exception exception) {
@@ -159,6 +165,7 @@ public abstract class SkittleBotHardware extends OpMode {
 
             winchAimServo = null;
         }
+        */
     }
 
     /**
@@ -313,6 +320,16 @@ public abstract class SkittleBotHardware extends OpMode {
                 aMotor.setMode
                         (DcMotor.RunMode.RUN_USING_ENCODERS
                         );
+            }
+        }
+    }
+
+    public void runWithoutBraking() {
+        DcMotor[] motorsWithEncoders = new DcMotor[] { x1MotorDrive, x2MotorDrive, y1MotorDrive, y2MotorDrive };
+
+        for (DcMotor aMotor : motorsWithEncoders) {
+            if (aMotor != null) {
+                aMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
             }
         }
     }

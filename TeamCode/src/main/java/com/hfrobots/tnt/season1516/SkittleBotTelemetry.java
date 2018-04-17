@@ -50,8 +50,8 @@ public abstract class SkittleBotTelemetry extends SkittleBotHardware {
                                 + ", (E)"
                                 + getXAxisEncoderCount()
                 );
-        ColorSensorValues rgbValues = getColorSensorValues();
-        telemetry.addData("04", "Color Sensor: " + rgbValues.toString());
+        //ColorSensorValues rgbValues = getColorSensorValues();
+        //telemetry.addData("04", "Color Sensor: " + rgbValues.toString());
     }
 
     public void updateGamepadTelemetry() {
