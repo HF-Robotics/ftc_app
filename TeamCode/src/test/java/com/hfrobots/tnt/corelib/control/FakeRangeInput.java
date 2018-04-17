@@ -19,52 +19,25 @@
 
 package com.hfrobots.tnt.corelib.control;
 
-import android.util.Log;
+public class FakeRangeInput implements RangeInput {
+    private float currentPosition = 0;
 
-import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
-
-/**
- * Applies a low pass filter to the given RangeInput to remove
- * noise (spikes).
- */
-public class LowPassFilteredRangeInput implements RangeInput {
-    private final RangeInput rawInput;
-
-    private final float filterFactor;
-
-    private float oldPosition = Float.MIN_VALUE;
-
-    private float maxDeltaPosition = Float.MIN_VALUE;
-
-    public LowPassFilteredRangeInput(RangeInput rawInput, float filterFactor) {
-        this.rawInput = rawInput;
-        this.filterFactor = filterFactor;
-        Log.d(LOG_TAG, "Low pass filter for " + rawInput + " with filter factor " + filterFactor);
+    public void setCurrentPosition(float currentPosition) {
+        this.currentPosition = currentPosition;
     }
 
     @Override
     public float getPosition() {
-        float rawPosition = rawInput.getPosition();
-
-        if (oldPosition == Float.MIN_VALUE) {
-            oldPosition = rawPosition;
-            return rawPosition;
-        }
-
-        float filteredPosition = (rawPosition - oldPosition) * filterFactor + oldPosition;
-
-        oldPosition = filteredPosition;
-
-        return oldPosition;
+        return currentPosition;
     }
 
     @Override
     public float getMaxPosition() {
-        return rawInput.getMaxPosition();
+        return Float.MAX_VALUE;
     }
 
     @Override
     public float getMinPosition() {
-        return rawInput.getMinPosition();
+        return Float.MIN_VALUE;
     }
 }
