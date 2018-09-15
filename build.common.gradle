@@ -19,6 +19,15 @@ import java.util.regex.Pattern
 
 apply plugin: 'com.android.application'
 
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
 android {
 
     compileSdkVersion 23
@@ -37,6 +46,8 @@ android {
         applicationId 'com.qualcomm.ftcrobotcontroller'
         minSdkVersion 19
         targetSdkVersion 19
+
+        buildConfigField "String", "GitHash", "\"${getGitHash()}\""
 
         /**
          * We keep the versionCode and versionName of robot controller applications in sync with
@@ -65,6 +76,7 @@ android {
         //
         versionCode vCode
         versionName vName
+        versionNameSuffix '-'+getGitHash()
     }
 
     // Advanced user code might just want to use Vuforia directly, so we set up the libs as needed
