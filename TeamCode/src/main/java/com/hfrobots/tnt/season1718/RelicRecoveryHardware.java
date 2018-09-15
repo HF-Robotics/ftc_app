@@ -469,7 +469,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
         markLogButton = new DebouncedButton(new RangeInputButton(operatorsGamepad.getRightTrigger(), .3F));
     }
 
-    private final float lowPassFilterFactor = .12F;
+    private final float lowPassFilterFactor = .92F;
 
     private void setupDriverControls() {
         driversGamepad = new NinjaGamePad(gamepad1);
