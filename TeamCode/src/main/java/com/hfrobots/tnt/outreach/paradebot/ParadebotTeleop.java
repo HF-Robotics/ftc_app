@@ -22,23 +22,83 @@ package com.hfrobots.tnt.outreach.paradebot;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.DebouncedButton;
+import com.hfrobots.tnt.corelib.control.LowPassFilteredRangeInput;
+import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.hfrobots.tnt.corelib.control.ParametricScaledRangeInput;
+import com.hfrobots.tnt.corelib.control.RangeInput;
+import com.hfrobots.tnt.corelib.drive.NewCheesyDrive;
+import com.hfrobots.tnt.corelib.drive.NinjaMotor;
+import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.Range;
+
+import java.util.Iterator;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
-/**
- * Provide a basic manual operational mode that controls the tank drive.
- */
-@TeleOp(name="00 RR Teleop")
-public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
+@TeleOp(name="Paradebot Teleop")
+public class ParadebotTeleop extends OpMode
 
 {
+    protected ParadebotRobot robot;
+
+    protected float throttleGain = 0.7F;
+
+    protected float throttleExponent = 5; // MUST BE AN ODD NUMBER!
+
+    protected float throttleDeadband = 0;
+
+    protected NinjaGamePad driversGamepad;
+
+    protected RangeInput driverLeftStickX;
+
+    protected RangeInput driverLeftStickY;
+
+    protected RangeInput driverRightStickX;
+
+    protected RangeInput driverRightStickY;
+
+    protected RangeInput driveForwardReverse;
+
+    protected RangeInput driveRotate;
+
+    protected NewCheesyDrive cheesyDrive;
+
+    protected VoltageSensor voltageSensor;
+
+    protected DebouncedButton cruizeControlStart;
+
+    protected DebouncedButton cruizeControlStop;
+
+    protected DebouncedButton cruizeControlAccelerate;
+
+    protected DebouncedButton cruizeControlDeccelerate;
+
+    protected boolean isTomCruizing = false;
+
+    protected double cruizeThottle;
+
+    private double flagPosition;
+
+    private double flagPositionLow = 0;
+
+    private double flagPositionHigh = .35;
+
+    private double flagPositionDelta = (flagPositionHigh - flagPositionLow) / 300;
+
+    private double flagDirection = 1;
+
+    private DebouncedButton flagbutton;
+
+    private boolean isFlagWaving = false;
 
     @SuppressWarnings("unused")
-    public RelicRecoveryTeleop() {
-        imuNeeded = false;
+    public ParadebotTeleop() {
     }
 
     /**
@@ -48,66 +108,71 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
      */
     @Override
     public void init() {
+        Servo flagWaverServo = hardwareMap.servo.get("flagWaverServo");
 
-        super.init();
+        robot = new ParadebotRobot(
+                NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("leftDriveMotor")),
+                        NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("rightDriveMotor")),
+                flagWaverServo
+                );
+        cheesyDrive = new NewCheesyDrive();
 
-        for (DcMotor motor : mecanumDrive.motors) {
-            motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        setupDriverControls();
+
+        Iterator<VoltageSensor> voltageSensors = hardwareMap.voltageSensor.iterator();
+
+        if (voltageSensors.hasNext()) {
+            voltageSensor = voltageSensors.next();
         }
     }
 
 
-    /**
-     * The system calls this member repeatedly while the OpMode is running.
-     */
-    @Override public void loop ()
+    private final float lowPassFilterFactor = .92F;
 
-    {
+    private void setupDriverControls() {
+        driversGamepad = new NinjaGamePad(gamepad1);
+        driverLeftStickX = driversGamepad.getLeftStickX();
+        driverLeftStickY = driversGamepad.getLeftStickY();
+        driverRightStickX = driversGamepad.getRightStickX();
+        driverRightStickY = driversGamepad.getRightStickY();
+
+        driveForwardReverse = new ParametricScaledRangeInput(
+                new LowPassFilteredRangeInput(driverLeftStickY, lowPassFilterFactor),
+                throttleDeadband, throttleGain, throttleExponent);
+
+        driveRotate = new LowPassFilteredRangeInput(driverRightStickX, lowPassFilterFactor);
+        flagbutton = new DebouncedButton(driversGamepad.getXButton());
+
+        cruizeControlStart = new DebouncedButton(driversGamepad.getAButton());
+        cruizeControlStop = new DebouncedButton(driversGamepad.getBButton());
+        cruizeControlAccelerate = new DebouncedButton(driversGamepad.getDpadUp());
+        cruizeControlDeccelerate = new DebouncedButton(driversGamepad.getDpadDown());
+
+    }
+
+    @Override public void loop () {
         handleDrivingInputs();
-        handleGlyphGripper();
 
-        //
-        // Send telemetry data to the driver station.
-        //
-        updateTelemetry(); // Update common telemetry
-        updateGamepadTelemetry();
+        handleFlagWaver();
+    }
 
-        // Keep jewel mechanism stowed
-        redAllianceJewelMech.stowSensor();
-        blueAllianceJewelMech.stowSensor();
+    private void handleFlagWaver() {
+        if (flagbutton.getRise()) {
+            isFlagWaving = !isFlagWaving;
+        }
 
-        if (markLogButton.getRise()){
-            // log Glyph servos, limit switchs, jewel servos, battery
-            Log.d(LOG_TAG, " -- MARK --");
-            if (naturalTopGlyphServo != null) {
-                Log.d(LOG_TAG, "Natural Top Glyph Servo value : " + naturalTopGlyphServo.getPosition());
+        if (isFlagWaving) {
+            flagPosition += flagDirection * flagPositionDelta;
+
+            robot.setFlagPosition(flagPosition);
+
+            if (flagPosition < flagPositionLow) {
+                flagDirection = 1;
+            } else if (flagPosition > flagPositionHigh) {
+                flagDirection = -1;
             }
-
-            if (naturalBottomGlyphServo != null) {
-                Log.d(LOG_TAG, "Natural Bottom Glyph Servo value :" + naturalBottomGlyphServo.getPosition());
-            }
-
-            if (glyphRotateServo != null) {
-                Log.d(LOG_TAG, "Glyph Rotate Servo value :" + glyphRotateServo.getPosition());
-            }
-
-            if (invertedGlyphLimit != null) {
-                Log.d(LOG_TAG, "Inverted glyph limit : " + invertedGlyphLimit.getState());
-            }
-
-            if (uprightGlyphLimit != null) {
-                Log.d(LOG_TAG, "Upright Glyph limit : " + uprightGlyphLimit.getState());
-            }
-
-            if (glyphLiftBottomLimit != null) {
-                Log.d(LOG_TAG, "Lift Bottom Limit :" + glyphLiftBottomLimit.getState());
-            }
-
-            if (glyphLiftTopLimit != null) {
-                Log.d(LOG_TAG, "Lift Top Limit" + glyphLiftTopLimit.getState());
-            }
-
-            logBatteryState("-- requested by log mark --");
+        } else {
+            robot.setFlagPosition(.15);
         }
     }
 
@@ -120,50 +185,59 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
     }
 
     private void handleDrivingInputs() {
-        double x = - driveStrafe.getPosition(); // positive robot x axis is negative joystick axis
-        double y = - driveForwardReverse.getPosition();
-        double rot = - driveRotate.getPosition(); // positive robot z rotation (human-normal) is negative joystick x axis
 
-        y = -y; // still need to figure this one out!
-
-        // do this first, it will be cancelled out by bump-strafe
-        if (!driveFastButton.isPressed()) {
-            y /= 1.5;
-            x /= 1.25;
-            rot /= 1.5;
-        }
-
-        final boolean driveInverted;
-
-        if (driveInvertedButton.isPressed()) {
-            driveInverted = true;
+        if (driversGamepad.getLeftTrigger().getPosition() >= .75 &&
+                driversGamepad.getRightTrigger().getPosition() >= .75) {
+            // Check for "panic" stop, cancel cruise control, stop the motion of the robot
+            robot.hardStop();
+            isTomCruizing= false;
+            //we can't have him jumping on the couches.
         } else {
-            driveInverted = false;
+            // Get driver inputs
+            double power = -driveForwardReverse.getPosition();
+            double steer = driveRotate.getPosition();
+            boolean isQuickTurn = driversGamepad.getLeftBumper().isPressed() ||
+                    driversGamepad.getRightBumper().isPressed();
+
+            // Are we enabling or disabling "cruise control"?
+
+            if (cruizeControlStart.getRise() && power > 0) {
+                isTomCruizing = true;
+                cruizeThottle = power;
+            }
+
+            if (cruizeControlStop.getRise()) {
+                isTomCruizing = false;
+            }
+
+            if (isTomCruizing == true) {
+                if (cruizeControlAccelerate.getRise()) {
+                    cruizeThottle += .05;
+                }
+
+                if (cruizeControlDeccelerate.getRise())  {
+                    cruizeThottle -= .05;
+
+                }
+
+                cruizeThottle = Range.clip(cruizeThottle, 0, 1);
+
+                power =  cruizeThottle;
+            }
+
+            // Use NewCheesyDrive to calculate left/right power values
+            NewCheesyDrive.DriveSignal computedPower = cheesyDrive.cheesyDrive(
+                    power, steer, isQuickTurn, true /* go fast parade bot! */);
+
+            // Tell the robot to drive using those values
+            robot.drive(computedPower.getLeft(), computedPower.getRight());
         }
+            //
+            // xThrottleHistogram.accumulate(xScaled);
+            // yThrottleHistogram.accumulate(yScaled);
+            // rotateThrottleHistogram.accumulate(rotateScaled);
 
-        double xScaled = x;
-        double yScaled = y;
-        double rotateScaled = rot;
-
-        // we check both bumpers - because both being pressed is driver 'panic', and we
-        // don't want unexpected behavior!
-        if (driveBumpStrafeLeftButton.isPressed() && !driveBumpStrafeRightButton.isPressed()) {
-            xScaled = .6;
-            yScaled = 0;
-            rotateScaled = 0;
-        } else if (driveBumpStrafeRightButton.isPressed() && !driveBumpStrafeLeftButton.isPressed()) {
-            xScaled = -.6;
-            yScaled = 0;
-            rotateScaled = 0;
-        }
-
-        xThrottleHistogram.accumulate(xScaled);
-        yThrottleHistogram.accumulate(yScaled);
-        rotateThrottleHistogram.accumulate(rotateScaled);
-
-        telemetry.addData("pow", "y %.3f, x %.3f, r %.3f", yScaled, xScaled, rotateScaled);
-
-        mecanumDrive.driveCartesian(xScaled, yScaled, rotateScaled, driveInverted, 0.0);
+        //telemetry.addData("pow", "y %.3f, x %.3f, r %.3f", yScaled, xScaled, rotateScaled);
     }
 
     private Histogram xThrottleHistogram = new Histogram();
@@ -192,5 +266,14 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
         }
     }
 
+    protected void logBatteryState(String opModeMethod) {
+        if (voltageSensor == null) {
+            Log.e("VV", String.format("No voltage sensor when logging voltage for %s"));
+
+            return;
+        }
+
+        Log.d("VV", String.format("Robot battery voltage %5.2f at method %s()",voltageSensor.getVoltage(), opModeMethod));
+    }
 }
 
