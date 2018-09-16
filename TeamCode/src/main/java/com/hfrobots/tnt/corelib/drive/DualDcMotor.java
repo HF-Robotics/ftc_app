@@ -23,7 +23,7 @@ import android.util.Log;
 
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.configuration.MotorConfigurationType;
+import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
@@ -62,6 +62,7 @@ public class DualDcMotor implements ExtendedDcMotor {
     public MotorConfigurationType getMotorType() {
         return firstMotor.getMotorType();
     }
+
 
     @Override
     public void setMotorType(MotorConfigurationType motorType) {
