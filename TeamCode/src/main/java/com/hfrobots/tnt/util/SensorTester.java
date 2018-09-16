@@ -26,6 +26,7 @@ import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CompassSensor;
@@ -57,6 +58,8 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class SensorTester extends OpMode {
     private List<NamedDeviceMap.NamedDevice<ModernRoboticsI2cColorSensor>> namedColorSensors;
+
+    private List<NamedDeviceMap.NamedDevice<Rev2mDistanceSensor>> namedTofSensors;
 
     private List<NamedDeviceMap.NamedDevice<ModernRoboticsI2cRangeSensor>> namedRangeSensors;
 
@@ -104,6 +107,7 @@ public class SensorTester extends OpMode {
         namedCompassDevices = namedDeviceMap.getAll(CompassSensor.class);
         namedTouchDevices = namedDeviceMap.getAll(TouchSensor.class);
         namedImus = namedDeviceMap.getAll(LynxEmbeddedIMU.class);
+        namedTofSensors = namedDeviceMap.getAll(Rev2mDistanceSensor.class);
 
         for (NamedDeviceMap.NamedDevice<GyroSensor> namedGyro : namedGyroDevices) {
             namedGyro.getDevice().calibrate();
@@ -141,7 +145,7 @@ public class SensorTester extends OpMode {
 
     private boolean ledEnabled = false;
 
-    private enum Mode { COLOR, LYNX_COLOR, LYNX_IMU, RANGE, ODS, DIGITAL_CHANNEL, GYRO, COMPASS, TOUCH }
+    private enum Mode { COLOR, LYNX_COLOR, LYNX_IMU, TOF_SENSOR, RANGE, ODS, DIGITAL_CHANNEL, GYRO, COMPASS, TOUCH }
 
     private Mode currentMode = Mode.COLOR;
 
@@ -156,8 +160,10 @@ public class SensorTester extends OpMode {
                     currentMode = Mode.LYNX_IMU;
                     break;
                 case LYNX_IMU:
-                    currentMode = Mode.RANGE;
+                    currentMode = Mode.TOF_SENSOR;
                     break;
+                case TOF_SENSOR:
+                    currentMode = Mode.RANGE;
                 case RANGE:
                     currentMode = Mode.ODS;
                     break;
@@ -188,6 +194,9 @@ public class SensorTester extends OpMode {
                 break;
             case LYNX_IMU:
                 doLynxImuLoop();
+                break;
+            case TOF_SENSOR:
+                doTofSensorLoop();
                 break;
             case RANGE:
                 doRangeSensorLoop();
@@ -236,6 +245,35 @@ public class SensorTester extends OpMode {
         telemetry.addData("ODS ",  "%s", sensorName);
         telemetry.addData("Raw cm", "%f", currentOdsSensor.getRawLightDetected());
         telemetry.addData("Calibrated cm", "%f", currentOdsSensor.getLightDetected());
+        updateTelemetry(telemetry);
+    }
+
+    private int currentTofSensorListPosition = 0;
+
+    private void doTofSensorLoop() {
+        namedTofSensors = namedDeviceMap.getAll(Rev2mDistanceSensor.class);
+
+        if (namedTofSensors.isEmpty()) {
+            telemetry.addData("No TOF sensors", "");
+            updateTelemetry(telemetry);
+            return;
+        }
+
+        if (rightBumper.getRise()) {
+            currentTofSensorListPosition++;
+
+            if (currentTofSensorListPosition == namedTofSensors.size()) {
+                currentTofSensorListPosition = 0;
+            }
+        }
+
+        NamedDeviceMap.NamedDevice<Rev2mDistanceSensor> currentNamedTofSensor = namedTofSensors.get(
+                currentTofSensorListPosition);
+        Rev2mDistanceSensor currentTofSensor = currentNamedTofSensor.getDevice();
+        String sensorName = currentNamedTofSensor.getName();
+        telemetry.addData("TOF ",  "%s", sensorName);
+        telemetry.addData("Range (mm)", "%f", currentTofSensor.getDistance(DistanceUnit.MM));
+        telemetry.addData("Is Timed out?", "%s", Boolean.toString(currentTofSensor.didTimeoutOccur()));
         updateTelemetry(telemetry);
     }
 
