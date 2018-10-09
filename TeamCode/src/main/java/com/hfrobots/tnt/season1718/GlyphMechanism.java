@@ -180,7 +180,7 @@ public class GlyphMechanism {
      *
      * Adjusted flip() function above to be more like the lift mechanism; it will keep rotating
      * in a given direction until the user input changes.  This required some changes in the
-     * RelicRecoveryHardware file as well. -- CMN
+     * RoverRuckusHardware file as well. -- CMN
       */
     public void enforceLimits() {
         if (isUprightLimitReached() || isInvertedLimitReached()) {
