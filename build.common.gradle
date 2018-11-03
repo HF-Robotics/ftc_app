@@ -76,6 +76,7 @@ android {
         versionCode vCode
         versionName vName
         versionNameSuffix '-'+getGitHash()
+        multiDexEnabled true
     }
 
     // Advanced user code might just want to use Vuforia directly, so we set up the libs as needed

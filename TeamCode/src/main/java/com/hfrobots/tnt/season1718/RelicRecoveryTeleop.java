@@ -23,6 +23,7 @@ package com.hfrobots.tnt.season1718;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.Constants;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -35,6 +36,7 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
  * Provide a basic manual operational mode that controls the tank drive.
  */
 @TeleOp(name="00 RR Teleop")
+@Disabled
 public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
 
 {

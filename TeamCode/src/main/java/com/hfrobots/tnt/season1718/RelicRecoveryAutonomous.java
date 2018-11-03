@@ -25,6 +25,7 @@ import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.drive.Turn;
 import com.hfrobots.tnt.corelib.state.State;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
@@ -36,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 @Autonomous(name="RR Auto")
+@Disabled
 @SuppressWarnings("unused")
 public class RelicRecoveryAutonomous extends RelicRecoveryHardware {
 

@@ -40,6 +40,7 @@ import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -87,6 +88,12 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected VoltageSensor voltageSensor;
 
+    protected ExtendedDcMotor acDcMotor;
+
+    protected DigitalChannel acDcLimitSwitch;
+
+    protected LinearActuator ascenderDescender;
+
     protected RangeInput driverLeftStickX;
 
     protected RangeInput driverLeftStickY;
@@ -133,59 +140,16 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected OnOffButton driveBumpStrafeLeftButton;
 
-    // Glyph hardware/sensors
+    protected OnOffButton acDcExtendButton;
 
-   /* protected GlyphMechanism glyphMechanism;
+    protected OnOffButton acDcRetractButton;
 
-    protected Servo naturalTopGlyphServo;
+    protected DebouncedButton acDcHomeButton;
 
-    protected Servo naturalBottomGlyphServo;
+    protected OnOffButton acDcLimitOverrideButton;
 
-    protected Servo glyphRotateServo;
+    protected DebouncedButton acDcStopButton;
 
-    protected DigitalChannel invertedGlyphLimit;
-
-    protected DigitalChannel uprightGlyphLimit;
-
-    protected DigitalChannel glyphLiftBottomLimit;
-
-    protected DigitalChannel glyphLiftTopLimit;
-
-    protected DcMotor liftMotor;
-
-    // Glyph Controls
-
-    protected DebouncedButton toggleUpperGlyphGripper;
-
-    protected DebouncedButton toggleLowerGlyphGripper;
-
-    protected DebouncedButton rotateGlyphButton;
-
-    protected DebouncedButton stopRotatingGlyphButton;
-
-    protected RangeInput liftControl;
-
-    protected boolean inverted = false;
-
-    protected DebouncedButton rescueButton;
-
-    protected DebouncedButton markLogButton;
-
-
-    // Jewel Mechanism
-
-    protected Servo redAllianceJewelServo;
-
-    protected Servo blueAllianceJewelServo;
-
-    protected LynxI2cColorRangeSensor redAllianceJewelColor;
-
-    protected LynxI2cColorRangeSensor blueAllianceJewelColor;
-
-    protected JewelMechanism redAllianceJewelMech;
-
-    protected JewelMechanism blueAllianceJewelMech;
-    */
     /*
      * Perform any actions that are necessary when the OpMode is enabled.
      * <p/>
@@ -197,10 +161,9 @@ public abstract class RoverRuckusHardware extends OpMode {
 
         setupOperatorControls();
 
-
-
         setupDrivebase();
 
+        setupAscenderDescender();
 
         if (imuNeeded) {
             initImu();
@@ -285,6 +248,31 @@ public abstract class RoverRuckusHardware extends OpMode {
         }
     }
 
+
+    protected void setupAscenderDescender() {
+        try {
+            acDcMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("acDcMotor"));
+            acDcMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        } catch (Exception ex) {
+            appendWarningMessage("acDcMotor");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            acDcMotor = null;
+        }
+
+        try {
+            acDcLimitSwitch = hardwareMap.digitalChannel.get("acDcLimitSwitch");
+        } catch (Exception ex) {
+            appendWarningMessage("acDcLimitSwitch");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            acDcLimitSwitch = null;
+        }
+
+        if (acDcMotor != null && acDcLimitSwitch != null) {
+            ascenderDescender = new LinearActuator(acDcMotor, acDcLimitSwitch);
+        }
+    }
 
     /**
      * Access whether a warning has been generated.
@@ -394,8 +382,24 @@ public abstract class RoverRuckusHardware extends OpMode {
         };
     }
 
+    // FIXME
     private void setupOperatorControls() {
-        // Operator controls
+        operatorsGamepad = new NinjaGamePad(gamepad2);
+
+        // on-offs
+        acDcExtendButton = operatorsGamepad.getDpadUp();
+
+        acDcRetractButton = operatorsGamepad.getDpadDown();
+
+
+
+
+        // debounced
+        acDcLimitOverrideButton = operatorsGamepad.getAButton();
+
+        acDcStopButton = new DebouncedButton(operatorsGamepad.getBButton());
+
+        acDcHomeButton = new DebouncedButton(operatorsGamepad.getRightBumper());
     }
 
     private final float lowPassFilterFactor = .92F;

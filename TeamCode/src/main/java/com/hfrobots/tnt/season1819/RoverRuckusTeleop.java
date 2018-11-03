@@ -64,6 +64,7 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
 
     {
         handleDrivingInputs();
+        handleAscender();
 
         //
         // Send telemetry data to the driver station.
@@ -83,6 +84,24 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         Log.d(LOG_TAG, "y-throttle-usage: " + yThrottleHistogram.toString());
         Log.d(LOG_TAG, "rot-throttle-usage: " + rotateThrottleHistogram.toString());
         super.stop();
+    }
+
+    private void handleAscender() {
+        if (acDcExtendButton.isPressed()){
+            ascenderDescender.extend(acDcLimitOverrideButton.isPressed());
+        } else if (acDcRetractButton.isPressed()){
+            ascenderDescender.retract(acDcLimitOverrideButton.isPressed());
+        } else if (acDcHomeButton.getRise()){
+            ascenderDescender.home();
+        } else if (acDcStopButton.getRise()) {
+            ascenderDescender.stopMoving();
+        } else if (!ascenderDescender.isHoming()) {
+            ascenderDescender.stopMoving();
+        }
+
+        // do the periodic task on the linear actuator
+        ascenderDescender.doPeriodicTask();
+
     }
 
     private void handleDrivingInputs() {

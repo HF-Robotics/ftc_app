@@ -12,7 +12,13 @@
 apply from: '../build.common.gradle'
 repositories {
     maven { url 'http://repo1.maven.org/maven2' }
+    // other repositories
+    jcenter()
+    google()
 }
 dependencies {
     compile 'junit:junit:4.12'
+    // other dependencies
+    compile 'com.acmerobotics.roadrunner:core:0.2.0'
+    compile 'com.android.support:multidex:1.0.3'
 }

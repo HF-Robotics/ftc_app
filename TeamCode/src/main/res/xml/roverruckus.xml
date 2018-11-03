@@ -28,6 +28,12 @@ SOFTWARE.
             <Motor name="leftRearDriveMotor"  port="2" />
             <Motor name="rightRearDriveMotor"  port="3" />
         </LynxModule>
+        <LynxModule name="Secondary Hub" port="3">
+            <LynxEmbeddedIMU name="imu 1" port="0" bus="0" />
+
+            <Motor name="acDcMotor"  port="0" />
+            <DigitalDevice name="acDcLimitSwitch" port="1" />
+        </LynxModule>
     </LynxUsbDevice>
 </Robot>
 

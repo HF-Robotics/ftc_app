@@ -28,6 +28,7 @@ import com.hfrobots.tnt.corelib.control.RangeInput;
 
 import android.util.Log;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.Range;
 
@@ -37,7 +38,7 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
  * Provide a basic manual operational mode that controls the holonomic drive.
  */
 @TeleOp(name="SkittleBot Teleop")
-//@Disabled
+@Disabled
 public class SkittleBotTeleop extends SkittleBotTelemetry
 
 {
