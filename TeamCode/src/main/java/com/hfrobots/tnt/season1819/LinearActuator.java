@@ -37,6 +37,16 @@ import com.qualcomm.robotcore.hardware.DigitalChannel;
 public class LinearActuator {
     private final DcMotor motor;
 
+    /**
+     * Notes about lead screw attributes (from https://www.servocity.com/lead-screws)
+     *
+     * Each rotation of the lead screw will drive the mating nut precisely 8mm
+     *
+     * The LinearActuator currently has an NR40 motor, which has 1120 encoder counts/revolution
+     *
+     * We should eventually be able to use this knowledge to add distance-specific travel methods
+     * to this class...
+     */
     private int distanceToTravel = 23300;
 
     private int currentLowPosition = Integer.MIN_VALUE;
@@ -62,7 +72,7 @@ public class LinearActuator {
     }
 
     public void home() {
-        Log.d("TNT", "homing"); // tell them we're homing
+        Log.d("TNT", "linear actuator homing"); // tell them we're homing
 
         isHoming = true;
     }
@@ -122,9 +132,11 @@ public class LinearActuator {
 
     }
 
-    public void autoExtend() {
-          motor.setTargetPosition(currentHighPosition);
-          motor.setPower(1);
+    public void extendToMax() {
+        // Mentor open question - do we want to use a relative position here to be safer in case things
+        // didn't get homed? * Ideally * we'd want to have a limit switch for full extension too!
+        motor.setTargetPosition(currentHighPosition);
+        motor.setPower(1);
     }
 
     public boolean isBusy() {

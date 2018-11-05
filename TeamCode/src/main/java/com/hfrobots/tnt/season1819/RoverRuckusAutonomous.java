@@ -22,24 +22,13 @@ package com.hfrobots.tnt.season1819;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.Constants;
-import com.hfrobots.tnt.corelib.drive.Turn;
+import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.state.State;
-import com.hfrobots.tnt.season1718.DriveVuMarkDistanceState;
-import com.hfrobots.tnt.season1718.GlyphMechanism;
-import com.hfrobots.tnt.season1718.JewelMechanism;
-import com.hfrobots.tnt.season1718.MecanumDriveDistanceState;
-import com.hfrobots.tnt.season1718.MecanumGyroTurnState;
-import com.hfrobots.tnt.season1718.RelicRecoveryHardware;
-import com.hfrobots.tnt.season1718.RobotConstants;
-import com.hfrobots.tnt.season1718.StrafeVuMarkDistanceState;
-import com.hfrobots.tnt.season1718.VuMarkDetectionState;
+import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
-import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
@@ -52,7 +41,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
     // The routes our robot knows how to do
     private enum Routes {
-        THIS_NEEDS_A_BETTER_NAME("This needs a better name");
+        Only_Option("This needs a better name");
 
         final String description;
 
@@ -185,8 +174,8 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 Routes selectedRoute = possibleRoutes[selectedRoutesIndex];
 
                 switch (selectedRoute) {
-                    case THIS_NEEDS_A_BETTER_NAME:
-                        selectedState = thisNeedsABetterName();
+                    case Only_Option:
+                        selectedState = descendOnly();
                         break;
                     default:
                         selectedState = newDoneState("Default done");
@@ -234,7 +223,58 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         return newDelayState("start delay", initialDelaySeconds);
     }
 
-    protected State thisNeedsABetterName() {
-        return newDoneState("this can't possibly be correct!"); // FIXME
+    protected State descendOnly() {
+        State initialState = new DescenderState(telemetry);
+        
+        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
+                telemetry, mecanumDrive, 4.75, TimeUnit.SECONDS.toMillis(5));
+        initialState.setNextState(offTheHook);
+
+        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
+                "away from lander", telemetry, mecanumDrive, 1.5,
+                TimeUnit.SECONDS.toMillis(5));
+        offTheHook.setNextState(awayFromLander);
+        awayFromLander.setNextState(newDoneState("done"));
+
+        return initialState;
+    }
+
+    class DescenderState extends TimeoutSafetyState {
+        public DescenderState(final Telemetry telemetry) {
+            super("descending", telemetry, TimeUnit.SECONDS.toMillis(27 ));
+            //FixMe how long do we do this?
+        }
+
+        private boolean stateStarted = false;
+
+
+        @Override
+        public State doStuffAndGetNextState() {
+            if (!stateStarted) {
+                ascenderDescender.extendToMax();
+
+                stateStarted = true;
+
+                return this;
+            } else {
+                if (isTimedOut()) {
+                    ascenderDescender.stopMoving();
+
+                    return newDoneState("Descender timed out");
+
+                } else if (!ascenderDescender.isBusy()) {
+                    ascenderDescender.stopMoving();
+
+                    return nextState;
+                } else {
+                    return this;
+                }
+            }
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+            // do nothing
+        }
     }
 }
