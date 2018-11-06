@@ -115,6 +115,10 @@ public class LinearActuator {
         double direction = 1;
         double powerLevel = 1;
 
+        if (ignoreLimits) {
+            Log.d("tnt", "Not enforcing limits when extending");
+        }
+
         if (!ignoreLimits && hasHomed) {
             int currentEncoderPosition = motor.getCurrentPosition();
 
@@ -155,6 +159,10 @@ public class LinearActuator {
     public void retract(boolean ignoreLimits /* use with caution !!! */) {
         double direction = -1;
         double powerLevel = 1;
+
+        if (ignoreLimits) {
+            Log.d("TNT", "Not enforcing limits when retracting");
+        }
 
         if (!ignoreLimits && isLowerLimitReached()) {
             stopMoving();
