@@ -25,6 +25,7 @@ import android.util.Log;
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.hfrobots.tnt.corelib.drive.Turn;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
@@ -37,6 +38,7 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
  * Proof of concept of an IMU-based turn for the Mecanum drive
  */
 @TeleOp(name="MecanumBot Auto Turn")
+@Disabled
 public class RelicRecoveryAutoTurn extends RelicRecoveryTelemetry
 
 {

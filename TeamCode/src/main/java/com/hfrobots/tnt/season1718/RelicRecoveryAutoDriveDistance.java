@@ -23,6 +23,7 @@ package com.hfrobots.tnt.season1718;
 import android.util.Log;
 
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -33,6 +34,7 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
  * Proof of concept of an IMU-based turn for the Mecanum drive
  */
 @TeleOp(name="MecanumBot Auto Distance")
+@Disabled
 public class RelicRecoveryAutoDriveDistance extends RelicRecoveryTelemetry
 
 {

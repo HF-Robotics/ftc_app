@@ -30,6 +30,7 @@ import com.hfrobots.tnt.corelib.control.RangeInput;
 import com.hfrobots.tnt.corelib.drive.NewCheesyDrive;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -42,6 +43,7 @@ import java.util.Iterator;
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 @TeleOp(name="Paradebot Teleop")
+@Disabled
 public class ParadebotTeleop extends OpMode
 
 {
