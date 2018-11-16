@@ -17,17 +17,14 @@
  SOFTWARE.
  **/
 
-package com.hfrobots.tnt.season1718;
+package com.hfrobots.tnt.util.jackiebot;
 
 
 import android.util.Log;
 
-import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
@@ -35,14 +32,14 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 /**
  * Provide a basic manual operational mode that controls the tank drive.
  */
-@TeleOp(name="00 RR Teleop")
-@Disabled
-public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
+@TeleOp(name="Jackiebot", group="Utilities")
+//@Disabled
+public class JackiebotTeleop extends JackiebotTelemetry
 
 {
 
     @SuppressWarnings("unused")
-    public RelicRecoveryTeleop() {
+    public JackiebotTeleop() {
         imuNeeded = false;
     }
 
@@ -69,51 +66,13 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
 
     {
         handleDrivingInputs();
-        handleGlyphGripper();
-
         //
         // Send telemetry data to the driver station.
         //
         updateTelemetry(); // Update common telemetry
         updateGamepadTelemetry();
 
-        // Keep jewel mechanism stowed
-        redAllianceJewelMech.stowSensor();
-        blueAllianceJewelMech.stowSensor();
-
-        if (markLogButton.getRise()){
-            // log Glyph servos, limit switchs, jewel servos, battery
-            Log.d(LOG_TAG, " -- MARK --");
-            if (naturalTopGlyphServo != null) {
-                Log.d(LOG_TAG, "Natural Top Glyph Servo value : " + naturalTopGlyphServo.getPosition());
-            }
-
-            if (naturalBottomGlyphServo != null) {
-                Log.d(LOG_TAG, "Natural Bottom Glyph Servo value :" + naturalBottomGlyphServo.getPosition());
-            }
-
-            if (glyphRotateServo != null) {
-                Log.d(LOG_TAG, "Glyph Rotate Servo value :" + glyphRotateServo.getPosition());
-            }
-
-            if (invertedGlyphLimit != null) {
-                Log.d(LOG_TAG, "Inverted glyph limit : " + invertedGlyphLimit.getState());
-            }
-
-            if (uprightGlyphLimit != null) {
-                Log.d(LOG_TAG, "Upright Glyph limit : " + uprightGlyphLimit.getState());
-            }
-
-            if (glyphLiftBottomLimit != null) {
-                Log.d(LOG_TAG, "Lift Bottom Limit :" + glyphLiftBottomLimit.getState());
-            }
-
-            if (glyphLiftTopLimit != null) {
-                Log.d(LOG_TAG, "Lift Top Limit" + glyphLiftTopLimit.getState());
-            }
-
-            logBatteryState("-- requested by log mark --");
-        }
+        logBatteryState("-- requested by log mark --");
     }
 
     @Override
@@ -196,6 +155,5 @@ public class RelicRecoveryTeleop extends RelicRecoveryTelemetry
             return buf.toString();
         }
     }
-
 }
 

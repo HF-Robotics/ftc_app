@@ -17,31 +17,26 @@
  SOFTWARE.
  **/
 
-package com.hfrobots.tnt.season1718;
+package com.hfrobots.tnt.util.jackiebot;
 
 import android.util.Log;
-
-import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+import com.hfrobots.tnt.corelib.control.LowPassFilteredRangeInput;
 import com.hfrobots.tnt.corelib.control.NinjaGamePad;
 import com.hfrobots.tnt.corelib.control.OnOffButton;
 import com.hfrobots.tnt.corelib.control.ParametricScaledRangeInput;
 import com.hfrobots.tnt.corelib.control.RangeInput;
 import com.hfrobots.tnt.corelib.control.RangeInputButton;
-import com.hfrobots.tnt.corelib.control.LowPassFilteredRangeInput;
 import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.state.State;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
-import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
@@ -49,7 +44,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
-public abstract class RelicRecoveryHardware extends OpMode {
+import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
+
+public abstract class JackiebotHardware extends OpMode {
     protected float throttleGain = 0.7F;
     protected float throttleExponent = 5; // MUST BE AN ODD NUMBER!
     protected float throttleDeadband = 0;
@@ -131,58 +128,6 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
     protected OnOffButton driveBumpStrafeLeftButton;
 
-    // Glyph hardware/sensors
-
-    protected GlyphMechanism glyphMechanism;
-
-    protected Servo naturalTopGlyphServo;
-
-    protected Servo naturalBottomGlyphServo;
-
-    protected Servo glyphRotateServo;
-
-    protected DigitalChannel invertedGlyphLimit;
-
-    protected DigitalChannel uprightGlyphLimit;
-
-    protected DigitalChannel glyphLiftBottomLimit;
-
-    protected DigitalChannel glyphLiftTopLimit;
-
-    protected DcMotor liftMotor;
-
-    // Glyph Controls
-
-    protected DebouncedButton toggleUpperGlyphGripper;
-
-    protected DebouncedButton toggleLowerGlyphGripper;
-
-    protected DebouncedButton rotateGlyphButton;
-
-    protected DebouncedButton stopRotatingGlyphButton;
-
-    protected RangeInput liftControl;
-
-    protected boolean inverted = false;
-
-    protected DebouncedButton rescueButton;
-
-    protected DebouncedButton markLogButton;
-
-
-    // Jewel Mechanism
-
-    protected Servo redAllianceJewelServo;
-
-    protected Servo blueAllianceJewelServo;
-
-    protected LynxI2cColorRangeSensor redAllianceJewelColor;
-
-    protected LynxI2cColorRangeSensor blueAllianceJewelColor;
-
-    protected JewelMechanism redAllianceJewelMech;
-
-    protected JewelMechanism blueAllianceJewelMech;
 
     /**
      * Perform any actions that are necessary when the OpMode is enabled.
@@ -195,11 +140,7 @@ public abstract class RelicRecoveryHardware extends OpMode {
 
         setupOperatorControls();
 
-        setupGlyphMechanism();
-
         setupDrivebase();
-
-        setupJewelMechanism();
 
         if (imuNeeded) {
             initImu();
@@ -212,21 +153,6 @@ public abstract class RelicRecoveryHardware extends OpMode {
         if (voltageSensors.hasNext()) {
             voltageSensor = voltageSensors.next();
         }
-    }
-
-    private void setupJewelMechanism() {
-
-        redAllianceJewelServo = hardwareMap.servo.get("redAllianceJewelServo");
-
-        blueAllianceJewelServo = hardwareMap.servo.get("blueAllianceJewelServo");
-
-        redAllianceJewelColor = hardwareMap.get(LynxI2cColorRangeSensor.class, "redAllianceJewelColor");
-
-        blueAllianceJewelColor = hardwareMap.get(LynxI2cColorRangeSensor.class, "blueAllianceJewelColor");
-
-
-        redAllianceJewelMech = new JewelMechanism(redAllianceJewelServo, redAllianceJewelColor, Rotation.CW);
-        blueAllianceJewelMech = new JewelMechanism(blueAllianceJewelServo, blueAllianceJewelColor, Rotation.CCW);
     }
 
     protected void setupDrivebase() {
@@ -297,55 +223,6 @@ public abstract class RelicRecoveryHardware extends OpMode {
         }
     }
 
-    private void setupGlyphMechanism() {
-        glyphRotateServo = hardwareMap.servo.get("glyphRotateServo");
-
-        naturalTopGlyphServo = hardwareMap.servo.get("naturalTopGlyphServo");
-
-        naturalBottomGlyphServo = hardwareMap.servo.get("naturalBottomGlyphServo");
-
-
-        try {
-            glyphLiftBottomLimit = hardwareMap.digitalChannel.get("glyphLiftBottomLimit");
-        } catch (Exception ex) {
-            appendWarningMessage("No glyphLiftBottomLimit in hardware map");
-            Log.e(LOG_TAG, ex.getLocalizedMessage());
-
-            glyphLiftBottomLimit = null;
-        }
-
-        try {
-            glyphLiftTopLimit = hardwareMap.digitalChannel.get("glyphLiftTopLimit");
-        } catch (Exception ex) {
-            appendWarningMessage("No glyphLiftTopLimit in hardware map");
-            Log.e(LOG_TAG, ex.getLocalizedMessage());
-
-            glyphLiftTopLimit = null;
-        }
-
-        try {
-            invertedGlyphLimit = hardwareMap.digitalChannel.get("invertedGlyphLimit");
-        } catch (Exception ex) {
-            appendWarningMessage("No invertedGlyphLimit in hardware map");
-            Log.e(LOG_TAG, ex.getLocalizedMessage());
-
-            invertedGlyphLimit = null;
-        }
-
-        try {
-            uprightGlyphLimit = hardwareMap.digitalChannel.get("uprightGlyphLimit");
-        } catch (Exception ex) {
-            appendWarningMessage("No uprightGlyphLimit in hardware map");
-            Log.e(LOG_TAG, ex.getLocalizedMessage());
-
-            uprightGlyphLimit = null;
-        }
-
-        liftMotor = hardwareMap.dcMotor.get("liftMotor");
-
-        glyphMechanism = new GlyphMechanism(naturalTopGlyphServo, naturalBottomGlyphServo, glyphRotateServo,
-                invertedGlyphLimit, uprightGlyphLimit, glyphLiftBottomLimit, glyphLiftTopLimit, liftMotor);
-    }
 
     /**
      * Access whether a warning has been generated.
@@ -458,15 +335,6 @@ public abstract class RelicRecoveryHardware extends OpMode {
     private void setupOperatorControls() {
         // Operator controls
         operatorsGamepad = new NinjaGamePad(gamepad2);
-        toggleUpperGlyphGripper = new DebouncedButton(operatorsGamepad.getYButton());
-        toggleLowerGlyphGripper = new DebouncedButton(operatorsGamepad.getAButton());
-        rotateGlyphButton = new DebouncedButton(operatorsGamepad.getRightBumper());
-        stopRotatingGlyphButton = new DebouncedButton(operatorsGamepad.getLeftBumper());
-        liftControl = new ParametricScaledRangeInput(
-                new LowPassFilteredRangeInput(operatorsGamepad.getLeftStickY(), lowPassFilterFactor),
-                throttleDeadband, throttleGain, throttleExponent);
-        rescueButton = new DebouncedButton(operatorsGamepad.getDpadUp());
-        markLogButton = new DebouncedButton(new RangeInputButton(operatorsGamepad.getRightTrigger(), .3F));
     }
 
     private final float lowPassFilterFactor = .92F;
@@ -504,96 +372,5 @@ public abstract class RelicRecoveryHardware extends OpMode {
         driveInvertedButton = new RangeInputButton(driversGamepad.getRightTrigger(), 0.65f);
         driveBumpStrafeLeftButton = driversGamepad.getLeftBumper();
         driveBumpStrafeRightButton = driversGamepad.getRightBumper();
-    }
-
-    protected long rotationStartTimeMs = 0;
-
-    protected boolean rescued = false;
-
-    protected void handleGlyphGripper() {
-        if (!rescued) {
-            if (toggleLowerGlyphGripper.getRise()) {
-                glyphMechanism.toggleLower();
-            } else {
-                glyphMechanism.maintainLowerGripperPosition();
-            }
-
-            if (toggleUpperGlyphGripper.getRise()) {
-                glyphMechanism.toggleUpper();
-            } else {
-                glyphMechanism.maintainUpperGripperPosition();
-            }
-        } else {
-            if (toggleLowerGlyphGripper.getRise()){
-                glyphMechanism.toggleUpper();
-            } else {
-                glyphMechanism.maintainLowerGripperPosition();
-            }
-
-            if (toggleUpperGlyphGripper.getRise()){
-                glyphMechanism.toggleLower();
-            } else {
-                glyphMechanism.maintainUpperGripperPosition();
-            }
-        }
-
-        if (rescueButton.getRise()){
-            rescued = !rescued;
-            Log.d(LOG_TAG, "rescued is now" + rescued);
-        }
-
-        if (rotateGlyphButton.getRise()) {
-            rotationStartTimeMs = System.currentTimeMillis();
-
-            inverted = !inverted;
-            glyphMechanism.flip(inverted);
-
-            Log.d(Constants.LOG_TAG, "Flip requested");
-            telemetry.addData("02", "Flip requested");
-        } else if (stopRotatingGlyphButton.getRise()) {
-            rotationStartTimeMs = 0;
-            glyphMechanism.stopRotating();
-            Log.d(Constants.LOG_TAG, "Stopping rotation requested");
-        }
-
-        if (rotationTimeExceeded()) {
-            Log.e(LOG_TAG, "Rotation timeout, stopping servo");
-            glyphMechanism.stopRotating();
-            rotationStartTimeMs = 0;
-        } else if (inverted && glyphMechanism.isUprightLimitReached()) {
-            glyphMechanism.stopRotating();
-            rotationStartTimeMs = 0;
-        } else if (!inverted && glyphMechanism.isInvertedLimitReached()) {
-            glyphMechanism.stopRotating();
-            rotationStartTimeMs = 0;
-        }
-
-        double liftThrottle = liftControl.getPosition();
-
-        if (liftThrottle < 0) {
-            glyphMechanism.lift.moveUp(Math.abs(liftThrottle));
-        } else if (liftThrottle > 0 ) {
-            glyphMechanism.lift.moveDown(Math.abs(liftThrottle));
-        } else {
-            glyphMechanism.lift.stop();
-        }
-    }
-
-    protected final static long MAX_ROTATION_TIME_MS = TimeUnit.SECONDS.toMillis(4);
-
-    protected boolean rotationTimeExceeded() {
-        if (rotationStartTimeMs == 0) {
-            return false;
-        }
-
-        long nowMs = System.currentTimeMillis();
-
-        long elapsedTimeMs = nowMs - rotationStartTimeMs;
-
-        if (elapsedTimeMs >= MAX_ROTATION_TIME_MS) {
-            return true;
-        }
-
-        return false;
     }
 }

@@ -17,13 +17,9 @@
  SOFTWARE.
  **/
 
-package com.hfrobots.tnt.season1718;
+package com.hfrobots.tnt.util.jackiebot;
 
-public abstract class RelicRecoveryTelemetry extends RelicRecoveryHardware {
-
-    protected void updatePriorityTelemetry(String message) {
-        telemetry.addData("00", message);
-    }
+public abstract class JackiebotTelemetry extends JackiebotHardware {
 
     /**
      * Update the telemetry with current values from the hardware.
@@ -36,8 +32,6 @@ public abstract class RelicRecoveryTelemetry extends RelicRecoveryHardware {
         //
         // Send telemetry data to the driver station.
         //
-
-        telemetry.addData("limits", "b:" + glyphLiftBottomLimit.getState() + " t:" + glyphLiftTopLimit.getState() + " cw:" + uprightGlyphLimit.getState() + " ccw:" + invertedGlyphLimit.getState());
         telemetry.addData("pos", "y: " + mecanumDrive.getYPosition() + ", x: " + mecanumDrive.getXPosition());
     }
 
@@ -53,13 +47,5 @@ public abstract class RelicRecoveryTelemetry extends RelicRecoveryHardware {
 
     public void setFirstMessage(String message) {
         telemetry.addData ( "00", message);
-    }
-
-
-    /**
-     * Update the telemetry's first message to indicate an error.
-     */
-    public void setErrorMessage(String message) {
-        setFirstMessage("ERROR: " + message);
     }
 }
