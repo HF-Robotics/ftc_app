@@ -70,6 +70,7 @@ public class PidController {
         private double       kF;
         private double       tolerance;
         private long         settlingTimeMs;
+        private boolean      allowOscillation = false;
 
         /**
          * @param instanceName the name used in debug logging and telemetry output
@@ -134,6 +135,12 @@ public class PidController {
             return this;
         }
 
+        public Builder setAllowOscillation(boolean flag) {
+            this.allowOscillation = flag;
+
+            return this;
+        }
+
         public PidController build() {
             if (instanceName == null) {
                 instanceName = "unnamed";
@@ -146,6 +153,7 @@ public class PidController {
             built.kF = Math.abs(kF);
             built.tolerance = Math.abs(tolerance);
             built.settlingTimeMs = Math.abs(settlingTimeMs);
+            built.setNoOscillation(!allowOscillation);
 
             return built;
         }

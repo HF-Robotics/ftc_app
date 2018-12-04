@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 public class TntFeedforwardTuningOpMode extends FeedforwardTuningOpMode {
     public TntFeedforwardTuningOpMode() {
         // TODO: change the following to match your drive
-        super(100.0, RoadrunnerMecanumDriveAdapter.MOTOR_MAX_RPM, 4.0);
+        super(7*12, RoadrunnerMecanumDriveAdapter.MOTOR_MAX_RPM, 4.0);
     }
 
     @Override

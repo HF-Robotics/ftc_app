@@ -26,6 +26,7 @@ import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -41,7 +42,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
     // The routes our robot knows how to do
     private enum Routes {
-        Only_Option("This needs a better name");
+        Only_Option("Our only option");
 
         final String description;
 
@@ -65,10 +66,19 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
     private int initialDelaySeconds = 0;
 
+    public RoverRuckusAutonomous() {
+        imuNeeded = false; // for now...
+    }
+
     @Override
     public void init() {
         super.init();
         setDefaults();
+
+        for (DcMotor motor : mecanumDrive.motors) {
+                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
     }
 
     @Override
@@ -94,6 +104,9 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     // Called repeatedly after init button has been pressed and init() has completed (we think)
     @Override
     public void init_loop() {
+        // FIXME: Post league-meet 1, discuss homing the linear actuator here...if we do, homing
+        // needs some timeouts...
+        
         if (driversGamepad == null) { // safety, need to double check whether we actually need this
             // not ready yet init() hasn't been called
             return;
@@ -165,6 +178,8 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
     @Override
     public void loop() {
+        long cycleStartTimeMs = System.currentTimeMillis();
+
         try {
             if (currentState == null) {
                 /* We have not configured the state machine yet, do so from the options
@@ -213,6 +228,9 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
             throw rte;
         }
+
+        long cycleStopTimeMs = System.currentTimeMillis();
+        Log.d("TNT", "Cycle time (ms): " + (cycleStopTimeMs - cycleStartTimeMs));
     }
 
     /**
@@ -225,24 +243,42 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
     protected State descendOnly() {
         State initialState = new DescenderState(telemetry);
-        
-        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
-                telemetry, mecanumDrive, 4.75, TimeUnit.SECONDS.toMillis(5));
-        initialState.setNextState(offTheHook);
 
-        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
-                "away from lander", telemetry, mecanumDrive, 1.5,
+        initialState.setNextState(newDoneState("done"));
+
+        /*
+        MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
+                "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
-        offTheHook.setNextState(awayFromLander);
-        awayFromLander.setNextState(newDoneState("done"));
+        initialState.setNextState(awayFromLanderOne);
 
+        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
+                telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
+        awayFromLanderOne.setNextState(offTheHook);
+
+        MecanumStrafeDistanceState awayFromLanderFinal = new MecanumStrafeDistanceState(
+                "away from lander Final", telemetry, mecanumDrive, 1.5,
+                TimeUnit.SECONDS.toMillis(5));
+        offTheHook.setNextState(awayFromLanderFinal);
+        awayFromLanderFinal.setNextState(newDoneState("done"));
+
+*/
         return initialState;
     }
 
     class DescenderState extends TimeoutSafetyState {
         public DescenderState(final Telemetry telemetry) {
-            super("descending", telemetry, TimeUnit.SECONDS.toMillis(27 ));
+            super("descending", telemetry, TimeUnit.SECONDS.toMillis(15));
             //FixMe how long do we do this?
+            // Not 27 didn't allow for run of the off the hook step. I was watching the robot and
+            // it keep descending during auto and didn't leave enough time to descend. I think it
+            // would be ok to go into drive state if we reach time ou bc if we have not reach the
+            // ground then we won't go anywhere, if we have then we will still get full auto.
+                // I didn't see the wheels move during off auto's. check logs.
+                // - Lauren
+
+            //tried 15 may still not be right - lauren 11/18
+                //we removed tape on acDc mech and it worked w/ this code - lauren l8r 11/18
         }
 
         private boolean stateStarted = false;
@@ -258,11 +294,13 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 return this;
             } else {
                 if (isTimedOut()) {
+                    Log.d("TNT", "Descender timed out after " + safetyTimeoutMillis + " ms");
+
                     ascenderDescender.stopMoving();
 
                     return newDoneState("Descender timed out");
 
-                } else if (!ascenderDescender.isBusy()) {
+                } else if (ascenderDescender.hasExtended()) {
                     ascenderDescender.stopMoving();
 
                     return nextState;

@@ -21,6 +21,7 @@ package com.hfrobots.tnt.season1819;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.drive.PidController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 
@@ -47,7 +48,8 @@ public class LinearActuator {
      * We should eventually be able to use this knowledge to add distance-specific travel methods
      * to this class...
      */
-    private int distanceToTravel = 23300;
+
+    private int distanceToTravel = 11500; //changed from 11991
 
     private int currentLowPosition = Integer.MIN_VALUE;
 
@@ -136,15 +138,62 @@ public class LinearActuator {
 
     }
 
+    private PidController pidController;
+
+    private double kP = .002;
+
+    private double powerLevel = 1.0;
+
     public void extendToMax() {
-        // Mentor open question - do we want to use a relative position here to be safer in case things
-        // didn't get homed? * Ideally * we'd want to have a limit switch for full extension too!
-        motor.setTargetPosition(currentHighPosition);
-        motor.setPower(1);
+        // Hint for tolerance - 1120 encoder ticks per full revolution, full revolution moves lead screw
+        // 8mm...so what * distance * in mm of error is okay, then convert that to encoder ticks
+
+        pidController = PidController.builder().setInstanceName("AcDc pid-controller")
+                .setKp(kP).setAllowOscillation(false)
+                .setTolerance(140)
+                .build();
+        pidController.setOutputRange(-powerLevel, powerLevel);
+
+        int currentPosition = motor.getCurrentPosition();
+
+        if (hasHomed) {
+            Log.d("TNT",
+                    "Ascender descender starting from home position, going from " +
+                            currentPosition + " to position " + currentHighPosition);
+
+            pidController.setTarget(currentHighPosition, currentPosition);
+        } else {
+            // FIXME: There is a bug, we saw it on the evening of 11/30
+            // Hint, what is currentHighPosition if the robot has not homed?
+            int targetPosition = currentPosition + distanceToTravel;
+
+            Log.d("TNT",
+                    "Ascender descender starting from unknown position! Going from " +
+                            currentPosition + " to position " + targetPosition);
+
+            pidController.setTarget(targetPosition /* currentHighPosition */, currentPosition);
+        }
     }
 
-    public boolean isBusy() {
-        return motor.isBusy();
+    public boolean hasExtended() {
+        if (pidController.isOnTarget()) {
+            Log.d("TNT", "ascender descender on target, stopping");
+
+            stopMoving();
+
+            return true;
+        }
+
+        double pidPower = pidController.getOutput(motor.getCurrentPosition());
+
+        if (pidPower < .05) {
+            pidPower = .05;
+        }
+
+        motor.setPower(pidPower);
+        Log.d("TNT", "Have not reached target, setting ascender descender power to:" + pidPower);
+
+        return false;
     }
 
     public boolean isHoming() {

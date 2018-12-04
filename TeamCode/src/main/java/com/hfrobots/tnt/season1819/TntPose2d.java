@@ -1,6 +1,7 @@
 package com.hfrobots.tnt.season1819;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 
 /**
  * Road Runner has the y-axis extend out the left side of the robot, and the x-axis
@@ -13,12 +14,16 @@ import com.acmerobotics.roadrunner.Pose2d;
  */
 public class TntPose2d {
 
-    public Pose2d toPose2d(double tntX, double tntY) {
+    public static Pose2d toPose2d(double tntX, double tntY) {
         return new Pose2d( tntY /* this is Road Runner's x axis value, it is our Y */  ,
                             -tntX /* This is Road Runner's y axis value, it would be our X */);
     }
 
-    public Pose2d toPose2d(double tntX, double tntY, double headingInDegrees) {
+    public static Pose2d toPose2d(double tntX, double tntY, double headingInDegrees) {
         return new Pose2d( tntY, -tntY, Math.toRadians(headingInDegrees));
+    }
+
+    public static Vector2d toVector2d(double tntX, double tntY) {
+        return new Vector2d( tntY, -tntX);
     }
 }

@@ -22,6 +22,7 @@ package com.hfrobots.tnt.season1819;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.control.RangeInput;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
@@ -54,6 +55,9 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         for (DcMotor motor : mecanumDrive.motors) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
+
+        // Reset RUN_TO_POSITION from autonomous
+        acDcMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 
 
@@ -65,6 +69,7 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
     {
         handleDrivingInputs();
         handleAscender();
+        handleCollector();
 
         //
         // Send telemetry data to the driver station.
@@ -84,6 +89,37 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         Log.d(LOG_TAG, "y-throttle-usage: " + yThrottleHistogram.toString());
         Log.d(LOG_TAG, "rot-throttle-usage: " + rotateThrottleHistogram.toString());
         super.stop();
+    }
+
+    private void handleCollector() {
+        // We will be using left stick, right stick, y axis on operator controller
+        // Remember, y axis, -1 is "forward"
+
+        double DEADBAND = 0.5; // How far do we need to push the stick to make it go?
+
+        RangeInput collectorDeployInput = operatorsGamepad.getRightStickY();
+
+        RangeInput collectorSweepInput = operatorsGamepad.getLeftStickY();
+
+        double collectorDeployPosition = collectorDeployInput.getPosition();
+
+        double collectorSweepPosition = collectorSweepInput.getPosition();
+
+        if (collectorDeployPosition > DEADBAND) {
+            collectorDeployMotor.setPower(-1); // in
+        } else if (collectorDeployPosition < -DEADBAND) {
+            collectorDeployMotor.setPower(1); // out
+        } else {
+            collectorDeployMotor.setPower(0);
+        }
+
+        if (collectorSweepPosition < -DEADBAND) {
+            collectorSweepMotor.setPower(.5); // deploy
+        } else if (collectorSweepPosition > DEADBAND) {
+            collectorSweepMotor.setPower(-.5); // stow
+        } else {
+            collectorSweepMotor.setPower(0);
+        }
     }
 
     private void handleAscender() {

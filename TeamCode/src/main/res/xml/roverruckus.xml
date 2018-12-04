@@ -31,7 +31,10 @@ SOFTWARE.
         <LynxModule name="Secondary Hub" port="3">
             <LynxEmbeddedIMU name="imu 1" port="0" bus="0" />
 
-            <Motor name="acDcMotor"  port="0" />
+            <Motor name="acDcMotor" port="0" />
+            <Motor name="collectorDeployMotor" port="1" />
+            <Motor name="collectorSweepMotor" port="2" />
+
             <DigitalDevice name="acDcLimitSwitch" port="1" />
         </LynxModule>
     </LynxUsbDevice>

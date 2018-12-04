@@ -46,7 +46,7 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
             // if you keep it, then don't tune kStatic or kA
             // otherwise, at least tune kStatic and kA potentially
             motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            motor.setPIDCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, NORMAL_VELOCITY_PID);
+            //motor.setPIDCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, NORMAL_VELOCITY_PID);
         }
 
         rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -87,5 +87,10 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
         this.leftRear.setPower(leftRear);
         this.rightRear.setPower(rightRear);
         this.rightFront.setPower(rightFront);
+    }
+
+    @Override
+    public double getExternalHeading() {
+        return 0;
     }
 }

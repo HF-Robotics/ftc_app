@@ -88,7 +88,11 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected VoltageSensor voltageSensor;
 
-    protected ExtendedDcMotor acDcMotor;
+    protected DcMotor acDcMotor;
+
+    protected DcMotor collectorDeployMotor;
+
+    protected DcMotor collectorSweepMotor;
 
     protected DigitalChannel acDcLimitSwitch;
 
@@ -165,6 +169,8 @@ public abstract class RoverRuckusHardware extends OpMode {
 
         setupAscenderDescender();
 
+        setupCollector();
+
         if (imuNeeded) {
             initImu();
         } else {
@@ -178,6 +184,25 @@ public abstract class RoverRuckusHardware extends OpMode {
         }
     }
 
+    protected void setupCollector() {
+        try {
+            collectorDeployMotor = hardwareMap.dcMotor.get("collectorDeployMotor");
+        } catch (Exception ex) {
+            appendWarningMessage("collectorDeployMotor");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            collectorDeployMotor = null;
+        }
+
+        try {
+            collectorSweepMotor = hardwareMap.dcMotor.get("collectorSweepMotor");
+        } catch (Exception ex) {
+            appendWarningMessage("collectorSweepMotor");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            collectorSweepMotor = null;
+        }
+    }
 
 
     protected void setupDrivebase() {
@@ -251,8 +276,8 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected void setupAscenderDescender() {
         try {
-            acDcMotor = NinjaMotor.asNeverest40(hardwareMap.dcMotor.get("acDcMotor"));
-            acDcMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            acDcMotor = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("acDcMotor"));
+            acDcMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         } catch (Exception ex) {
             appendWarningMessage("acDcMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
