@@ -234,8 +234,8 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     }
 
     /**
-     * Creates an instance of the "done" state which stops the robot and should be the
-     * "end" state of all of our robot's state machines
+     * Creates an instance of the "delay" state which waits the number of seconds before
+     * advancing to the next state
      */
     protected State newDelayState() {
         return newDelayState("start delay", initialDelaySeconds);
@@ -244,9 +244,6 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     protected State descendOnly() {
         State initialState = new DescenderState(telemetry);
 
-        initialState.setNextState(newDoneState("done"));
-
-        /*
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
@@ -262,7 +259,6 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         offTheHook.setNextState(awayFromLanderFinal);
         awayFromLanderFinal.setNextState(newDoneState("done"));
 
-*/
         return initialState;
     }
 
