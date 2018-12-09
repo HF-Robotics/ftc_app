@@ -21,7 +21,6 @@ package com.hfrobots.tnt.season1819;
 
 import android.util.Log;
 
-import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
 import com.hfrobots.tnt.corelib.control.LowPassFilteredRangeInput;
@@ -33,19 +32,13 @@ import com.hfrobots.tnt.corelib.control.RangeInputButton;
 import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.hfrobots.tnt.corelib.drive.NinjaMotor;
 import com.hfrobots.tnt.corelib.state.State;
-import com.hfrobots.tnt.season1718.GlyphMechanism;
-import com.hfrobots.tnt.season1718.JewelMechanism;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
-import com.qualcomm.hardware.lynx.LynxI2cColorRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
-
-import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -154,6 +147,20 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected DebouncedButton acDcStopButton;
 
+    protected OnOffButton elevatorCommandUpButton;
+
+    protected OnOffButton elevatorCommandDownButton;
+
+    protected DebouncedButton elevatorUpperLimitButton;
+
+    protected DebouncedButton elevatorLowerLimitButton;
+
+    protected DebouncedButton elevatorEmergencyStopButton;
+
+    protected ExtendedDcMotor particleScoreElevatorMotor;
+
+    protected ParticleScoringMechanism particleScoringMechanism;
+
     /*
      * Perform any actions that are necessary when the OpMode is enabled.
      * <p/>
@@ -171,6 +178,8 @@ public abstract class RoverRuckusHardware extends OpMode {
 
         setupCollector();
 
+        setupParticleScoringMechanism();
+
         if (imuNeeded) {
             initImu();
         } else {
@@ -184,9 +193,32 @@ public abstract class RoverRuckusHardware extends OpMode {
         }
     }
 
+    protected void setupParticleScoringMechanism() {
+        try {
+            particleScoreElevatorMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("particleScoreElevatorMotor"));
+            particleScoreElevatorMotor.setDirection(DcMotor.Direction.REVERSE);
+            particleScoreElevatorMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // MM
+            particleScoreElevatorMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE); // MM
+        } catch (Exception ex) {
+            appendWarningMessage("particleScoreElevatorMotor");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            particleScoreElevatorMotor = null;
+        }
+
+        particleScoringMechanism = new ParticleScoringMechanism(elevatorCommandUpButton,
+                elevatorCommandDownButton, elevatorUpperLimitButton, elevatorLowerLimitButton,
+                elevatorEmergencyStopButton, particleScoreElevatorMotor, null, null,
+                telemetry);
+    }
+
+
     protected void setupCollector() {
         try {
             collectorDeployMotor = hardwareMap.dcMotor.get("collectorDeployMotor");
+            collectorDeployMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            collectorDeployMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            collectorDeployMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE); // MM
         } catch (Exception ex) {
             appendWarningMessage("collectorDeployMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
@@ -411,20 +443,29 @@ public abstract class RoverRuckusHardware extends OpMode {
     private void setupOperatorControls() {
         operatorsGamepad = new NinjaGamePad(gamepad2);
 
-        // on-offs
+        // acdc - on-offs
         acDcExtendButton = operatorsGamepad.getDpadUp();
 
         acDcRetractButton = operatorsGamepad.getDpadDown();
 
-
-
-
-        // debounced
-        acDcLimitOverrideButton = operatorsGamepad.getAButton();
+        // acdc - debounced
+        acDcLimitOverrideButton = operatorsGamepad.getXButton();
 
         acDcStopButton = new DebouncedButton(operatorsGamepad.getBButton());
 
         acDcHomeButton = new DebouncedButton(operatorsGamepad.getRightBumper());
+
+        // elevator
+
+        elevatorCommandUpButton = operatorsGamepad.getLeftBumper();
+
+        elevatorCommandDownButton = new RangeInputButton(operatorsGamepad.getLeftTrigger(), .65f);
+
+        elevatorUpperLimitButton = new DebouncedButton (operatorsGamepad.getYButton());
+
+        elevatorLowerLimitButton = new DebouncedButton (operatorsGamepad.getAButton());
+
+        elevatorEmergencyStopButton = new DebouncedButton(operatorsGamepad.getBButton());
     }
 
     private final float lowPassFilterFactor = .92F;

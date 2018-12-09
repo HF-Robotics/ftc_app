@@ -34,6 +34,7 @@ SOFTWARE.
             <Motor name="acDcMotor" port="0" />
             <Motor name="collectorDeployMotor" port="1" />
             <Motor name="collectorSweepMotor" port="2" />
+            <Motor name="particleScoreElevatorMotor"  port="3" />
 
             <DigitalDevice name="acDcLimitSwitch" port="1" />
         </LynxModule>

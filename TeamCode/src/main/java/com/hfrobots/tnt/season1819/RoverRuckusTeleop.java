@@ -1,5 +1,5 @@
 /**
- Copyright (c) 2017 HF Robotics (http://www.hfrobots.com)
+ Copyright (c) 2018 HF Robotics (http://www.hfrobots.com)
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
@@ -70,6 +70,7 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         handleDrivingInputs();
         handleAscender();
         handleCollector();
+        handleParticleScoringMechanism();
 
         //
         // Send telemetry data to the driver station.
@@ -77,10 +78,7 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         updateTelemetry(); // Update common telemetry
         updateGamepadTelemetry();
 
-        // Keep jewel mechanism stowed
-
-
-            logBatteryState("-- requested by log mark --");
+        logBatteryState("-- requested by log mark --");
     }
 
     @Override
@@ -89,6 +87,10 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         Log.d(LOG_TAG, "y-throttle-usage: " + yThrottleHistogram.toString());
         Log.d(LOG_TAG, "rot-throttle-usage: " + rotateThrottleHistogram.toString());
         super.stop();
+    }
+
+    private void handleParticleScoringMechanism() {
+        particleScoringMechanism.doPeriodicTask();
     }
 
     private void handleCollector() {
@@ -106,9 +108,9 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         double collectorSweepPosition = collectorSweepInput.getPosition();
 
         if (collectorDeployPosition > DEADBAND) {
-            collectorDeployMotor.setPower(-1); // in
+            collectorDeployMotor.setPower(-.25); // in
         } else if (collectorDeployPosition < -DEADBAND) {
-            collectorDeployMotor.setPower(1); // out
+            collectorDeployMotor.setPower(.25); // out
         } else {
             collectorDeployMotor.setPower(0);
         }
