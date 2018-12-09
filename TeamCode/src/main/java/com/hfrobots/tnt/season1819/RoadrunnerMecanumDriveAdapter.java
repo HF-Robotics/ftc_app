@@ -3,6 +3,7 @@ package com.hfrobots.tnt.season1819;
 import android.util.Log;
 
 import com.acmerobotics.roadrunner.drive.MecanumDrive;
+import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.hardware.motors.NeveRest20Gearmotor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -73,7 +74,7 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
             wheelTicks.add(motors.get(i).getCurrentPosition());
         }
 
-        Log.d("TNT", "Pos: lf: " + wheelTicks.get(0) + ", lr: "
+        Log.d(Constants.LOG_TAG, "Pos: lf: " + wheelTicks.get(0) + ", lr: "
                 + wheelTicks.get(1) + ", rr: " + wheelTicks.get(2) + ", rf: " + wheelTicks.get(3));
 
         return wheelPositionsInches;
@@ -81,7 +82,7 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
 
     @Override
     public void setMotorPowers(double leftFront, double leftRear, double rightRear, double rightFront) {
-        Log.d("TNT", "Power lf: " + leftFront + ", lr: " + leftRear + ", rr: "
+        Log.d(Constants.LOG_TAG, "Power lf: " + leftFront + ", lr: " + leftRear + ", rr: "
                 + rightRear + ", rf:" + rightFront);
         this.leftFront.setPower(leftFront);
         this.leftRear.setPower(leftRear);

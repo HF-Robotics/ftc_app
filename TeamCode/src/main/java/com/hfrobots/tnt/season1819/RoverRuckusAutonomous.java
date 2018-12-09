@@ -230,7 +230,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         }
 
         long cycleStopTimeMs = System.currentTimeMillis();
-        Log.d("TNT", "Cycle time (ms): " + (cycleStopTimeMs - cycleStartTimeMs));
+        Log.d(Constants.LOG_TAG, "Cycle time (ms): " + (cycleStopTimeMs - cycleStartTimeMs));
     }
 
     /**
@@ -290,7 +290,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 return this;
             } else {
                 if (isTimedOut()) {
-                    Log.d("TNT", "Descender timed out after " + safetyTimeoutMillis + " ms");
+                    Log.d(Constants.LOG_TAG, "Descender timed out after " + safetyTimeoutMillis + " ms");
 
                     ascenderDescender.stopMoving();
 

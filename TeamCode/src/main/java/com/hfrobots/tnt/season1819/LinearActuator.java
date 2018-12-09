@@ -21,6 +21,7 @@ package com.hfrobots.tnt.season1819;
 
 import android.util.Log;
 
+import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.drive.PidController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -68,13 +69,13 @@ public class LinearActuator {
 
         if (isLowerLimitReached()) {
             hasHomed = true;
-            Log.d("TNT", "homed at start");
+            Log.d(Constants.LOG_TAG, "homed at start");
             calculateEncoderLimits();
         }
     }
 
     public void home() {
-        Log.d("TNT", "linear actuator homing"); // tell them we're homing
+        Log.d(Constants.LOG_TAG, "linear actuator homing"); // tell them we're homing
 
         isHoming = true;
     }
@@ -105,7 +106,7 @@ public class LinearActuator {
         currentHighPosition = currentLowPosition + distanceToTravel;
         // // tell everybody what values we came up with for current low position, high position
 
-        Log.d("TNT", String.format("Linear actuator currentLowPos: %d, currentHighPos: %d",
+        Log.d(Constants.LOG_TAG, String.format("Linear actuator currentLowPos: %d, currentHighPos: %d",
                 currentLowPosition, currentHighPosition));
     }
 
@@ -118,14 +119,14 @@ public class LinearActuator {
         double powerLevel = 1;
 
         if (ignoreLimits) {
-            Log.d("tnt", "Not enforcing limits when extending");
+            Log.d(Constants.LOG_TAG, "Not enforcing limits when extending");
         }
 
         if (!ignoreLimits && hasHomed) {
             int currentEncoderPosition = motor.getCurrentPosition();
 
             if (currentEncoderPosition >= currentHighPosition) {
-                Log.d("TNT",
+                Log.d(Constants.LOG_TAG,
                         String.format("Linear actuator reached high limit of encoder position: %d",
                                 currentEncoderPosition));
                 motor.setPower(0);
@@ -157,7 +158,7 @@ public class LinearActuator {
         int currentPosition = motor.getCurrentPosition();
 
         if (hasHomed) {
-            Log.d("TNT",
+            Log.d(Constants.LOG_TAG,
                     "Ascender descender starting from home position, going from " +
                             currentPosition + " to position " + currentHighPosition);
 
@@ -167,7 +168,7 @@ public class LinearActuator {
             // Hint, what is currentHighPosition if the robot has not homed?
             int targetPosition = currentPosition + distanceToTravel;
 
-            Log.d("TNT",
+            Log.d(Constants.LOG_TAG,
                     "Ascender descender starting from unknown position! Going from " +
                             currentPosition + " to position " + targetPosition);
 
@@ -177,7 +178,7 @@ public class LinearActuator {
 
     public boolean hasExtended() {
         if (pidController.isOnTarget()) {
-            Log.d("TNT", "ascender descender on target, stopping");
+            Log.d(Constants.LOG_TAG, "ascender descender on target, stopping");
 
             stopMoving();
 
@@ -191,7 +192,7 @@ public class LinearActuator {
         }
 
         motor.setPower(pidPower);
-        Log.d("TNT", "Have not reached target, setting ascender descender power to:" + pidPower);
+        Log.d(Constants.LOG_TAG, "Have not reached target, setting ascender descender power to:" + pidPower);
 
         return false;
     }
@@ -210,7 +211,7 @@ public class LinearActuator {
         double powerLevel = 1;
 
         if (ignoreLimits) {
-            Log.d("TNT", "Not enforcing limits when retracting");
+            Log.d(Constants.LOG_TAG, "Not enforcing limits when retracting");
         }
 
         if (!ignoreLimits && isLowerLimitReached()) {
@@ -218,7 +219,7 @@ public class LinearActuator {
 
             if (!hasHomed) {
                 hasHomed = true;
-                Log.d("TNT", "Found home while calling retract()");
+                Log.d(Constants.LOG_TAG, "Found home while calling retract()");
                 calculateEncoderLimits();
             }
 

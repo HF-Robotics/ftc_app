@@ -1,6 +1,7 @@
 package com.acmerobotics.roadrunner.drive;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.apache.commons.math3.stat.regression.SimpleRegression;
@@ -263,6 +264,6 @@ public abstract class FeedforwardTuningOpMode extends LinearOpMode {
             timeAndOtherSamples.append(time).append(", ").append(acceleration).append("\n"); // what does \n do?
         }
 
-        android.util.Log.d("TNT", sampleName + ": \n"  + timeAndOtherSamples.toString());
+        android.util.Log.d(Constants.LOG_TAG, sampleName + ": \n"  + timeAndOtherSamples.toString());
     }
 }

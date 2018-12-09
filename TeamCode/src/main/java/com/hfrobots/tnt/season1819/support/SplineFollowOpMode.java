@@ -15,6 +15,7 @@ import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roadrunner.trajectory.constraints.DriveConstraints;
 import com.acmerobotics.roadrunner.trajectory.constraints.MecanumConstraints;
+import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.season1819.RoadrunnerMecanumDriveAdapter;
 import com.hfrobots.tnt.season1819.TntPose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -40,7 +41,7 @@ public class SplineFollowOpMode extends LinearOpMode {
                 .lineTo(TntPose2d.toVector2d(0, 36), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(45)).build();
 
-        Log.d("TNT", "Trajectory duration: " + trajectory.duration());
+        Log.d(Constants.LOG_TAG, "Trajectory duration: " + trajectory.duration());
 
         // TODO: tune kV, kA, and kStatic in the following follower
         // then tune the PID coefficients after you verify the open loop response is roughly correct
@@ -58,8 +59,8 @@ public class SplineFollowOpMode extends LinearOpMode {
         while (opModeIsActive() && follower.isFollowing()) {
             Pose2d currentPose = drive.getPoseEstimate();
 
-            Log.d("TNT", "Pose: " + currentPose.getX() + ", " + currentPose.getY() + ", " + currentPose.getHeading());
-            Log.d("TNT", "Remaining duration: " + trajectory.duration());
+            Log.d(Constants.LOG_TAG, "Pose: " + currentPose.getX() + ", " + currentPose.getY() + ", " + currentPose.getHeading());
+            Log.d(Constants.LOG_TAG, "Remaining duration: " + trajectory.duration());
 
             //TelemetryPacket packet = new TelemetryPacket();
             //Canvas fieldOverlay = packet.fieldOverlay();
@@ -81,8 +82,8 @@ public class SplineFollowOpMode extends LinearOpMode {
         while (opModeIsActive() && follower.isFollowing()) {
             Pose2d currentPose = drive.getPoseEstimate();
 
-            Log.d("TNT", "Pose: " + currentPose.getX() + ", " + currentPose.getY() + ", " + currentPose.getHeading());
-            Log.d("TNT", "Remaining duration: " + trajectory.duration());
+            Log.d(Constants.LOG_TAG, "Pose: " + currentPose.getX() + ", " + currentPose.getY() + ", " + currentPose.getHeading());
+            Log.d(Constants.LOG_TAG, "Remaining duration: " + trajectory.duration());
 
             //TelemetryPacket packet = new TelemetryPacket();
             //Canvas fieldOverlay = packet.fieldOverlay();
@@ -103,8 +104,8 @@ public class SplineFollowOpMode extends LinearOpMode {
         while (opModeIsActive() && follower.isFollowing()) {
             Pose2d currentPose = drive.getPoseEstimate();
 
-            Log.d("TNT", "Pose: " + currentPose.getX() + ", " + currentPose.getY() + ", " + currentPose.getHeading());
-            Log.d("TNT", "Remaining duration: " + trajectory.duration());
+            Log.d(Constants.LOG_TAG, "Pose: " + currentPose.getX() + ", " + currentPose.getY() + ", " + currentPose.getHeading());
+            Log.d(Constants.LOG_TAG, "Remaining duration: " + trajectory.duration());
 
             //TelemetryPacket packet = new TelemetryPacket();
             //Canvas fieldOverlay = packet.fieldOverlay();
