@@ -23,11 +23,12 @@ SOFTWARE.
             <LynxEmbeddedIMU name="imu" port="0" bus="0" />
 
             <!-- DC Motors -->
-            <Motor name="leftFrontDriveMotor"  port="0" />
-            <Motor name="rightFrontDriveMotor" port="1" />
-            <Motor name="leftRearDriveMotor"  port="2" />
-            <Motor name="rightRearDriveMotor"  port="3" />
+            <Motor name="leftFrontDriveMotor"  port="0" /> <!-- yellow -->
+            <Motor name="rightFrontDriveMotor" port="1" /> <!-- orange -->
+            <Motor name="leftRearDriveMotor"  port="2" /> <!-- green -->
+            <Motor name="rightRearDriveMotor"  port="3" /> <!-- purple -->
         </LynxModule>
+
         <LynxModule name="Secondary Hub" port="3">
             <LynxEmbeddedIMU name="imu 1" port="0" bus="0" />
 
@@ -37,6 +38,11 @@ SOFTWARE.
             <Motor name="particleScoreElevatorMotor"  port="3" />
 
             <DigitalDevice name="acDcLimitSwitch" port="1" />
+
+            <Servo name="teamMarkerServo" port="0" />
+            <Servo name="collectorGateServo" port="1" />
+            <Servo name="boxTipServo" port="2" />
+            <Servo name="boxGateServo" port="3" />
         </LynxModule>
     </LynxUsbDevice>
 </Robot>
