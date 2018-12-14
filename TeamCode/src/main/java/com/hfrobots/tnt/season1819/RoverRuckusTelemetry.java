@@ -36,7 +36,7 @@ public abstract class RoverRuckusTelemetry extends RoverRuckusHardware {
         //
         // Send telemetry data to the driver station.
         //
-        telemetry.addData("pos", "y: " + mecanumDrive.getYPosition() + ", x: " + mecanumDrive.getXPosition());
+        //telemetry.addData("pos", "y: " + mecanumDrive.getYPosition() + ", x: " + mecanumDrive.getXPosition());
     }
 
     public void updateGamepadTelemetry() {

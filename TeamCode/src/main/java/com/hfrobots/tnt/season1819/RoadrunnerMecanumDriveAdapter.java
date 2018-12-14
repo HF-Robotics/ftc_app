@@ -30,12 +30,16 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
      */
     public static final PIDCoefficients NORMAL_VELOCITY_PID = new PIDCoefficients(20, 8, 12);
 
+    public static final double TRACK_WIDTH = 18;
+
+    public static final double WHEEL_BASE = 12;
+
     private DcMotorEx leftFront, leftRear, rightRear, rightFront;
     private List<DcMotorEx> motors;
 
     public RoadrunnerMecanumDriveAdapter(HardwareMap hardwareMap) {
         // TODO: this needs to be tuned using FeedforwardTuningOpMode
-        super(18, 12);
+        super(TRACK_WIDTH, WHEEL_BASE);
 
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFrontDriveMotor");
         leftRear = hardwareMap.get(DcMotorEx.class, "leftRearDriveMotor");
@@ -50,8 +54,23 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
             //motor.setPIDCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, NORMAL_VELOCITY_PID);
         }
 
+        // No assumptions about motor directions
+        leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftRear.setDirection(DcMotorSimple.Direction.FORWARD);
         rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
         rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        motors = Arrays.asList(leftFront, leftRear, rightRear, rightFront);
+    }
+
+    public RoadrunnerMecanumDriveAdapter(final DcMotorEx leftFront, final DcMotorEx leftRear,
+                                         final DcMotorEx rightRear, final DcMotorEx rightFront) {
+        super(TRACK_WIDTH, WHEEL_BASE);
+
+        this.leftFront = leftFront;
+        this.leftRear = leftRear;
+        this.rightRear = rightRear;
+        this.rightFront = rightFront;
 
         motors = Arrays.asList(leftFront, leftRear, rightRear, rightFront);
     }

@@ -19,9 +19,11 @@ import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.season1819.RoadrunnerMecanumDriveAdapter;
 import com.hfrobots.tnt.season1819.TntPose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 @Autonomous(name="Spline follow", group="Utilities")
+@Disabled
 public class SplineFollowOpMode extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -37,7 +39,8 @@ public class SplineFollowOpMode extends LinearOpMode {
 
         // Relative points
 
-        Trajectory trajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), constraints)
+        Trajectory trajectory = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), constraints)
                 .lineTo(TntPose2d.toVector2d(0, 36), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(45)).build();
 

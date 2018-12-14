@@ -22,7 +22,6 @@ package com.hfrobots.tnt.season1819;
 
 import android.util.Log;
 
-import com.hfrobots.tnt.corelib.control.RangeInput;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
@@ -36,6 +35,9 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 public class RoverRuckusTeleop extends RoverRuckusTelemetry
 
 {
+
+    private static final double COLLECTOR_DEPLOY_IN_POWER = -.25;
+    private static final double COLLECTOR_DEPLOY_OUT_POWER = .25;
 
     @SuppressWarnings("unused")
     public RoverRuckusTeleop() {
@@ -76,7 +78,7 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         // Send telemetry data to the driver station.
         //
         updateTelemetry(); // Update common telemetry
-        updateGamepadTelemetry();
+        //updateGamepadTelemetry();
 
         logBatteryState("-- requested by log mark --");
     }
@@ -93,34 +95,51 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         particleScoringMechanism.doPeriodicTask();
     }
 
+    double collectorGateOpenPosition = 1;
+
+    double collectorGateClosedPosition = 0;
+
     private void handleCollector() {
-        // We will be using left stick, right stick, y axis on operator controller
-        // Remember, y axis, -1 is "forward"
-
-        double DEADBAND = 0.5; // How far do we need to push the stick to make it go?
-
-        RangeInput collectorDeployInput = operatorsGamepad.getRightStickY();
-
-        RangeInput collectorSweepInput = operatorsGamepad.getLeftStickY();
-
-        double collectorDeployPosition = collectorDeployInput.getPosition();
-
-        double collectorSweepPosition = collectorSweepInput.getPosition();
-
-        if (collectorDeployPosition > DEADBAND) {
-            collectorDeployMotor.setPower(-.25); // in
-        } else if (collectorDeployPosition < -DEADBAND) {
-            collectorDeployMotor.setPower(.25); // out
+        if (loadToBoxButton.isPressed()) {
+            // Note, only allow loading if elevator is at low limit position (unless overridden)
+            if (limitOverrideButton.isPressed() || particleScoringMechanism.isAtLowerLimit()){
+                collectorGateServo.setPosition(collectorGateOpenPosition);
+                collectorSweepMotor.setPower(-.5);
+                // FIXME: Do we want to deploy a little bit of IN deploy if power isn't already set?
+                collectorDeployMotor.setPower(COLLECTOR_DEPLOY_IN_POWER / 2);
+            }
         } else {
-            collectorDeployMotor.setPower(0);
-        }
 
-        if (collectorSweepPosition < -DEADBAND) {
-            collectorSweepMotor.setPower(.5); // deploy
-        } else if (collectorSweepPosition > DEADBAND) {
-            collectorSweepMotor.setPower(-.5); // stow
-        } else {
-            collectorSweepMotor.setPower(0);
+            collectorGateServo.setPosition(collectorGateClosedPosition);
+
+            // TODO: File issues/tasks to make it less error-prone for 3rd league meet
+
+            // We will be using left stick, right stick, y axis on operator controller
+            // Remember, y axis, -1 is "forward"
+
+            double DEADBAND = 0.5; // How far do we need to push the stick to make it go?
+
+            double collectorDeployPosition = collectorDeployInput.getPosition();
+
+            double collectorSweepPosition = collectorSweepInput.getPosition();
+
+            if (collectorDeployPosition > DEADBAND) {
+                collectorDeployMotor.setPower(COLLECTOR_DEPLOY_IN_POWER); // in
+            } else if (collectorDeployPosition < -DEADBAND) {
+                collectorDeployMotor.setPower(COLLECTOR_DEPLOY_OUT_POWER); // out
+            } else {
+                collectorDeployMotor.setPower(0);
+            }
+
+            if (collectorSweepPosition < -DEADBAND) {
+                collectorSweepMotor.setPower(1.0); // out
+            } else if (collectorSweepPosition > DEADBAND) {
+                collectorSweepMotor.setPower(-1.0); // in
+                // FIXME: Do we want to deploy a little bit of out deploy if power isn't already set?
+                collectorDeployMotor.setPower(COLLECTOR_DEPLOY_OUT_POWER / 2);
+            } else {
+                collectorSweepMotor.setPower(0);
+            }
         }
     }
 

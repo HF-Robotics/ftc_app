@@ -21,8 +21,14 @@ package com.hfrobots.tnt.season1819;
 
 import android.util.Log;
 
+import com.acmerobotics.roadrunner.path.heading.ConstantInterpolator;
+import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
+import com.acmerobotics.roadrunner.trajectory.constraints.DriveConstraints;
+import com.acmerobotics.roadrunner.trajectory.constraints.MecanumConstraints;
 import com.hfrobots.tnt.corelib.Constants;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
+import com.hfrobots.tnt.corelib.state.ServoPositionState;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -42,7 +48,9 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
     // The routes our robot knows how to do
     private enum Routes {
-        Only_Option("Our only option");
+        DESCEND_ONLY("Descend Only"),
+        FACING_DEPOT("Facing Depot (Gold)"),
+        FACING_CRATER("Facing Crater (Silver)");
 
         final String description;
 
@@ -65,6 +73,16 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     private Constants.Alliance currentAlliance = Constants.Alliance.RED;
 
     private int initialDelaySeconds = 0;
+
+    // change these constraints to something reasonable for your drive
+    DriveConstraints baseConstraints = new DriveConstraints(25.0,
+            40.0,
+            Math.PI / 2,
+            Math.PI / 2);
+
+    MecanumConstraints mecanumConstraints = mecanumConstraints  = new MecanumConstraints(
+            baseConstraints, RoadrunnerMecanumDriveAdapter.TRACK_WIDTH
+            , RoadrunnerMecanumDriveAdapter.WHEEL_BASE);
 
     public RoverRuckusAutonomous() {
         imuNeeded = false; // for now...
@@ -189,8 +207,14 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 Routes selectedRoute = possibleRoutes[selectedRoutesIndex];
 
                 switch (selectedRoute) {
-                    case Only_Option:
+                    case DESCEND_ONLY:
                         selectedState = descendOnly();
+                        break;
+                    case FACING_DEPOT:
+                        selectedState = facingDepot();
+                        break;
+                    case FACING_CRATER:
+                        selectedState = facingCrater();
                         break;
                     default:
                         selectedState = newDoneState("Default done");
@@ -258,6 +282,218 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 TimeUnit.SECONDS.toMillis(5));
         offTheHook.setNextState(awayFromLanderFinal);
         awayFromLanderFinal.setNextState(newDoneState("done"));
+
+        return initialState;
+    }
+
+    protected State facingDepot() {
+        // FIXME: After league meet, we should not copy-and-paste the descent,
+        //        it should come from a shared method
+
+        State initialState = new DescenderState(telemetry);
+
+        MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
+                "away from lander one", telemetry, mecanumDrive, 1.0,
+                TimeUnit.SECONDS.toMillis(5));
+        initialState.setNextState(awayFromLanderOne);
+
+        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
+                telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
+        awayFromLanderOne.setNextState(offTheHook);
+
+        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
+                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14,
+                TimeUnit.SECONDS.toMillis(5));
+        offTheHook.setNextState(awayFromLander);
+
+        // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
+        // go back to our old style drive/strafe distance states! (slightly different motor
+        // setup required, done in the state itself)
+
+        // --------------------------------------------------------------
+        // move forward 34.5 inches (subtract 4" from this for "from landing")
+        // turn (counter - mm) clockwise 45 degrees
+        // --------------------------------------------------------------
+
+        // Remember, right hand rule, turns go CCW for + angles
+        double turnInDegrees = 45; // note - not alliance specific!
+
+        Trajectory toAlignWithWallTrajectory = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4), new ConstantInterpolator(0))
+                .turnTo(Math.toRadians(turnInDegrees)).build();
+
+        TrajectoryFollowerState toAlignWithWallState = new TrajectoryFollowerState(
+                "To align with wall",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toAlignWithWallTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        awayFromLander.setNextState(toAlignWithWallState);
+
+        // --------------------------------------------------------------
+        // strafe right 9.7 inches (I'd round to 10 or so...MM)
+        // move backward 45.4 inches
+        // --------------------------------------------------------------
+
+        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(10, -45.4), new ConstantInterpolator(0)).build(); // to crater
+
+        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
+                "To wall, then depot",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toWallThenDepotTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        toAlignWithWallState.setNextState(toWallThenDepotState);
+
+        // --------------------------------------------------------------
+        // (drop off team marker)
+        // --------------------------------------------------------------
+
+        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
+        toWallThenDepotState.setNextState(dropTeamMarker);
+
+        State waitForDrop = newDelayState("wait-for-drop", 2);
+        dropTeamMarker.setNextState(waitForDrop);
+
+        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo,TEAM_MARKER_STOWED_STATE);
+        waitForDrop.setNextState(storeTeamMarkerMech);
+
+        // --------------------------------------------------------------
+        // move forward 68.25 inches
+        // (parked at crater)
+        // --------------------------------------------------------------
+
+        Trajectory toCraterTrajectory = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(10, 68.3),
+                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
+
+        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
+                "To crater",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toCraterTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        storeTeamMarkerMech.setNextState(toCraterState);
+
+        // FIXME: Probably need a bit more power to end up breaking crater plane
+
+        toCraterState.setNextState(newDoneState("Done!"));
+
+        return initialState;
+    }
+
+    protected State facingCrater() {
+        // FIXME: After league meet, we should not copy-and-paste the descent,
+        //        it should come from a shared method
+
+        State initialState = new DescenderState(telemetry);
+
+        MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
+                "away from lander one", telemetry, mecanumDrive, 1.0,
+                TimeUnit.SECONDS.toMillis(5));
+        initialState.setNextState(awayFromLanderOne);
+
+        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
+                telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
+        awayFromLanderOne.setNextState(offTheHook);
+
+        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
+                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14,
+                TimeUnit.SECONDS.toMillis(5));
+        offTheHook.setNextState(awayFromLander);
+
+        // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
+        // go back to our old style drive/strafe distance states! (slightly different motor
+        // setup required, done in the state itself)
+
+        // --------------------------------------------------------------
+        // move forward 34.5 inches (subtract 4" from this for "from landing")
+        // turn (counter - mm) clockwise 135 degrees
+        // --------------------------------------------------------------
+
+        // Remember, right hand rule, turns go CCW for + angles
+        double turnInDegrees = 135 + 90; // note - not alliance specific!
+
+        Trajectory toAlignWithWallTrajectory = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4), new ConstantInterpolator(0))
+                .turnTo(Math.toRadians(turnInDegrees)).build();
+
+        TrajectoryFollowerState toAlignWithWallState = new TrajectoryFollowerState(
+                "To align with wall",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toAlignWithWallTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        awayFromLander.setNextState(toAlignWithWallState);
+
+        // --------------------------------------------------------------
+        // strafe LEFT 9.7 inches (I'd round to 10 or so...MM)
+        // move backward 45.4 inches
+        // --------------------------------------------------------------
+
+        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(-10, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(-10, -45.4), new ConstantInterpolator(0)).build(); // to crater
+
+        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
+                "To wall, then depot",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toWallThenDepotTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        toAlignWithWallState.setNextState(toWallThenDepotState);
+
+        // --------------------------------------------------------------
+        // (drop off team marker)
+        // --------------------------------------------------------------
+
+        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
+        toWallThenDepotState.setNextState(dropTeamMarker);
+
+        State waitForDrop = newDelayState("wait-for-drop", 2);
+        dropTeamMarker.setNextState(waitForDrop);
+
+        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo,TEAM_MARKER_STOWED_STATE);
+        waitForDrop.setNextState(storeTeamMarkerMech);
+
+        // --------------------------------------------------------------
+        // move forward 68.25 inches
+        // (parked at crater)
+        // --------------------------------------------------------------
+
+        Trajectory toCraterTrajectory = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(-10, 68.3),
+                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
+
+        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
+                "To crater",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toCraterTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        waitForDrop.setNextState(toCraterState);
+
+        // FIXME: Probably need a bit more power to end up breaking crater plane
+
+        toCraterState.setNextState(newDoneState("Done!"));
 
         return initialState;
     }

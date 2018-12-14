@@ -38,6 +38,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 import java.util.Iterator;
@@ -86,6 +87,10 @@ public abstract class RoverRuckusHardware extends OpMode {
     protected DcMotor collectorDeployMotor;
 
     protected DcMotor collectorSweepMotor;
+
+    protected RangeInput collectorDeployInput;
+
+    protected RangeInput collectorSweepInput;
 
     protected DigitalChannel acDcLimitSwitch;
 
@@ -157,9 +162,23 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected DebouncedButton elevatorEmergencyStopButton;
 
+    protected OnOffButton loadToBoxButton;
+
+    protected OnOffButton boxTipButton;
+
     protected ExtendedDcMotor particleScoreElevatorMotor;
 
+    protected Servo boxTipServo;
+
+    protected Servo boxGateServo;
+
+    protected Servo collectorGateServo;
+
+    protected Servo teamMarkerServo;
+
     protected ParticleScoringMechanism particleScoringMechanism;
+
+    protected OnOffButton limitOverrideButton;
 
     /*
      * Perform any actions that are necessary when the OpMode is enabled.
@@ -179,6 +198,8 @@ public abstract class RoverRuckusHardware extends OpMode {
         setupCollector();
 
         setupParticleScoringMechanism();
+
+        setupTeamMarker();
 
         if (imuNeeded) {
             initImu();
@@ -206,10 +227,23 @@ public abstract class RoverRuckusHardware extends OpMode {
             particleScoreElevatorMotor = null;
         }
 
+        boxTipServo = hardwareMap.servo.get("boxTipServo");
+
+        boxGateServo = hardwareMap.servo.get("boxGateServo");
+
         particleScoringMechanism = new ParticleScoringMechanism(elevatorCommandUpButton,
                 elevatorCommandDownButton, elevatorUpperLimitButton, elevatorLowerLimitButton,
                 elevatorEmergencyStopButton, particleScoreElevatorMotor, null, null,
-                telemetry);
+                telemetry, boxTipServo, boxTipButton, limitOverrideButton);
+    }
+
+    public static final double TEAM_MARKER_DUMP_POS = .25;
+
+    public static final double TEAM_MARKER_STOWED_STATE = 1.0;
+
+    protected void setupTeamMarker() {
+        teamMarkerServo = hardwareMap.servo.get("teamMarkerServo");
+        teamMarkerServo.setPosition(TEAM_MARKER_STOWED_STATE);
     }
 
 
@@ -234,6 +268,8 @@ public abstract class RoverRuckusHardware extends OpMode {
 
             collectorSweepMotor = null;
         }
+
+        collectorGateServo = hardwareMap.servo.get("collectorGateServo");
     }
 
 
@@ -439,33 +475,64 @@ public abstract class RoverRuckusHardware extends OpMode {
         };
     }
 
-    // FIXME
     private void setupOperatorControls() {
+
         operatorsGamepad = new NinjaGamePad(gamepad2);
 
+        // ----------------------
+        // Global operator controls
+        // ----------------------
+
+        limitOverrideButton = new RangeInputButton(
+                operatorsGamepad.getRightTrigger(), 0.65f);
+
+        // MM: Tricky - used multiple places, need each usage to track own state
+        OnOffButton eStopButton = operatorsGamepad.getBButton();
+
+        // ----------------------
+        // Ascender/Descender controls
+        // ----------------------
+
         // acdc - on-offs
+
         acDcExtendButton = operatorsGamepad.getDpadUp();
 
         acDcRetractButton = operatorsGamepad.getDpadDown();
 
-        // acdc - debounced
-        acDcLimitOverrideButton = operatorsGamepad.getXButton();
+        acDcLimitOverrideButton = limitOverrideButton;
 
-        acDcStopButton = new DebouncedButton(operatorsGamepad.getBButton());
+        // acdc - debounced
+
+        acDcStopButton = new DebouncedButton(eStopButton);
 
         acDcHomeButton = new DebouncedButton(operatorsGamepad.getRightBumper());
 
-        // elevator
+        // ----------------------
+        // Elevator controls
+        // ----------------------
 
         elevatorCommandUpButton = operatorsGamepad.getLeftBumper();
 
-        elevatorCommandDownButton = new RangeInputButton(operatorsGamepad.getLeftTrigger(), .65f);
+        elevatorCommandDownButton = new RangeInputButton(
+                operatorsGamepad.getLeftTrigger(), .65f);
 
-        elevatorUpperLimitButton = new DebouncedButton (operatorsGamepad.getYButton());
+        elevatorUpperLimitButton = new DebouncedButton(operatorsGamepad.getYButton());
 
-        elevatorLowerLimitButton = new DebouncedButton (operatorsGamepad.getAButton());
+        elevatorLowerLimitButton = new DebouncedButton(operatorsGamepad.getAButton());
 
-        elevatorEmergencyStopButton = new DebouncedButton(operatorsGamepad.getBButton());
+        elevatorEmergencyStopButton = new DebouncedButton(eStopButton);
+
+        boxTipButton = operatorsGamepad.getXButton();
+
+        // ----------------------
+        // Collector controls
+        // ----------------------
+
+        collectorDeployInput = operatorsGamepad.getRightStickY();
+
+        collectorSweepInput = operatorsGamepad.getLeftStickY();
+
+        loadToBoxButton = operatorsGamepad.getDpadRight();
     }
 
     private final float lowPassFilterFactor = .92F;

@@ -28,7 +28,9 @@ import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.hfrobots.tnt.corelib.drive.PidController;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -41,9 +43,12 @@ public class ParticleScoringMechanism {
 
     private static final double kP = .001;
 
-    private static int ELEVATOR_UPPER_LIMIT_ENCODER_POS = 1700; // FIXME: Not correct, need to measure
+    private static int ELEVATOR_UPPER_LIMIT_ENCODER_POS = 1550;
 
-    private static int ELEVATOR_LOWER_LIMIT_ENCODER_POS = 0; // FIXME: Is this correct?
+    private static int ELEVATOR_LOWER_LIMIT_ENCODER_POS = -130; // FIXME: 12/10 HACK HACK HACK?
+
+    private static int AUTO_STALL_TIMEOUT_SECONDS = 5; // Value based on Kaylin and Lauren observing
+                                                       // length of a video of one cycle of the elevator
 
     private static double OPEN_LOOP_ELEVATOR_POWER_LEVEL = .3;
 
@@ -67,6 +72,19 @@ public class ParticleScoringMechanism {
 
     private State currentState;
 
+    // box tipping mechanism
+
+    private Servo boxTipServo;
+
+    private OnOffButton boxTipButton;
+
+    private OnOffButton limitOverrideButton;
+
+    private double tippedPostion = 1;
+
+    private double notTippedPostion = 0;
+
+
     public ParticleScoringMechanism(final OnOffButton elevatorCommandUpButton,
 
                                     final OnOffButton elevatorCommandDownButton,
@@ -77,7 +95,10 @@ public class ParticleScoringMechanism {
                                     final ExtendedDcMotor elevatorMotor,
                                     final DigitalChannel upperElevatorLimit,
                                     final DigitalChannel lowerElevatorLimit,
-                                    final Telemetry telemetry) {
+                                    final Telemetry telemetry,
+                                    final Servo boxTipServo,
+                                    final OnOffButton boxTipButton,
+                                    final OnOffButton limitOverrideButton) {
         this.elevatorCommandUpButton = elevatorCommandUpButton;
 
         this.elevatorCommandDownButton = elevatorCommandDownButton;
@@ -95,6 +116,12 @@ public class ParticleScoringMechanism {
         this.lowerElevatorLimit = lowerElevatorLimit;
 
         this.telemetry = telemetry;
+
+        this.boxTipServo = boxTipServo;
+
+        this.boxTipButton = boxTipButton;
+
+        this.limitOverrideButton = limitOverrideButton;
 
         ElevatorGoUpperLimitState goUpperLimitState = new ElevatorGoUpperLimitState(telemetry);
 
@@ -147,6 +174,18 @@ public class ParticleScoringMechanism {
     }
 
     public void doPeriodicTask() {
+        String tippedState = handleTipAndGate();
+        String currentStateName = currentState.getName();
+
+        if (currentStateName != null) {
+            currentStateName = currentStateName.replace("Elev-", "");
+        } else {
+            currentStateName = "Unk";
+        }
+
+        telemetry.addData("SM: ", "e: " + currentStateName + " b: " + tippedState +
+                (limitOverrideButton.isPressed() ? "!" : ""));
+
         State nextState = currentState.doStuffAndGetNextState();
 
         if (nextState != currentState) {
@@ -157,6 +196,49 @@ public class ParticleScoringMechanism {
         }
 
         currentState = nextState;
+    }
+
+    // FIXME: This works for now, but it's not object-oriented. All of these state-specific behaviors
+    // belong in the states themselves, and we can take care of *only* the limit override case here!
+    // (but it works, and is good enough for league meet #2).
+    public String handleTipAndGate() {
+        if (boxTipButton.isPressed()) {
+            if (limitOverrideButton.isPressed() || isAtUpperLimit()) {
+                boxTipServo.setPosition(tippedPostion);
+
+                return "\\";
+            }
+        } else if (currentState != null &&
+                currentStateIsGoingUpOrAtUpperLimit()) {
+            if (boxTipButton.isPressed()) {
+                boxTipServo.setPosition(tippedPostion);
+
+                return "\\";
+            } else {
+                boxTipServo.setPosition(tippedPostion / 2);
+
+                return "/";
+            }
+        } else {
+           boxTipServo.setPosition(notTippedPostion);
+
+           return "-";
+        }
+
+        return "-";
+    }
+
+    private boolean currentStateIsGoingUpOrAtUpperLimit() {
+        return currentState.getClass().getName().equals(ElevatorGoUpperLimitState.class.getName()) ||
+                currentState.getClass().getName().equals(ElevatorAtUpperLimitState.class.getName());
+    }
+
+    public boolean isAtUpperLimit() {
+        return currentState.getClass().getName().equals(ElevatorAtUpperLimitState.class.getName());
+    }
+
+    public boolean isAtLowerLimit() {
+       return currentState.getClass().getName().equals(ElevatorAtLowerLimitState.class.getName());
     }
 
     abstract class ElevatorBaseState extends TimeoutSafetyState {
@@ -200,7 +282,7 @@ public class ParticleScoringMechanism {
             this.idleState = idleState;
 
             // FIXME: Assert that everything that is required, has been set! (there was a bug hiding in this code!)
-            
+
         }
 
         protected State handleButtons() {
@@ -259,13 +341,11 @@ public class ParticleScoringMechanism {
         }
 
         protected void setupPidController() {
-            // Hint for tolerance - 1120 encoder ticks per full revolution, full revolution moves lead screw
-            // 8mm...so what * distance * in mm of error is okay, then convert that to encoder ticks
-
             pidController = PidController.builder().setInstanceName("Scoring mechanism pid-controller")
                     .setKp(kP).setAllowOscillation(false)
                     .setTolerance(140)
                     .build();
+            pidController.setAbsoluteSetPoint(true);
             pidController.setOutputRange(-ELEVATOR_POWER_LEVEL, ELEVATOR_POWER_LEVEL);
         }
     }
@@ -273,7 +353,7 @@ public class ParticleScoringMechanism {
     class ElevatorGoUpperLimitState extends ElevatorClosedLoopState {
 
         ElevatorGoUpperLimitState(Telemetry telemetry) {
-            super("Elev-auto-up", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
+            super("Elev-auto-top", telemetry, TimeUnit.SECONDS.toMillis(AUTO_STALL_TIMEOUT_SECONDS));
         }
 
         @Override
@@ -337,7 +417,7 @@ public class ParticleScoringMechanism {
     class ElevatorGoLowerLimitState extends ElevatorClosedLoopState {
 
         ElevatorGoLowerLimitState(Telemetry telemetry) {
-            super("Elev-auto-lower", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
+            super("Elev-auto-bot", telemetry, TimeUnit.SECONDS.toMillis(AUTO_STALL_TIMEOUT_SECONDS)); // FIXME
         }
 
         @Override
@@ -359,6 +439,7 @@ public class ParticleScoringMechanism {
 
                 setupPidController();
 
+                pidController.setOutputRange(-.4, .4); // fix bouncing while descending
                 pidController.setAbsoluteSetPoint(true); // MM
                 pidController.setTarget(ELEVATOR_LOWER_LIMIT_ENCODER_POS,
                         elevatorMotor.getCurrentPosition());
@@ -399,7 +480,7 @@ public class ParticleScoringMechanism {
     class ElevatorAtUpperLimitState extends ElevatorBaseState {
 
         ElevatorAtUpperLimitState(Telemetry telemetry) {
-            super("Elev-at-upper-limit", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
+            super("Elev-@-top", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
         }
 
         @Override
@@ -412,6 +493,12 @@ public class ParticleScoringMechanism {
                 Log.d(LOG_TAG, getName() + " responding to buttons and transitioning to " + fromButtonState.getName());
 
                 return fromButtonState;
+            } else if (fromButtonState != null && limitOverrideButton.isPressed()) {
+                if (fromButtonState != this) {
+                    Log.d(LOG_TAG, getName() + " - limits overridden - transitioning to " + fromButtonState.getName());
+
+                    return fromButtonState;
+                }
             }
 
             Log.d(LOG_TAG, getName() + " nothing to do, remaining in same state");
@@ -429,7 +516,7 @@ public class ParticleScoringMechanism {
     class ElevatorAtLowerLimitState extends ElevatorBaseState {
 
         ElevatorAtLowerLimitState(Telemetry telemetry) {
-            super("Elev-at-lower-limit", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
+            super("Elev-@-bot", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
         }
 
         @Override
@@ -442,6 +529,12 @@ public class ParticleScoringMechanism {
                 Log.d(LOG_TAG, getName() + " responding to buttons and transitioning to " + fromButtonState.getName());
 
                 return fromButtonState;
+            } else if (fromButtonState != null && limitOverrideButton.isPressed()) {
+                if (fromButtonState != this) {
+                    Log.d(LOG_TAG, getName() + " - limits overridden - transitioning to " + fromButtonState.getName());
+
+                    return fromButtonState;
+                }
             }
 
             Log.d(LOG_TAG, getName() + " nothing to do, remaining in same state");
@@ -455,46 +548,14 @@ public class ParticleScoringMechanism {
         }
     }
 
-
-    class ElevatorStowedState extends ElevatorBaseState {
-
-        ElevatorStowedState() {
-            super("Elev-stowed", null, TimeUnit.SECONDS.toMillis(60)); // FIXME
-        }
-
-        @Override
-        public State doStuffAndGetNextState() {
-            State fromButtonState = handleButtons();
-
-            if (fromButtonState != null) {
-                return fromButtonState;
-            }
-
-            return this;
-        }
-
-        @Override
-        public void liveConfigure(DebouncedGamepadButtons buttons) {
-
-        }
-    }
-
-
     class ElevatorDownCommandState extends ElevatorBaseState{
 
         ElevatorDownCommandState(Telemetry telemetry) {
-            super("Elev-cmd-down", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
+            super("Elev-cmd-dn", telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
         }
 
         @Override
         public State doStuffAndGetNextState() {
-            // State fromButtonState = handleButtons();
-
-            //if (fromButtonState != null) {
-            // Log.d(LOG_TAG, "Transitioning to " + fromButtonState.getName() + " due to button press");
-            //    return fromButtonState;
-            //}
-
             if (elevatorCommandUpButton.isPressed()) {
                     return upCommandState;
             } else if (elevatorUpperLimitButton.getRise()) {

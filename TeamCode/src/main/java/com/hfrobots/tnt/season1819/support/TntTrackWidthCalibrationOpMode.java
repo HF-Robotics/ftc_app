@@ -5,8 +5,10 @@ import com.acmerobotics.roadrunner.drive.TrackWidthCalibrationOpMode;
 import com.hfrobots.tnt.season1819.RoadrunnerMecanumDriveAdapter;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 @Autonomous(name="Trackwidth Tuner", group="Utilities")
+@Disabled
 public class TntTrackWidthCalibrationOpMode extends TrackWidthCalibrationOpMode {
     @Override
     protected Drive initDrive() {
