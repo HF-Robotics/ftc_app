@@ -28,7 +28,6 @@ import com.hfrobots.tnt.corelib.drive.ExtendedDcMotor;
 import com.hfrobots.tnt.corelib.drive.PidController;
 import com.hfrobots.tnt.corelib.state.State;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -80,9 +79,11 @@ public class ParticleScoringMechanism {
 
     private OnOffButton limitOverrideButton;
 
-    private double tippedPostion = 1;
+    private double scoringPosition = 1;
 
-    private double notTippedPostion = 0;
+    private double loadingPosition = 0;
+
+    private double holdingPosition = scoringPosition / 2;
 
 
     public ParticleScoringMechanism(final OnOffButton elevatorCommandUpButton,
@@ -159,6 +160,8 @@ public class ParticleScoringMechanism {
                 upCommandState, atLowerLimitState, atUpperLimitState, idleState);
 
         currentState = atLowerLimitState;
+
+        boxTipServo.setPosition(loadingPosition);
     }
 
     protected void stopElevator() {
@@ -201,26 +204,29 @@ public class ParticleScoringMechanism {
     // FIXME: This works for now, but it's not object-oriented. All of these state-specific behaviors
     // belong in the states themselves, and we can take care of *only* the limit override case here!
     // (but it works, and is good enough for league meet #2).
-    public String handleTipAndGate() {
+    public String handleTipAndGateOld() {
+        // FIXME: What we want to try - is to have the box be "safe" when traveling up or down
+        //        or idle *but* be horizontal when in the loading position, or near the loading position
+        //        (probably encoder-based measurement to determine that)
+
         if (boxTipButton.isPressed()) {
             if (limitOverrideButton.isPressed() || isAtUpperLimit()) {
-                boxTipServo.setPosition(tippedPostion);
+                boxTipServo.setPosition(scoringPosition);
 
                 return "\\";
             }
-        } else if (currentState != null &&
-                currentStateIsGoingUpOrAtUpperLimit()) {
+        } else if (currentStateIsGoingUpOrAtUpperLimit()) {
             if (boxTipButton.isPressed()) {
-                boxTipServo.setPosition(tippedPostion);
+                boxTipServo.setPosition(scoringPosition);
 
                 return "\\";
             } else {
-                boxTipServo.setPosition(tippedPostion / 2);
+                boxTipServo.setPosition(holdingPosition);
 
                 return "/";
             }
         } else {
-           boxTipServo.setPosition(notTippedPostion);
+           boxTipServo.setPosition(loadingPosition);
 
            return "-";
         }
@@ -228,7 +234,127 @@ public class ParticleScoringMechanism {
         return "-";
     }
 
+    // FIXME: This works for now, but it's not object-oriented. All of these state-specific behaviors
+    // belong in the states themselves, and we can take care of *only* the limit override case here!
+    // (but it works, and is good enough for league meet #2).
+    public String handleTipAndGate() {
+        // First handle box tip button and override - no exceptions
+
+        if (boxTipButton.isPressed()) {
+            if (limitOverrideButton.isPressed() || isAtUpperLimit()) {
+                boxTipServo.setPosition(scoringPosition);
+
+                return "\\";
+            }
+        } else if (currentStateIsAtUpperLimit()) {
+            boxTipServo.setPosition(holdingPosition);
+
+            return "/";
+
+        } else if (currentStateIsClosedLoopUp()) {
+            boxTipServo.setPosition(holdingPosition);
+
+            return "/";
+
+        } else if (currentStateIsClosedLoopDown()) {
+            boxTipServo.setPosition(holdingPosition);
+
+            return "/";
+
+        } else if (currentStateIsOpenLoopUpOrDown()) {
+            boxTipServo.setPosition(holdingPosition);
+
+            return "/";
+
+        } else if (currentStateIsAtLowerLimit()) {
+            int elevatorMotorPosition = elevatorMotor.getCurrentPosition();
+
+            if (elevatorMotorPosition <= 90) {
+                boxTipServo.setPosition(loadingPosition);
+
+                return "-";
+             } else {
+                boxTipServo.setPosition(holdingPosition);
+
+                return "/";
+            }
+
+        } else if (currentStateIsIdle()) {
+            int elevatorMotorPosition = elevatorMotor.getCurrentPosition();
+
+            if (elevatorMotorPosition <= 90) {
+                boxTipServo.setPosition(loadingPosition);
+
+                return "-";
+
+            } else {
+                boxTipServo.setPosition(holdingPosition);
+
+                return "/";
+            }
+        }
+
+
+        boxTipServo.setPosition(holdingPosition);
+        return "/";
+    }
+
+    private boolean currentStateIsOpenLoopUpOrDown() {
+        if (currentState == null) {
+            return false;
+        }
+
+        boolean currentStateIsUpCommand = currentState.getClass().getName().equals(ElevatorUpCommandState.class.getName());
+        boolean currentStateIsDownCommand = currentState.getClass().getName().equals(ElevatorDownCommandState.class.getName());
+
+        return currentStateIsUpCommand || currentStateIsDownCommand;
+    }
+
+    private boolean currentStateIsIdle() {
+        if (currentState == null) {
+            return false;
+        }
+
+        return currentState.getClass().getName().equals(ElevatorIdleState.class.getName());
+    }
+
+    private boolean currentStateIsAtUpperLimit() {
+        if (currentState == null) {
+            return false;
+        }
+
+        return currentState.getClass().getName().equals(ElevatorAtUpperLimitState.class.getName());
+    }
+
+    private boolean currentStateIsAtLowerLimit() {
+        if (currentState == null) {
+            return false;
+        }
+
+        return currentState.getClass().getName().equals(ElevatorAtLowerLimitState.class.getName());
+    }
+
+    private boolean currentStateIsClosedLoopUp() {
+        if (currentState == null) {
+            return false;
+        }
+
+        return currentState.getClass().getName().equals(ElevatorGoUpperLimitState.class.getName());
+    }
+
+    private boolean currentStateIsClosedLoopDown() {
+        if (currentState == null) {
+            return false;
+        }
+
+        return currentState.getClass().getName().equals(ElevatorGoLowerLimitState.class.getName());
+    }
+
     private boolean currentStateIsGoingUpOrAtUpperLimit() {
+        if (currentState == null) {
+            return false;
+        }
+
         return currentState.getClass().getName().equals(ElevatorGoUpperLimitState.class.getName()) ||
                 currentState.getClass().getName().equals(ElevatorAtUpperLimitState.class.getName());
     }
