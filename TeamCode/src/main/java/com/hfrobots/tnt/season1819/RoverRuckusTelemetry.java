@@ -60,4 +60,5 @@ public abstract class RoverRuckusTelemetry extends RoverRuckusHardware {
     public void setErrorMessage(String message) {
         setFirstMessage("ERROR: " + message);
     }
+
 }

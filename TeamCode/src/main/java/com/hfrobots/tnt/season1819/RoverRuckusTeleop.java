@@ -60,6 +60,7 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
 
         // Reset RUN_TO_POSITION from autonomous
         acDcMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        teamMarkerServo.setPosition(TEAM_MARKER_DUMP_POS);
     }
 
 
@@ -69,6 +70,8 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
     @Override public void loop ()
 
     {
+        teamMarkerServo.setPosition(TEAM_MARKER_DUMP_POS);
+
         handleDrivingInputs();
         handleAscender();
         handleCollector();
@@ -99,13 +102,31 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
 
     double collectorGateClosedPosition = 0;
 
+    private boolean isSafeToLoadAllTheThings(){
+        boolean collectorInPos = !collectorStowLimitSwitch.getState(); // returns false for active
+        boolean scoreBoxInPos = !scoreBoxReadyToLoadLimitSwitch.getState(); // returns false for active
+
+        if (collectorInPos & scoreBoxInPos) {
+            return true;
+        }
+
+        return false;
+    }
+
     private void handleCollector() {
+        // WARNING WARNING WARNING WARNING
+        //
+        // Order here is important - operator can't override the loading behavior if it comes
+        // after the processing of commands to manually operate the collector...Any refactoring
+        // of this code needs to maintain the override functionality - we have needed it during
+        // matches! (we accidentally created this order - we found out we want it)
+
         if (loadToBoxButton.isPressed()) {
             // Note, only allow loading if elevator is at low limit position (unless overridden)
             if (limitOverrideButton.isPressed() || particleScoringMechanism.isAtLowerLimit()){
                 collectorGateServo.setPosition(collectorGateOpenPosition);
                 collectorSweepMotor.setPower(-.5);
-                // FIXME: Do we want to deploy a little bit of IN deploy if power isn't already set?
+
                 collectorDeployMotor.setPower(COLLECTOR_DEPLOY_IN_POWER / 2);
             }
         } else {
@@ -135,30 +156,11 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
                 collectorSweepMotor.setPower(1.0); // out
             } else if (collectorSweepPosition > DEADBAND) {
                 collectorSweepMotor.setPower(-1.0); // in
-                // FIXME: Do we want to deploy a little bit of out deploy if power isn't already set?
                 collectorDeployMotor.setPower(COLLECTOR_DEPLOY_OUT_POWER / 2);
             } else {
                 collectorSweepMotor.setPower(0);
             }
         }
-    }
-
-    private void handleAscender() {
-        if (acDcExtendButton.isPressed()){
-            ascenderDescender.extend(acDcLimitOverrideButton.isPressed());
-        } else if (acDcRetractButton.isPressed()){
-            ascenderDescender.retract(acDcLimitOverrideButton.isPressed());
-        } else if (acDcHomeButton.getRise()){
-            ascenderDescender.home();
-        } else if (acDcStopButton.getRise()) {
-            ascenderDescender.stopMoving();
-        } else if (!ascenderDescender.isHoming()) {
-            ascenderDescender.stopMoving();
-        }
-
-        // do the periodic task on the linear actuator
-        ascenderDescender.doPeriodicTask();
-
     }
 
     private void handleDrivingInputs() {

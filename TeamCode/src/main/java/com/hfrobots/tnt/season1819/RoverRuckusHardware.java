@@ -94,6 +94,10 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected DigitalChannel acDcLimitSwitch;
 
+    protected DigitalChannel collectorStowLimitSwitch;
+
+    protected DigitalChannel scoreBoxReadyToLoadLimitSwitch;
+
     protected LinearActuator ascenderDescender;
 
     protected RangeInput driverLeftStickX;
@@ -226,6 +230,14 @@ public abstract class RoverRuckusHardware extends OpMode {
 
             particleScoreElevatorMotor = null;
         }
+        try {
+            scoreBoxReadyToLoadLimitSwitch = hardwareMap.digitalChannel.get("scoreBoxReadyToLoadLimitSwitch");
+        } catch (Exception ex) {
+            appendWarningMessage("scoreBoxReadyToLoadLimitSwitch");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            scoreBoxReadyToLoadLimitSwitch = null;
+        }
 
         boxTipServo = hardwareMap.servo.get("boxTipServo");
 
@@ -237,9 +249,9 @@ public abstract class RoverRuckusHardware extends OpMode {
                 telemetry, boxTipServo, boxTipButton, limitOverrideButton);
     }
 
-    public static final double TEAM_MARKER_DUMP_POS = .25;
+    public static final double TEAM_MARKER_DUMP_POS = 1.0; // .25;
 
-    public static final double TEAM_MARKER_STOWED_STATE = 1.0;
+    public static final double TEAM_MARKER_STOWED_STATE = 0; // 1.0;
 
     protected void setupTeamMarker() {
         teamMarkerServo = hardwareMap.servo.get("teamMarkerServo");
@@ -267,6 +279,14 @@ public abstract class RoverRuckusHardware extends OpMode {
             Log.e(LOG_TAG, ex.getLocalizedMessage());
 
             collectorSweepMotor = null;
+        }
+        try {
+            collectorStowLimitSwitch = hardwareMap.digitalChannel.get("collectorStowLimitSwitch");
+        } catch (Exception ex) {
+            appendWarningMessage("collectorStowLimitSwitch");
+            Log.e(LOG_TAG, ex.getLocalizedMessage());
+
+            collectorStowLimitSwitch = null;
         }
 
         collectorGateServo = hardwareMap.servo.get("collectorGateServo");
@@ -344,8 +364,8 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected void setupAscenderDescender() {
         try {
-            acDcMotor = NinjaMotor.asNeverest20(hardwareMap.dcMotor.get("acDcMotor"));
-            acDcMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            acDcMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("acDcMotor"));
+            acDcMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         } catch (Exception ex) {
             appendWarningMessage("acDcMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());
@@ -572,4 +592,21 @@ public abstract class RoverRuckusHardware extends OpMode {
         driveBumpStrafeRightButton = driversGamepad.getRightBumper();
     }
 
+    protected void handleAscender() {
+        if (acDcExtendButton.isPressed()){
+            ascenderDescender.extend(acDcLimitOverrideButton.isPressed());
+        } else if (acDcRetractButton.isPressed()){
+            ascenderDescender.retract(acDcLimitOverrideButton.isPressed());
+        } else if (acDcHomeButton.getRise()){
+            ascenderDescender.home();
+        } else if (acDcStopButton.getRise()) {
+            ascenderDescender.stopMoving();
+        } else if (!ascenderDescender.isHoming()) {
+            ascenderDescender.stopMoving();
+        }
+
+        // do the periodic task on the linear actuator
+        ascenderDescender.doPeriodicTask();
+
+    }
 }
