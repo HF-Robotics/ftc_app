@@ -50,7 +50,8 @@ public class LinearActuator {
      * to this class...
      */
 
-    private int distanceToTravel = 11500; //changed from 11991
+    private int distanceToTravel = 8400;  // MM count for a NR-20 Orbital, calculated from prior
+                                          // value of 11,500 for a NR-20 non-orbital plus gear!!
 
     private int currentLowPosition = Integer.MIN_VALUE;
 
@@ -154,6 +155,7 @@ public class LinearActuator {
                 .setTolerance(140)
                 .build();
         pidController.setOutputRange(-powerLevel, powerLevel);
+        pidController.setAbsoluteSetPoint(true); // MM - Discuss with Team, have them re-debug this
 
         int currentPosition = motor.getCurrentPosition();
 
