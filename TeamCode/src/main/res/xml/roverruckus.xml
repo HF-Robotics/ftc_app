@@ -38,6 +38,9 @@ SOFTWARE.
             <Motor name="particleScoreElevatorMotor"  port="3" />
 
             <DigitalDevice name="acDcLimitSwitch" port="1" />
+            <DigitalDevice name="collectorStowLimitSwitch" port="3"/>
+            <DigitalDevice name="scoreBoxReadyToLoadLimitSwitch" port="5"/>
+            <DigitalDevice name="particleScoreElevatorLowLimitSwitch" port="7"/>
 
             <Servo name="teamMarkerServo" port="0" />
             <Servo name="collectorGateServo" port="1" />
