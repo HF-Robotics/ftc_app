@@ -19,6 +19,7 @@
 
 package com.hfrobots.tnt.season1819;
 
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.acmerobotics.roadrunner.path.heading.ConstantInterpolator;
@@ -36,6 +37,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
@@ -97,6 +100,13 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
+
+        try {
+            tensorFlowThread = new TensorflowThread(tfResultsMailbox, hardwareMap, TimeUnit.SECONDS.toMillis(30));
+            tensorFlowThread.initDetection();
+        } catch (Throwable t) {
+            Log.e(LOG_TAG, "Tensor flow thread could not be initialized", t);
+        }
     }
 
     @Override
@@ -122,13 +132,12 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     // Called repeatedly after init button has been pressed and init() has completed (we think)
     @Override
     public void init_loop() {
-        // FIXME: Post league-meet 1, discuss homing the linear actuator here...if we do, homing
-        // needs some timeouts...
-        
         if (driversGamepad == null) { // safety, need to double check whether we actually need this
             // not ready yet init() hasn't been called
             return;
         }
+
+        handleAscender();
 
         if (!configLocked) {
             doAutoConfig();
@@ -209,9 +218,14 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 switch (selectedRoute) {
                     case DESCEND_ONLY:
                         selectedState = descendOnly();
+
+                        if (tensorFlowThread != null) {
+                            tensorFlowThread.shutdownTensorFlow();
+                        }
+
                         break;
                     case FACING_DEPOT:
-                        selectedState = facingDepot();
+                        selectedState = facingDepotWithSampling();
                         break;
                     case FACING_CRATER:
                         selectedState = facingCrater();
@@ -241,7 +255,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
             telemetry.update(); // send all telemetry to the drivers' station
         } catch (Throwable t) {
             // Better logging than the FTC SDK provides :(
-            Log.e("VV", "Exception during state machine", t);
+            Log.e(LOG_TAG, "Exception during state machine", t);
 
             if (t instanceof RuntimeException) {
                 throw (RuntimeException)t;
@@ -362,7 +376,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         State waitForDrop = newDelayState("wait-for-drop", 2);
         dropTeamMarker.setNextState(waitForDrop);
 
-        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo,TEAM_MARKER_STOWED_STATE);
+        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo, /* MM TEAM_MARKER_STOWED_STATE */ TEAM_MARKER_DUMP_POS);
         waitForDrop.setNextState(storeTeamMarkerMech);
 
         // --------------------------------------------------------------
@@ -498,6 +512,282 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         return initialState;
     }
 
+    protected State facingCraterWithSampling() {
+        // FIXME: After league meet, we should not copy-and-paste the descent,
+        //        it should come from a shared method
+
+        State initialState = new StartTensorFlowDetectionState(telemetry);
+
+        State descendState = new DescenderState(telemetry);
+        initialState.setNextState(descendState);
+
+        MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
+                "away from lander one", telemetry, mecanumDrive, 1.0,
+                TimeUnit.SECONDS.toMillis(5));
+        descendState.setNextState(awayFromLanderOne);
+
+        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
+                telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
+        awayFromLanderOne.setNextState(offTheHook);
+
+        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
+                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14 + 1.0,
+                TimeUnit.SECONDS.toMillis(5));
+        offTheHook.setNextState(awayFromLander);
+
+        // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
+        // go back to our old style drive/strafe distance states! (slightly different motor
+        // setup required, done in the state itself)
+
+        // --------------------------------------------------------------
+        // move forward 34.5 inches (subtract 4" from this for "from landing")
+        // turn (counter - mm) clockwise 135 degrees
+        // --------------------------------------------------------------
+
+        double turnInDegrees = 135 + 90; // note - not alliance specific!
+
+        Trajectory sampleLeftThenAlignWithWallTrajectory =
+                createSampleLeftThenAlignWithWallTrajectory(turnInDegrees);
+
+        Trajectory sampleCenterThenAlignWithWallTrajectory =
+                createSampleCenterThenAlignWithWallTrajectory(turnInDegrees);
+
+        Trajectory sampleRightThenAlignWithWallTrajectory =
+                createSampleRightThenAlignWithWallTrajectory(turnInDegrees);
+
+        TrajectoryFollowerState sampleThenAlignWithWallState = new MineralTrajectoryState(
+                "Sample, then align with wall",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                sampleLeftThenAlignWithWallTrajectory,
+                sampleCenterThenAlignWithWallTrajectory,
+                sampleRightThenAlignWithWallTrajectory,
+                tfResultsMailbox,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+
+        awayFromLander.setNextState(sampleThenAlignWithWallState);
+
+        // --------------------------------------------------------------
+        // strafe LEFT 9.7 inches (I'd round to 10 or so...MM)
+        // move backward 45.4 inches
+        // --------------------------------------------------------------
+
+        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(-10, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(-10, -45.4), new ConstantInterpolator(0)).build(); // to crater
+
+        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
+                "To wall, then depot",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toWallThenDepotTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        sampleThenAlignWithWallState.setNextState(toWallThenDepotState);
+
+        // --------------------------------------------------------------
+        // (drop off team marker)
+        // --------------------------------------------------------------
+
+        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
+        toWallThenDepotState.setNextState(dropTeamMarker);
+
+        State waitForDrop = newDelayState("wait-for-drop", 2);
+        dropTeamMarker.setNextState(waitForDrop);
+
+        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo,TEAM_MARKER_STOWED_STATE);
+        waitForDrop.setNextState(storeTeamMarkerMech);
+
+        // --------------------------------------------------------------
+        // move forward 68.25 inches
+        // (parked at crater)
+        // --------------------------------------------------------------
+
+        Trajectory toCraterTrajectory = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(-10, 68.3),
+                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
+
+        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
+                "To crater",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toCraterTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        waitForDrop.setNextState(toCraterState);
+
+        // FIXME: Probably need a bit more power to end up breaking crater plane
+
+        toCraterState.setNextState(newDoneState("Done!"));
+
+        return initialState;
+    }
+
+    protected Queue<TensorflowThread.GOLD_MINERAL_POSITION> tfResultsMailbox = new LinkedBlockingQueue<>();
+
+    protected State facingDepotWithSampling() {
+        // FIXME: After league meet, we should not copy-and-paste the descent,
+        //        it should come from a shared method
+
+        State initialState = new StartTensorFlowDetectionState(telemetry);
+
+        State descendState = new DescenderState(telemetry);
+        initialState.setNextState(descendState);
+
+        MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
+                "away from lander one", telemetry, mecanumDrive, 1.0,
+                TimeUnit.SECONDS.toMillis(5));
+        descendState.setNextState(awayFromLanderOne);
+
+        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
+                telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
+        awayFromLanderOne.setNextState(offTheHook);
+
+        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
+                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14 + 1.0,
+                TimeUnit.SECONDS.toMillis(5));
+        offTheHook.setNextState(awayFromLander);
+
+        // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
+        // go back to our old style drive/strafe distance states! (slightly different motor
+        // setup required, done in the state itself)
+
+        // --------------------------------------------------------------
+        // move forward 34.5 inches (subtract 4" from this for "from landing")
+        // turn (counter - mm) clockwise 45 degrees
+        // --------------------------------------------------------------
+
+        double turnInDegrees = 45; // note - not alliance specific!
+
+        Trajectory sampleLeftThenAlignWithWallTrajectory =
+                createSampleLeftThenAlignWithWallTrajectory(turnInDegrees);
+
+        Trajectory sampleCenterThenAlignWithWallTrajectory =
+                createSampleCenterThenAlignWithWallTrajectory(turnInDegrees);
+
+        Trajectory sampleRightThenAlignWithWallTrajectory =
+                createSampleRightThenAlignWithWallTrajectory(turnInDegrees);
+
+        TrajectoryFollowerState sampleThenAlignWithWallState = new MineralTrajectoryState(
+                "Sample then align with wall",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                sampleLeftThenAlignWithWallTrajectory,
+                sampleCenterThenAlignWithWallTrajectory,
+                sampleRightThenAlignWithWallTrajectory,
+                tfResultsMailbox,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+
+        // FIXME: Remove after testing
+        sampleThenAlignWithWallState.setNextState(newDoneState("Done!"));
+        awayFromLander.setNextState(sampleThenAlignWithWallState);
+//
+//        // --------------------------------------------------------------
+//        // strafe right 9.7 inches (I'd round to 10 or so...MM)
+//        // move backward 45.4 inches
+//        // --------------------------------------------------------------
+//
+//        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+//                .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
+//                .lineTo(TntPose2d.toVector2d(10, -45.4), new ConstantInterpolator(0)).build(); // to crater
+//
+//        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
+//                "To wall, then depot",
+//                telemetry,
+//                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+//                toWallThenDepotTrajectory,
+//                baseConstraints,
+//                mecanumConstraints,
+//                hardwareMap);
+//        sampleThenAlignWithWallState.setNextState(toWallThenDepotState);
+//
+//        // --------------------------------------------------------------
+//        // (drop off team marker)
+//        // --------------------------------------------------------------
+//
+//        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
+//        toWallThenDepotState.setNextState(dropTeamMarker);
+//
+//        State waitForDrop = newDelayState("wait-for-drop", 2);
+//        dropTeamMarker.setNextState(waitForDrop);
+//
+//        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo, /* MM TEAM_MARKER_STOWED_STATE */ TEAM_MARKER_DUMP_POS);
+//        waitForDrop.setNextState(storeTeamMarkerMech);
+//
+//        // --------------------------------------------------------------
+//        // move forward 68.25 inches
+//        // (parked at crater)
+//        // --------------------------------------------------------------
+//
+//        Trajectory toCraterTrajectory = new TrajectoryBuilder(
+//                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+//                .lineTo(TntPose2d.toVector2d(10, 68.3),
+//                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
+//
+//        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
+//                "To crater",
+//                telemetry,
+//                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+//                toCraterTrajectory,
+//                baseConstraints,
+//                mecanumConstraints,
+//                hardwareMap);
+//        storeTeamMarkerMech.setNextState(toCraterState);
+//
+//        // FIXME: Probably need a bit more power to end up breaking crater plane
+//
+//        toCraterState.setNextState(newDoneState("Done!"));
+
+        return initialState;
+    }
+
+
+    @NonNull
+    private Trajectory createSampleLeftThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
+        // forward 4.5, turn 21 degrees CW
+        return new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(0, 6.0), new ConstantInterpolator(0)) // get to mineral
+                .turnTo(Math.toRadians(-75)) // turn towards mineral
+                .turnTo(Math.toRadians(0)) // turn back
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 - 6.0 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .turnTo(Math.toRadians(turnToStrafeInDegrees))
+                .build();
+    }
+
+    @NonNull
+    private Trajectory createSampleCenterThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
+        // forward 1.75, turn 21 degrees CCW
+        return new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                //.lineTo(TntPose2d.toVector2d(0, 1.5 /* FIXME: how far and in what direction do we drive? */), new ConstantInterpolator(0)) // get to mineral
+                .turnTo(Math.toRadians(75)) // turn towards mineral
+                .turnTo(Math.toRadians(0)) // turn back
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 - 0 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .turnTo(Math.toRadians(turnToStrafeInDegrees))
+                .build();
+    }
+
+    @NonNull
+    private Trajectory createSampleRightThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
+        // backwards 12.5, turn 21 degrees CCW
+        return new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(0, -14.5), new ConstantInterpolator(0)) // get to mineral
+                .turnTo(Math.toRadians(75)) // turn towards mineral
+                .turnTo(Math.toRadians(0)) // turn back
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 14.5 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .turnTo(Math.toRadians(turnToStrafeInDegrees))
+                .build();
+    }
+
     class DescenderState extends TimeoutSafetyState {
         public DescenderState(final Telemetry telemetry) {
             super("descending", telemetry, TimeUnit.SECONDS.toMillis(15));
@@ -545,6 +835,36 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         @Override
         public void liveConfigure(DebouncedGamepadButtons buttons) {
             // do nothing
+        }
+    }
+
+
+    private TensorflowThread tensorFlowThread;
+
+    class StartTensorFlowDetectionState extends TimeoutSafetyState {
+
+        protected StartTensorFlowDetectionState(Telemetry telemetry) {
+            super("Start TensorFlow", telemetry, TimeUnit.SECONDS.toMillis(7));
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            try {
+                if (tensorFlowThread != null) {
+                    tensorFlowThread.start();
+
+                    Log.d(LOG_TAG, "Started TensorFlow detection thread");
+                }
+            } catch (Throwable t) {
+                Log.e(LOG_TAG, "Could not start TensorFlow thread", t);
+            }
+
+            return nextState;
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
         }
     }
 }

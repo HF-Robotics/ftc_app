@@ -40,7 +40,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * using motion profiles for the given MecanumDrive.
  */
 public class TrajectoryFollowerState extends TimeoutSafetyState {
-    private Trajectory trajectory;
+    protected Trajectory trajectory;
 
     private RoadrunnerMecanumDriveAdapter driveAdapter;
 
