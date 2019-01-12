@@ -49,7 +49,7 @@ public class LinearActuator {
      * We should eventually be able to use this knowledge to add distance-specific travel methods
      * to this class...
      */
-
+    // 1090 ticks per inch
     private int distanceToTravel = 8400;  // MM count for a NR-20 Orbital, calculated from prior
                                           // value of 11,500 for a NR-20 non-orbital plus gear!!
 
