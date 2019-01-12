@@ -53,7 +53,9 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     private enum Routes {
         DESCEND_ONLY("Descend Only"),
         FACING_DEPOT("Facing Depot (Gold)"),
-        FACING_CRATER("Facing Crater (Silver)");
+        FACING_CRATER("Facing Crater (Silver)"),
+        SAMPLE_FACING_DEPOT("Sample Facing Depot (Gold)"),
+        SAMPLE_FACING_CRATER("Sample Facing Crater (Silver)");
 
         final String description;
 
@@ -118,6 +120,11 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     @Override
     public void stop() {
         super.stop();
+
+        if (tensorFlowThread != null) {
+            tensorFlowThread.shutdownTensorFlow();
+        }
+
         logBatteryState("Auto.stop()");
     }
 
@@ -225,10 +232,26 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
                         break;
                     case FACING_DEPOT:
-                        selectedState = facingDepotWithSampling();
+                        selectedState = facingDepot();
+
+                        if (tensorFlowThread != null) {
+                            tensorFlowThread.shutdownTensorFlow();
+                        }
+
                         break;
                     case FACING_CRATER:
                         selectedState = facingCrater();
+
+                        if (tensorFlowThread != null) {
+                            tensorFlowThread.shutdownTensorFlow();
+                        }
+
+                        break;
+                    case SAMPLE_FACING_DEPOT:
+                        selectedState = facingDepotWithSampling();
+                        break;
+                    case SAMPLE_FACING_CRATER:
+                        selectedState = facingCraterWithSampling();
                         break;
                     default:
                         selectedState = newDoneState("Default done");
@@ -354,7 +377,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
                 .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(10, -45.4), new ConstantInterpolator(0)).build(); // to crater
+                .lineTo(TntPose2d.toVector2d(10, -49.4), new ConstantInterpolator(0)).build(); // to crater
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -386,7 +409,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 68.3),
+                .lineTo(TntPose2d.toVector2d(10, 72.3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -460,7 +483,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
                 .lineTo(TntPose2d.toVector2d(-10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(-10, -45.4), new ConstantInterpolator(0)).build(); // to crater
+                .lineTo(TntPose2d.toVector2d(-10, -49.4), new ConstantInterpolator(0)).build(); // to crater
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -492,7 +515,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 68.3),
+                .lineTo(TntPose2d.toVector2d(-10, 72.3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -576,7 +599,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
                 .lineTo(TntPose2d.toVector2d(-10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(-10, -45.4), new ConstantInterpolator(0)).build(); // to crater
+                .lineTo(TntPose2d.toVector2d(-10, -49.4), new ConstantInterpolator(0)).build(); // to crater
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -608,7 +631,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 68.3),
+                .lineTo(TntPose2d.toVector2d(-10, 72.3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -686,64 +709,64 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 hardwareMap);
 
         // FIXME: Remove after testing
-        sampleThenAlignWithWallState.setNextState(newDoneState("Done!"));
+        // sampleThenAlignWithWallState.setNextState(newDoneState("Done!"));
         awayFromLander.setNextState(sampleThenAlignWithWallState);
-//
-//        // --------------------------------------------------------------
-//        // strafe right 9.7 inches (I'd round to 10 or so...MM)
-//        // move backward 45.4 inches
-//        // --------------------------------------------------------------
-//
-//        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-//                .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
-//                .lineTo(TntPose2d.toVector2d(10, -45.4), new ConstantInterpolator(0)).build(); // to crater
-//
-//        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
-//                "To wall, then depot",
-//                telemetry,
-//                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-//                toWallThenDepotTrajectory,
-//                baseConstraints,
-//                mecanumConstraints,
-//                hardwareMap);
-//        sampleThenAlignWithWallState.setNextState(toWallThenDepotState);
-//
-//        // --------------------------------------------------------------
-//        // (drop off team marker)
-//        // --------------------------------------------------------------
-//
-//        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
-//        toWallThenDepotState.setNextState(dropTeamMarker);
-//
-//        State waitForDrop = newDelayState("wait-for-drop", 2);
-//        dropTeamMarker.setNextState(waitForDrop);
-//
-//        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo, /* MM TEAM_MARKER_STOWED_STATE */ TEAM_MARKER_DUMP_POS);
-//        waitForDrop.setNextState(storeTeamMarkerMech);
-//
-//        // --------------------------------------------------------------
-//        // move forward 68.25 inches
-//        // (parked at crater)
-//        // --------------------------------------------------------------
-//
-//        Trajectory toCraterTrajectory = new TrajectoryBuilder(
-//                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-//                .lineTo(TntPose2d.toVector2d(10, 68.3),
-//                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
-//
-//        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
-//                "To crater",
-//                telemetry,
-//                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-//                toCraterTrajectory,
-//                baseConstraints,
-//                mecanumConstraints,
-//                hardwareMap);
-//        storeTeamMarkerMech.setNextState(toCraterState);
-//
-//        // FIXME: Probably need a bit more power to end up breaking crater plane
-//
-//        toCraterState.setNextState(newDoneState("Done!"));
+
+        // --------------------------------------------------------------
+        // strafe right 9.7 inches (I'd round to 10 or so...MM)
+        // move backward 45.4 inches
+        // --------------------------------------------------------------
+
+        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(10, -49.4), new ConstantInterpolator(0)).build(); // to crater
+
+        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
+                "To wall, then depot",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toWallThenDepotTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        sampleThenAlignWithWallState.setNextState(toWallThenDepotState);
+
+        // --------------------------------------------------------------
+        // (drop off team marker)
+        // --------------------------------------------------------------
+
+        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
+        toWallThenDepotState.setNextState(dropTeamMarker);
+
+        State waitForDrop = newDelayState("wait-for-drop", 2);
+        dropTeamMarker.setNextState(waitForDrop);
+
+        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo, /* MM TEAM_MARKER_STOWED_STATE */ TEAM_MARKER_DUMP_POS);
+        waitForDrop.setNextState(storeTeamMarkerMech);
+
+        // --------------------------------------------------------------
+        // move forward 68.25 inches
+        // (parked at crater)
+        // --------------------------------------------------------------
+
+        Trajectory toCraterTrajectory = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
+                .lineTo(TntPose2d.toVector2d(10, 72.3),
+                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
+
+        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
+                "To crater",
+                telemetry,
+                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                toCraterTrajectory,
+                baseConstraints,
+                mecanumConstraints,
+                hardwareMap);
+        storeTeamMarkerMech.setNextState(toCraterState);
+
+        // FIXME: Probably need a bit more power to end up breaking crater plane
+
+        toCraterState.setNextState(newDoneState("Done!"));
 
         return initialState;
     }
@@ -754,10 +777,10 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         // forward 4.5, turn 21 degrees CW
         return new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(0, 6.0), new ConstantInterpolator(0)) // get to mineral
-                .turnTo(Math.toRadians(-75)) // turn towards mineral
+                .lineTo(TntPose2d.toVector2d(0, 8.0), new ConstantInterpolator(0)) // get to mineral
+                .turnTo(Math.toRadians(-85)) // turn towards mineral
                 .turnTo(Math.toRadians(0)) // turn back
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 - 6.0 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 6.0 /* distance traveled to mineral */), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(turnToStrafeInDegrees))
                 .build();
     }
@@ -767,10 +790,10 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         // forward 1.75, turn 21 degrees CCW
         return new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                //.lineTo(TntPose2d.toVector2d(0, 1.5 /* FIXME: how far and in what direction do we drive? */), new ConstantInterpolator(0)) // get to mineral
-                .turnTo(Math.toRadians(75)) // turn towards mineral
+                .lineTo(TntPose2d.toVector2d(0, -3 /* FIXME: how far and in what direction do we drive? */), new ConstantInterpolator(0)) // get to mineral
+                .turnTo(Math.toRadians(85)) // turn towards mineral
                 .turnTo(Math.toRadians(0)) // turn back
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 - 0 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 3 /* distance traveled to mineral */), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(turnToStrafeInDegrees))
                 .build();
     }
@@ -780,10 +803,10 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         // backwards 12.5, turn 21 degrees CCW
         return new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(0, -14.5), new ConstantInterpolator(0)) // get to mineral
+                .lineTo(TntPose2d.toVector2d(0, -19), new ConstantInterpolator(0)) // get to mineral
                 .turnTo(Math.toRadians(75)) // turn towards mineral
                 .turnTo(Math.toRadians(0)) // turn back
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 14.5 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 5 /* distance traveled to mineral */), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(turnToStrafeInDegrees))
                 .build();
     }
