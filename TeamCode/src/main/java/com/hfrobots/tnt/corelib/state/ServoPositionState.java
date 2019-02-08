@@ -40,7 +40,10 @@ public class ServoPositionState extends State {
 
     @Override
     public State doStuffAndGetNextState() {
-        servo.setPosition(servoPosition);
+        if (servo != null) {
+            servo.setPosition(servoPosition);
+        }
+
         return nextState;
     }
 

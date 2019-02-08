@@ -184,6 +184,10 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected OnOffButton limitOverrideButton;
 
+    protected Servo m3ArmServo;
+
+    protected Servo m3FlagServo;
+
     /*
      * Perform any actions that are necessary when the OpMode is enabled.
      * <p/>
@@ -205,6 +209,8 @@ public abstract class RoverRuckusHardware extends OpMode {
 
         setupTeamMarker();
 
+        setupM3();
+
         if (imuNeeded) {
             initImu();
         } else {
@@ -216,6 +222,43 @@ public abstract class RoverRuckusHardware extends OpMode {
         if (voltageSensors.hasNext()) {
             voltageSensor = voltageSensors.next();
         }
+    }
+
+    protected static double M3_ARM_OUT_POSITION = 0;
+
+    protected static double M3_ARM_UP_POSITION = .49;
+
+    protected static double M3_FLAG_STOWED_POSITION = .494;
+
+    protected static double M3_FLAG_DEPLOYED_POSITION = .891;
+
+    protected void setupM3() {
+        // arm servo - out_position = 0
+        // arm servo - up-position=.49
+        // Flag servo stowed=.494
+        // Flag servo deployed=.891
+
+        m3ArmServo = hardwareMap.get(Servo.class, "m3ArmServo");
+
+        m3FlagServo = hardwareMap.get(Servo.class, "m3FlagServo");
+
+        m3FlagUp();
+
+        try {
+            Thread.currentThread().sleep(500);
+        } catch (InterruptedException intEx) {
+            // do nothing
+        }
+
+        m3ArmUp();
+    }
+
+    protected void m3ArmUp() {
+        m3ArmServo.setPosition(M3_ARM_UP_POSITION);
+    }
+
+    protected void m3FlagUp() {
+        m3FlagServo.setPosition(M3_FLAG_STOWED_POSITION);
     }
 
     protected void setupParticleScoringMechanism() {

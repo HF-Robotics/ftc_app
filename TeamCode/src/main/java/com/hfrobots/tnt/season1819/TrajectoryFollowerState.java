@@ -116,6 +116,9 @@ public class TrajectoryFollowerState extends TimeoutSafetyState {
             return this;
         }
 
+        // stop moving
+        driveAdapter.setMotorPowers(0, 0, 0, 0);
+
         return nextState;
     }
 

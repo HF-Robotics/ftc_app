@@ -27,6 +27,9 @@ SOFTWARE.
             <Motor name="rightFrontDriveMotor" port="1" /> <!-- orange -->
             <Motor name="leftRearDriveMotor"  port="2" /> <!-- green -->
             <Motor name="rightRearDriveMotor"  port="3" /> <!-- purple -->
+
+            <Servo name="m3ArmServo" port="4" />
+            <Servo name="m3FlagServo" port="5" />
         </LynxModule>
 
         <LynxModule name="Secondary Hub" port="3">
