@@ -410,7 +410,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 62.3),
+                .lineTo(TntPose2d.toVector2d(10, 62.3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -516,7 +516,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 62.3),
+                .lineTo(TntPose2d.toVector2d(-10, 62.3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -601,8 +601,8 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // --------------------------------------------------------------
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(-5, -49.4), new ConstantInterpolator(0)).build(); // to crater
+                .lineTo(TntPose2d.toVector2d(-11, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(-5 - 1, -49.4), new ConstantInterpolator(0)).build(); // to crater
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -634,7 +634,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 62.3),
+                .lineTo(TntPose2d.toVector2d(-10 + 2, 62.3 + 3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -722,8 +722,8 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // --------------------------------------------------------------
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(5, -49.4), new ConstantInterpolator(0)).build(); // to crater
+                .lineTo(TntPose2d.toVector2d(11, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(5 + 1, -49.4), new ConstantInterpolator(0)).build(); // to depot
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -755,7 +755,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 62.3),
+                .lineTo(TntPose2d.toVector2d(10 - 2, 62.3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
