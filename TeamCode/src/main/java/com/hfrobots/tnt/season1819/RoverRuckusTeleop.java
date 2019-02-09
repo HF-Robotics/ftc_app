@@ -77,13 +77,16 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         handleCollector();
         handleParticleScoringMechanism();
 
+        keepM3Stowed();
         //
         // Send telemetry data to the driver station.
         //
         updateTelemetry(); // Update common telemetry
-        //updateGamepadTelemetry();
+    }
 
-        logBatteryState("-- requested by log mark --");
+    private void keepM3Stowed() {
+        m3ArmUp();
+        m3FlagUp();
     }
 
     @Override
