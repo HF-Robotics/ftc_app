@@ -79,7 +79,8 @@ android {
         //
         versionCode vCode
         versionName vName
-        versionNameSuffix '-'+getGitHash()
+	// Enable outside of tournament play - this causes a field inspection FAIL
+        // versionNameSuffix '-'+getGitHash()
         multiDexEnabled true
     }
 
