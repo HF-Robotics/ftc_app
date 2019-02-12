@@ -61,9 +61,13 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
         // Reset RUN_TO_POSITION from autonomous
         acDcMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         teamMarkerServo.setPosition(TEAM_MARKER_DUMP_POS);
+        updateGamepadTelemetry();
     }
 
-
+    @Override
+    public void init_loop() {
+        updateGamepadTelemetry();
+    }
     /**
      * The system calls this member repeatedly while the OpMode is running.
      */
