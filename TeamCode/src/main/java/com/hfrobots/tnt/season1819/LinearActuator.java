@@ -111,7 +111,7 @@ public class LinearActuator {
                 currentLowPosition, currentHighPosition));
     }
 
-    private boolean isLowerLimitReached() {
+    public boolean isLowerLimitReached() {
         return !lowPositionLimitSwitch.getState();
     }
 

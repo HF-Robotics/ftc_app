@@ -37,6 +37,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import java.sql.Time;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -303,12 +304,15 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
     }
 
     protected State descendOnly() {
-        State initialState = new DescenderState(telemetry);
+        State initialState = new HomeAcDcState("Start home", telemetry);
+
+        State descenderState = new DescenderState(telemetry);
+        initialState.setNextState(descenderState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
-        initialState.setNextState(awayFromLanderOne);
+        descenderState.setNextState(awayFromLanderOne);
 
         MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
                 telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
@@ -327,12 +331,15 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
-        State initialState = new DescenderState(telemetry);
+        State initialState = new HomeAcDcState("Start home", telemetry);
+
+        State descenderState = new DescenderState(telemetry);
+        initialState.setNextState(descenderState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
-        initialState.setNextState(awayFromLanderOne);
+        descenderState.setNextState(awayFromLanderOne);
 
         MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
                 telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
@@ -434,12 +441,15 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
-        State initialState = new DescenderState(telemetry);
+        State initialState = new HomeAcDcState("Start home", telemetry);
+
+        State descenderState = new DescenderState(telemetry);
+        initialState.setNextState(descenderState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
-        initialState.setNextState(awayFromLanderOne);
+        descenderState.setNextState(awayFromLanderOne);
 
         MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
                 telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
@@ -540,10 +550,13 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
-        State initialState = new StartTensorFlowDetectionState(telemetry);
+        State initialState = new HomeAcDcState("Start home", telemetry);
+
+        State tensorFlowDetectionState = new StartTensorFlowDetectionState(telemetry);
+        initialState.setNextState(tensorFlowDetectionState);
 
         State descendState = new DescenderState(telemetry);
-        initialState.setNextState(descendState);
+        tensorFlowDetectionState.setNextState(descendState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
@@ -660,10 +673,13 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
-        State initialState = new StartTensorFlowDetectionState(telemetry);
+        State initialState = new HomeAcDcState("Start home", telemetry);
+
+        State tensorFlowDetectionState = new StartTensorFlowDetectionState(telemetry);
+        initialState.setNextState(tensorFlowDetectionState);
 
         State descendState = new DescenderState(telemetry);
-        initialState.setNextState(descendState);
+        tensorFlowDetectionState.setNextState(descendState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
@@ -932,6 +948,47 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
             }
 
             return nextState;
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    class HomeAcDcState extends TimeoutSafetyState {
+        private boolean startedHoming = false;
+
+        public HomeAcDcState(String name, Telemetry telemetry) {
+            super(name, telemetry, 1000 /* FIXME: What timeout do we want? */);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            if (isTimedOut()) {
+                Log.d(LOG_TAG, "timed out, moving on to auto");
+
+                ascenderDescender.stopMoving();
+
+                return nextState;
+            }
+
+            if (ascenderDescender.isLowerLimitReached()) {
+                Log.d(LOG_TAG, "reached lower limit, I have homed");
+
+                ascenderDescender.stopMoving();
+                return nextState;
+            } else if (!startedHoming) {
+                Log.d(LOG_TAG, "not homed, started homing now");
+
+                ascenderDescender.home();
+
+                startedHoming = true;
+            }
+
+            ascenderDescender.doPeriodicTask();
+
+            return this;
         }
 
         @Override
