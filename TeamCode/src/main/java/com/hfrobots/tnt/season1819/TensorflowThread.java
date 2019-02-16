@@ -128,12 +128,24 @@ public class TensorflowThread extends Thread {
                 }
             }
         } finally {
-            shutdownTensorFlow();
+            try {
+                shutdownTensorFlow();
+            } catch (Throwable t) {
+                Log.e(LOG_TAG, "Error when shutting down TensorFlow", t);
+            }
         }
 
-        if (tfResultsQueue.isEmpty()) {
-            Log.d(LOG_TAG, "Mineral not seen");
-            textToSpeech.speak("Error four oh four mineral not found ", TextToSpeech.QUEUE_FLUSH,null);
+        try {
+            if (tfResultsQueue.isEmpty()) {
+                Log.d(LOG_TAG, "Mineral not seen");
+                textToSpeech.speak("Error four oh four mineral not found ", TextToSpeech.QUEUE_FLUSH, null);
+            }
+        } finally {
+            try {
+                textToSpeech.shutdown();
+            } catch (Throwable t) {
+                Log.e(LOG_TAG, "Error when shutting down TTS", t);
+            }
         }
     }
 
