@@ -265,8 +265,11 @@ public abstract class RoverRuckusHardware extends OpMode {
         try {
             particleScoreElevatorMotor = NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("particleScoreElevatorMotor"));
             particleScoreElevatorMotor.setDirection(DcMotor.Direction.REVERSE);
-            particleScoreElevatorMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // MM
-            particleScoreElevatorMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE); // MM
+
+            // Need to disable RUN_USING_ENCODER end ZPB.Brake to use a voltage feed forward for holding
+            // but WHY?
+            particleScoreElevatorMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            particleScoreElevatorMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         } catch (Exception ex) {
             appendWarningMessage("particleScoreElevatorMotor");
             Log.e(LOG_TAG, ex.getLocalizedMessage());

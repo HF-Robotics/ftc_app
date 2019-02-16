@@ -41,6 +41,7 @@ public class ParticleScoringMechanism {
     private static final double ELEVATOR_POWER_LEVEL = 1;
 
     private static final double kP = .001;
+    private static final double ANTIGRAVITY_FEED_FORWARD = .14;
 
     private static int ELEVATOR_UPPER_LIMIT_ENCODER_POS = 1550;
 
@@ -527,6 +528,12 @@ public class ParticleScoringMechanism {
 
             Log.d(LOG_TAG, "Elevator setting power via PID to: " + pidOutput);
 
+            double ANTIGRAVITY_OVERCOME_FEED_FORWARD = .33;
+
+            if (pidOutput < ANTIGRAVITY_OVERCOME_FEED_FORWARD) {
+                pidOutput = ANTIGRAVITY_OVERCOME_FEED_FORWARD;
+            }
+
             elevatorMotor.setPower(pidOutput);
 
             return this;
@@ -591,6 +598,7 @@ public class ParticleScoringMechanism {
                 return atLowerLimitState;
             }
 
+
             elevatorMotor.setPower(pidOutput);
 
             return this;
@@ -618,15 +626,23 @@ public class ParticleScoringMechanism {
                     !fromButtonState.equals(upCommandState)) {
                 Log.d(LOG_TAG, getName() + " responding to buttons and transitioning to " + fromButtonState.getName());
 
+                elevatorMotor.setPower(0);
+
                 return fromButtonState;
             } else if (fromButtonState != null && limitOverrideButton.isPressed()) {
                 if (fromButtonState != this) {
                     Log.d(LOG_TAG, getName() + " - limits overridden - transitioning to " + fromButtonState.getName());
 
+                    elevatorMotor.setPower(0);
+
                     return fromButtonState;
                 }
             }
 
+            // FIXME: Let's start with feed-forward only, and see if we really need a PID
+            // to hold position
+
+            elevatorMotor.setPower(ANTIGRAVITY_FEED_FORWARD);
             Log.d(LOG_TAG, getName() + " nothing to do, remaining in same state");
 
             return this;
