@@ -40,7 +40,10 @@ import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 public class ParticleScoringMechanism {
     private static final double ELEVATOR_POWER_LEVEL = 1;
 
-    private static final double kP = .001;
+    private static final double kPup = .004;
+
+    private static final double kPdown = .0001;
+
     private static final double ANTIGRAVITY_FEED_FORWARD = .14;
 
     private static int ELEVATOR_UPPER_LIMIT_ENCODER_POS = 1550;
@@ -80,7 +83,7 @@ public class ParticleScoringMechanism {
 
     private OnOffButton limitOverrideButton;
 
-    private double scoringPosition = 1;
+    public static double scoringPosition = 1;
 
     private double loadingPosition = 0;
 
@@ -467,7 +470,7 @@ public class ParticleScoringMechanism {
             super(name, telemetry, TimeUnit.SECONDS.toMillis(60)); // FIXME
         }
 
-        protected void setupPidController() {
+        protected void setupPidController(double kP) {
             pidController = PidController.builder().setInstanceName("Scoring mechanism pid-controller")
                     .setKp(kP).setAllowOscillation(false)
                     .setTolerance(140)
@@ -499,7 +502,7 @@ public class ParticleScoringMechanism {
             if (!initialized) {
                 Log.d(LOG_TAG, "Initializing PID for state " + getName());
 
-                setupPidController();
+                setupPidController(kPup);
 
                 pidController.setAbsoluteSetPoint(true); // MM
                 pidController.setTarget(ELEVATOR_UPPER_LIMIT_ENCODER_POS,
@@ -570,9 +573,9 @@ public class ParticleScoringMechanism {
             if (!initialized) {
                 Log.d(LOG_TAG, "Initializing PID for state " + getName());
 
-                setupPidController();
+                setupPidController(kPdown);
 
-                pidController.setOutputRange(-.4, .4); // fix bouncing while descending
+                pidController.setOutputRange(-.1, .1); // fix bouncing while descending
                 pidController.setAbsoluteSetPoint(true); // MM
                 pidController.setTarget(ELEVATOR_LOWER_LIMIT_ENCODER_POS,
                         elevatorMotor.getCurrentPosition());

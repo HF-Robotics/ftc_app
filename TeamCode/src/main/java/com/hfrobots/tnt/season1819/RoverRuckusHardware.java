@@ -228,7 +228,7 @@ public abstract class RoverRuckusHardware extends OpMode {
 
     protected static double M3_ARM_UP_POSITION = .49;
 
-    protected static double M3_FLAG_STOWED_POSITION = .494;
+    protected static double M3_FLAG_STOWED_POSITION = .5111;
 
     protected static double M3_FLAG_DEPLOYED_POSITION = .891;
 
@@ -257,9 +257,13 @@ public abstract class RoverRuckusHardware extends OpMode {
         m3ArmServo.setPosition(M3_ARM_UP_POSITION);
     }
 
+    protected void m3ArmOut() { m3ArmServo.setPosition(M3_ARM_OUT_POSITION);}
+
     protected void m3FlagUp() {
         m3FlagServo.setPosition(M3_FLAG_STOWED_POSITION);
     }
+
+    protected void m3FlagOut() { m3FlagServo.setPosition(M3_FLAG_DEPLOYED_POSITION);}
 
     protected void setupParticleScoringMechanism() {
         try {
