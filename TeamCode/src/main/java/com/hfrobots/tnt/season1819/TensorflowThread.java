@@ -10,6 +10,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
@@ -158,27 +159,43 @@ public class TensorflowThread extends Thread {
     private void findGoldMineral(List<Recognition> updatedRecognitions) {
         if (updatedRecognitions.size() == 2 || updatedRecognitions.size() == 3) {
             int goldMineralX = -1;
+            int goldMineralY = - 1;
+
             int silverMineral1X = -1;
+            int silverMineral1Y = -1;
+
             int silverMineral2X = -1;
+            int silverMineral2Y = -1;
+
             int mineralsFound = 0;
 
             for (Recognition recognition : updatedRecognitions) {
-                Log.d(LOG_TAG, "TF recognized object labeled " + recognition.getLabel());
+                Log.d(LOG_TAG, "TF recognized object labeled " + recognition.getLabel()
+                + " @ " + recognition.getLeft() + ", " + recognition.getBottom()
+                        + "conf: " + recognition.getConfidence());
 
                 if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
                     goldMineralX = (int) recognition.getLeft();
+                    goldMineralY = (int) recognition.getBottom();
+
                     mineralsFound++;
                 } else if (silverMineral1X == -1) { // This is from example, it could be more accurate, how?
                     silverMineral1X = (int) recognition.getLeft();
+                    silverMineral1Y = (int) recognition.getBottom();
+
                     mineralsFound++;
                 } else { // This is from example, it could be more accurate, how?
                     silverMineral2X = (int) recognition.getLeft();
+                    silverMineral2Y = (int) recognition.getBottom();
+
                     mineralsFound++;
                 }
             }
 
-            Log.d(LOG_TAG, "Detected Mineral Positions (gold, silver, silver): " + goldMineralX
-            + ", " + silverMineral1X + ", " + silverMineral2X);
+            Log.d(LOG_TAG, "Detected Mineral Positions (gold, silver, silver): ("
+                    + goldMineralX + ", " + goldMineralY + ")"
+            + ", (" + silverMineral1X + ", " + silverMineral1Y + "), ("
+                    + silverMineral2X + ", " + silverMineral2Y + ")");
 
             // FIXME: Do we think "one and done" detection is good enough, or
             //        what if we detect that the gold mineral "moved"? What should
@@ -231,6 +248,14 @@ public class TensorflowThread extends Thread {
             }
         } else {
             Log.d(LOG_TAG, "Mineral positions not detected");
+
+            if (updatedRecognitions != null) {
+                for (Recognition recognition : updatedRecognitions) {
+                    Log.d(LOG_TAG, "INC - TF recognized object labeled " + recognition.getLabel()
+                            + " @ " + recognition.getLeft() + ", " + recognition.getBottom()
+                            + "conf: " + recognition.getConfidence());
+                }
+            }
         }
     }
 
@@ -277,6 +302,9 @@ public class TensorflowThread extends Thread {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+
+        // adjust confidence
+        //tfodParameters.minimumConfidence = ...;
 
         // Replace above if you don't want the camera view to display on the robot controller
         //TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters();

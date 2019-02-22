@@ -90,6 +90,10 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
             baseConstraints, RoadrunnerMecanumDriveAdapter.TRACK_WIDTH
             , RoadrunnerMecanumDriveAdapter.WHEEL_BASE);
 
+    boolean shouldTipBox = false;
+
+    boolean hasTippedBox = false;
+
     public NewRoverRuckusAutonomous() {
         imuNeeded = false; // for now...
     }
@@ -211,9 +215,15 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         }
     }
 
+    long tipBoxIfNeededDeadline = -1;
+
     @Override
     public void loop() {
         long cycleStartTimeMs = System.currentTimeMillis();
+
+        if (tipBoxIfNeededDeadline == -1) {
+            tipBoxIfNeededDeadline = cycleStartTimeMs + TimeUnit.SECONDS.toMillis(29);
+        }
 
         try {
             if (currentState == null) {
@@ -277,6 +287,16 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
             currentState = nextState;
             telemetry.update(); // send all telemetry to the drivers' station
+
+            if (System.currentTimeMillis() >= tipBoxIfNeededDeadline) {
+                if (shouldTipBox && !hasTippedBox) {
+                    if (boxTipServo != null) {
+                        boxTipServo.setPosition(ParticleScoringMechanism.scoringPosition);
+                    }
+
+                    hasTippedBox = true;
+                }
+            }
         } catch (Throwable t) {
             // Better logging than the FTC SDK provides :(
             Log.e(LOG_TAG, "Exception during state machine", t);
@@ -328,6 +348,8 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
     }
 
     protected State facingDepot() {
+        shouldTipBox = true;
+
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
@@ -417,7 +439,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 62.3 + 3),
+                .lineTo(TntPose2d.toVector2d(8, 62.3 + 3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -432,12 +454,17 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         // FIXME: Probably need a bit more power to end up breaking crater plane
 
-        toCraterState.setNextState(newDoneState("Done!"));
+        ServoPositionState tipBoxState = createTipMineralScorerToBreakCraterPlane();
+        toCraterState.setNextState(toCraterState);
+
+        tipBoxState.setNextState(newDoneState("Done!"));
 
         return initialState;
     }
 
     protected State facingCrater() {
+        shouldTipBox = true;
+
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
@@ -526,7 +553,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 62.3 + 3),
+                .lineTo(TntPose2d.toVector2d(-8, 62.3 + 3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -541,12 +568,16 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         // FIXME: Probably need a bit more power to end up breaking crater plane
 
-        toCraterState.setNextState(newDoneState("Done!"));
+        ServoPositionState tipBoxState = createTipMineralScorerToBreakCraterPlane();
+        toCraterState.setNextState(toCraterState);
 
+        tipBoxState.setNextState(newDoneState("Done!"));
         return initialState;
     }
 
     protected State facingCraterWithSampling() {
+        shouldTipBox = true;
+
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
@@ -614,7 +645,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // --------------------------------------------------------------
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-11, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(-12, 0), new ConstantInterpolator(0)) // strafe
                 .lineTo(TntPose2d.toVector2d(-5 - 1, -49.4), new ConstantInterpolator(0)).build(); // to crater
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
@@ -647,7 +678,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10 + 2, 62.3 + 3 + 3),
+                .lineTo(TntPose2d.toVector2d(-8 + 2, 62.3 + 3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -662,7 +693,10 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         // FIXME: Probably need a bit more power to end up breaking crater plane
 
-        toCraterState.setNextState(newDoneState("Done!"));
+        ServoPositionState tipBoxState = createTipMineralScorerToBreakCraterPlane();
+        toCraterState.setNextState(toCraterState);
+
+        tipBoxState.setNextState(newDoneState("Done!"));
 
         return initialState;
     }
@@ -670,6 +704,8 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
     protected Queue<TensorflowThread.GOLD_MINERAL_POSITION> tfResultsMailbox = new LinkedBlockingQueue<>();
 
     protected State facingDepotWithSampling() {
+        shouldTipBox = true;
+
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
@@ -738,8 +774,8 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         // --------------------------------------------------------------
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(11, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(5 + 1, -49.4), new ConstantInterpolator(0)).build(); // to depot
+                .lineTo(TntPose2d.toVector2d(12, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(5, -49.4), new ConstantInterpolator(0)).build(); // to depot
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -771,7 +807,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10 - 2, 62.3 + 3),
+                .lineTo(TntPose2d.toVector2d(8 - 2, 62.3 + 3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -786,7 +822,10 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         // FIXME: Probably need a bit more power to end up breaking crater plane
 
-        toCraterState.setNextState(newDoneState("Done!"));
+        ServoPositionState tipBoxState = createTipMineralScorerToBreakCraterPlane();
+        toCraterState.setNextState(toCraterState);
+
+        tipBoxState.setNextState(newDoneState("Done!"));
 
         return initialState;
     }
@@ -818,7 +857,7 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toTurnAndStrafe  = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints)
-                .lineTo(TntPose2d.toVector2d(0, 21 + THROUGH_MINERAL_DISTANCE + 2), new ConstantInterpolator(0))
+                .lineTo(TntPose2d.toVector2d(0, 22 + THROUGH_MINERAL_DISTANCE + 2), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(turnToStrafeInDegrees))
                 .build();
 
@@ -930,7 +969,6 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
     private TensorflowThread tensorFlowThread;
 
     class StartTensorFlowDetectionState extends TimeoutSafetyState {
-
         protected StartTensorFlowDetectionState(Telemetry telemetry) {
             super("Start TensorFlow", telemetry, TimeUnit.SECONDS.toMillis(7));
         }
@@ -995,5 +1033,13 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
         public void liveConfigure(DebouncedGamepadButtons buttons) {
 
         }
+    }
+
+    private ServoPositionState createTipMineralScorerToBreakCraterPlane() {
+        // Create a new servo state, that uses the mineral scoring mechanism servo, and
+        // tips it to the scoring position which is ParticleScoringMechanism.scoringPosition
+
+        return new ServoPositionState("Yeet", telemetry, boxTipServo,
+                particleScoringMechanism.scoringPosition);
     }
 }

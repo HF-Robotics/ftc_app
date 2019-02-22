@@ -125,10 +125,16 @@ public class NewMineralTrajectoryState extends TimeoutSafetyState {
 
             if (mineralPosition != null) {
                 if (mineralPosition.equals(TensorflowThread.GOLD_MINERAL_POSITION.LEFT)) {
+                    Log.d(LOG_TAG, "Using LEFT trajectory segments");
+
                     mineralTrajectorySegments = leftTrajectorySegments;
                 } else if (mineralPosition.equals(TensorflowThread.GOLD_MINERAL_POSITION.CENTER)) {
+                    Log.d(LOG_TAG, "Using CENTER trajectory segments");
+
                     mineralTrajectorySegments = centerTrajectorySegments;
                 } else if (mineralPosition.equals(TensorflowThread.GOLD_MINERAL_POSITION.RIGHT)) {
+                    Log.d(LOG_TAG, "Using RIGHT trajectory segments");
+
                     mineralTrajectorySegments = rightTrajectorySegments;
                 }
             }
@@ -136,6 +142,8 @@ public class NewMineralTrajectoryState extends TimeoutSafetyState {
 
         if (mineralTrajectorySegments == null /* didn't find it */) {
                 // Correct 33% of the time! Bonus, shortest travel, less error-prone
+            Log.d(LOG_TAG, "Using DEFAULT (CENTER) trajectory segments");
+
             mineralTrajectorySegments = centerTrajectorySegments;
         }
 
