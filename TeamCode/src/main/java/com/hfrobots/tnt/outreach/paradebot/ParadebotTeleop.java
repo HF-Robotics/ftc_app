@@ -43,7 +43,7 @@ import java.util.Iterator;
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
 @TeleOp(name="Paradebot Teleop")
-@Disabled
+//@Disabled
 public class ParadebotTeleop extends OpMode
 
 {
@@ -112,11 +112,13 @@ public class ParadebotTeleop extends OpMode
     public void init() {
         Servo flagWaverServo = hardwareMap.servo.get("flagWaverServo");
 
+
         robot = new ParadebotRobot(
                 NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("leftDriveMotor")),
-                        NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("rightDriveMotor")),
+                NinjaMotor.asNeverest20Orbital(hardwareMap.dcMotor.get("rightDriveMotor")),
                 flagWaverServo
-                );
+        );
+
         cheesyDrive = new NewCheesyDrive();
 
         setupDriverControls();
