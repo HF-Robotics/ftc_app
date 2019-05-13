@@ -68,6 +68,10 @@ public class NinjaMotor implements ExtendedDcMotor {
         return new NinjaMotor(dcMotor, Rotation.CCW, 537.6);  //nr 20 orbital)
     }
 
+    public static ExtendedDcMotor asNeverest37Orbital(DcMotor dcMotor) {
+        return new NinjaMotor(dcMotor, Rotation.CCW, 103);  //nr 3.7 orbital)
+    }
+
     /**
      * Creates an ExtendedDcMotor from the given FTC SDK Motor with Neverest 40 behavior
      */
