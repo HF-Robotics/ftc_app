@@ -132,7 +132,7 @@ public class RoverRuckusTeleop extends RoverRuckusTelemetry
             // Note, only allow loading if elevator is at low limit position (unless overridden)
             if (limitOverrideButton.isPressed() || particleScoringMechanism.isAtLowerLimit()){
                 collectorGateServo.setPosition(collectorGateOpenPosition);
-                collectorSweepMotor.setPower(-.5);
+                collectorSweepMotor.setPower(-1);
 
                 collectorDeployMotor.setPower(COLLECTOR_DEPLOY_IN_POWER / 2);
             }
