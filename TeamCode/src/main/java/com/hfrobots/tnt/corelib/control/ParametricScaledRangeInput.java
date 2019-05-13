@@ -19,6 +19,11 @@
 
 package com.hfrobots.tnt.corelib.control;
 
+import android.support.annotation.VisibleForTesting;
+
+import lombok.Builder;
+import lombok.NonNull;
+
 /**
  * Applies a parametric curve to the given RangeInput
  */
@@ -28,23 +33,22 @@ public class ParametricScaledRangeInput implements RangeInput {
     private final float throttleDeadband;
     private final float throttleGain;
     private final float throttleExponent;
-    public ParametricScaledRangeInput(RangeInput rawInput, float throttleDeadband,
+
+    @Builder
+    public ParametricScaledRangeInput(@NonNull RangeInput rawInput,
+                                      float throttleDeadband,
                                       float throttleGain,
                                       float throttleExponent) {
         this.rawInput = rawInput;
         this.throttleDeadband = throttleDeadband;
         this.throttleGain = throttleGain;
         this.throttleExponent = throttleExponent;
-
     }
-
-    float oldPosition = Float.MIN_VALUE;
 
     public float getPosition() {
         float rawPosition = rawInput.getPosition();
 
         return scaleThrottleValue(rawPosition);
-
     }
 
     float scaleThrottleValue(float unscaledValue) {
