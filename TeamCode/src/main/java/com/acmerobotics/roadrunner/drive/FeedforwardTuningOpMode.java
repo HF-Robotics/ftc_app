@@ -1,6 +1,6 @@
 package com.acmerobotics.roadrunner.drive;
 
-import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.hfrobots.tnt.corelib.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
@@ -118,10 +118,10 @@ public abstract class FeedforwardTuningOpMode extends LinearOpMode {
             powerSamples.add(power);
             positionSamples.add(drive.getPoseEstimate().getX());
 
-            drive.setVelocity(new Pose2d(power, 0.0, 0.0));
+            drive.setDrivePower(new Pose2d(power, 0.0, 0.0));
             drive.updatePoseEstimate();
         }
-        drive.setVelocity(new Pose2d(0.0, 0.0, 0.0));
+        drive.setDrivePower(new Pose2d(0.0, 0.0, 0.0));
 
         List<Double> velocitySamples = numericalDerivative(timeSamples, positionSamples);
         SimpleRegression rampRegression = new SimpleRegression(fitIntercept);
@@ -148,7 +148,7 @@ public abstract class FeedforwardTuningOpMode extends LinearOpMode {
         if (fitIntercept) {
             telemetry.log().add(String.format("kV = %.5f, kStatic = %.5f (R^2 = %.2f)", kV, kStatic, rampRegression.getRSquare()));
         } else {
-            telemetry.log().add(String.format("kV = %.5f (R^2 = %.2f) max = %.5F", kV, rampRegression.getRSquare(), maxSampledVelocity));
+            telemetry.log().add(String.format("kV = %.5f (R^2 = %.2f) max = %.5f", kV, rampRegression.getRSquare(), maxSampledVelocity));
         }
         telemetry.log().add("Would you like to fit kA?");
         telemetry.log().add("Press (A) for yes, (B) for no");
@@ -195,7 +195,7 @@ public abstract class FeedforwardTuningOpMode extends LinearOpMode {
             positionSamples.clear();
 
             drive.setPoseEstimate(new Pose2d());
-            drive.setVelocity(new Pose2d(MAX_POWER, 0.0, 0.0));
+            drive.setDrivePower(new Pose2d(MAX_POWER, 0.0, 0.0));
             while (opModeIsActive()) {
                 double elapsedTime = System.nanoTime() / 1e9 - startTime;
                 if (elapsedTime > maxPowerTime) {
@@ -207,7 +207,7 @@ public abstract class FeedforwardTuningOpMode extends LinearOpMode {
 
                 drive.updatePoseEstimate();
             }
-            drive.setVelocity(new Pose2d(0.0, 0.0, 0.0));
+            drive.setDrivePower(new Pose2d(0.0, 0.0, 0.0));
 
             velocitySamples = numericalDerivative(timeSamples, positionSamples);
             List<Double> accelerationSamples = numericalDerivative(timeSamples, velocitySamples);
@@ -259,9 +259,9 @@ public abstract class FeedforwardTuningOpMode extends LinearOpMode {
 
         for (int i = 0; i < numSamples; i++) {
             Double time = timeSamples.get(i);
-            Double acceleration = otherSamples.get(i);
+            Double value = otherSamples.get(i);
 
-            timeAndOtherSamples.append(time).append(", ").append(acceleration).append("\n"); // what does \n do?
+            timeAndOtherSamples.append(time).append(", ").append(value).append("\n"); // what does \n do?
         }
 
         android.util.Log.d(Constants.LOG_TAG, sampleName + ": \n"  + timeAndOtherSamples.toString());

@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 @Autonomous(name="Feedforward Tuner", group="Utilities")
-@Disabled
+
 public class TntFeedforwardTuningOpMode extends FeedforwardTuningOpMode {
     public TntFeedforwardTuningOpMode() {
         // TODO: change the following to match your drive

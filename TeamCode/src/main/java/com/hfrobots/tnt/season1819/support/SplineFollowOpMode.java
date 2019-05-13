@@ -5,12 +5,12 @@ import android.util.Log;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.path.heading.ConstantInterpolator;
 import com.acmerobotics.roadrunner.trajectory.DashboardUtil;
-import com.acmerobotics.roadrunner.followers.MecanumPIDVAFollower;
+import com.acmerobotics.roadrunner.followers.HolonomicPIDVAFollower;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roadrunner.trajectory.constraints.DriveConstraints;
@@ -30,8 +30,11 @@ public class SplineFollowOpMode extends LinearOpMode {
         //FtcDashboard dashboard = FtcDashboard.getInstance();
         RoadrunnerMecanumDriveAdapter drive = new RoadrunnerMecanumDriveAdapter(hardwareMap);
         // change these constraints to something reasonable for your drive
-        DriveConstraints baseConstraints = new DriveConstraints(25.0, 40.0, Math.PI / 2, Math.PI / 2);
-        MecanumConstraints constraints = new MecanumConstraints(baseConstraints, drive.getTrackWidth(), drive.getWheelBase());
+        DriveConstraints baseConstraints = new DriveConstraints(25.0, 40.0, Double.NaN,
+                Math.PI / 2, Math.PI / 2, Double.NaN);
+        MecanumConstraints constraints = new MecanumConstraints(baseConstraints,
+                RoadrunnerMecanumDriveAdapter.TRACK_WIDTH,
+                RoadrunnerMecanumDriveAdapter.WHEEL_BASE);
 
         //Trajectory trajectory = new TrajectoryBuilder(new Pose2d(0, 0, 0), constraints)
         //        .lineTo(new Vector2d(0, 20), new ConstantInterpolator(0))
@@ -48,13 +51,10 @@ public class SplineFollowOpMode extends LinearOpMode {
 
         // TODO: tune kV, kA, and kStatic in the following follower
         // then tune the PID coefficients after you verify the open loop response is roughly correct
-        MecanumPIDVAFollower follower = new MecanumPIDVAFollower(
-                drive,
+        HolonomicPIDVAFollower follower = new HolonomicPIDVAFollower(
                 new PIDCoefficients(0, 0, 0),
                 new PIDCoefficients(0, 0, 0),
-                .01283,
-                0,
-                0);
+                new PIDCoefficients(0, 0, 0));
 
         waitForStart();
 

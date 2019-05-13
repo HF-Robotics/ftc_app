@@ -21,9 +21,9 @@ package com.hfrobots.tnt.season1819;
 
 import android.util.Log;
 
-import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
-import com.acmerobotics.roadrunner.followers.MecanumPIDVAFollower;
+import com.acmerobotics.roadrunner.followers.HolonomicPIDVAFollower;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.constraints.DriveConstraints;
 import com.acmerobotics.roadrunner.trajectory.constraints.MecanumConstraints;
@@ -50,7 +50,7 @@ public class TrajectoryFollowerState extends TimeoutSafetyState {
 
     private boolean initialized = false;
 
-    private MecanumPIDVAFollower follower;
+    private HolonomicPIDVAFollower follower;
 
     private HardwareMap hardwareMap;
 
@@ -92,13 +92,10 @@ public class TrajectoryFollowerState extends TimeoutSafetyState {
             //
             // TODO: tune kV, kA, and kStatic in the following follower
             // then tune the PID coefficients after you verify the open loop response is roughly correct
-            follower = new MecanumPIDVAFollower(
-                    driveAdapter,
+            follower = new HolonomicPIDVAFollower(
                     new PIDCoefficients(0, 0, 0),
                     new PIDCoefficients(0, 0, 0),
-                    .01283,
-                    0,
-                    0);
+                    new PIDCoefficients(0, 0, 0));
 
             follower.followTrajectory(trajectory);
             initialized = true;

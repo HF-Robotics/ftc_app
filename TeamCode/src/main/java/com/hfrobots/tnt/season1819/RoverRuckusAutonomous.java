@@ -85,10 +85,8 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     private int initialDelaySeconds = 0;
 
     // change these constraints to something reasonable for your drive
-    DriveConstraints baseConstraints = new DriveConstraints(25.0,
-            40.0,
-            Math.PI / 2,
-            Math.PI / 2);
+    DriveConstraints baseConstraints = new DriveConstraints(25.0, 40.0, Double.NaN,
+            Math.PI / 2,Math.PI / 2, Double.NaN);
 
     MecanumConstraints mecanumConstraints = mecanumConstraints  = new MecanumConstraints(
             baseConstraints, RoadrunnerMecanumDriveAdapter.TRACK_WIDTH

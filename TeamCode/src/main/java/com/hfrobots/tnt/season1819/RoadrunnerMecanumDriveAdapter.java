@@ -4,13 +4,11 @@ import android.util.Log;
 
 import com.acmerobotics.roadrunner.drive.MecanumDrive;
 import com.hfrobots.tnt.corelib.Constants;
-import com.qualcomm.hardware.motors.NeveRest20Gearmotor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
-import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -34,12 +32,16 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
 
     public static final double WHEEL_BASE = 12;
 
+    public static final double kV = 0.1185D;
+
+    public static final double kA = .0076D;
+
     private DcMotorEx leftFront, leftRear, rightRear, rightFront;
     private List<DcMotorEx> motors;
 
     public RoadrunnerMecanumDriveAdapter(HardwareMap hardwareMap) {
         // TODO: this needs to be tuned using FeedforwardTuningOpMode
-        super(TRACK_WIDTH, WHEEL_BASE);
+        super(kV, kA, TRACK_WIDTH, WHEEL_BASE);
 
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFrontDriveMotor");
         leftRear = hardwareMap.get(DcMotorEx.class, "leftRearDriveMotor");
@@ -65,7 +67,7 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
 
     public RoadrunnerMecanumDriveAdapter(final DcMotorEx leftFront, final DcMotorEx leftRear,
                                          final DcMotorEx rightRear, final DcMotorEx rightFront) {
-        super(TRACK_WIDTH, WHEEL_BASE);
+        super(kV, kA, TRACK_WIDTH, WHEEL_BASE);
 
         this.leftFront = leftFront;
         this.leftRear = leftRear;
@@ -110,7 +112,7 @@ public class RoadrunnerMecanumDriveAdapter extends MecanumDrive {
     }
 
     @Override
-    public double getExternalHeading() {
+    protected double getRawExternalHeading() {
         return 0;
     }
 }
