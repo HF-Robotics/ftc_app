@@ -1,6 +1,6 @@
 package com.acmerobotics.roadrunner.drive;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
@@ -45,7 +45,7 @@ public abstract class TrackWidthCalibrationOpMode extends LinearOpMode {
         double lastHeading = 0;
 
         drive.setPoseEstimate(new Pose2d());
-        drive.setDrivePower(new Pose2d(0.0, 0.0,  power));
+        drive.setVelocity(new Pose2d(0.0, 0.0,  power));
         while (opModeIsActive() && (!startedMoving || revolutions <= totalRevolutions)) {
             double heading = imu.getAngularOrientation().firstAngle;
             if (imu.getParameters().angleUnit == BNO055IMU.AngleUnit.DEGREES) {
@@ -60,7 +60,7 @@ public abstract class TrackWidthCalibrationOpMode extends LinearOpMode {
             drive.updatePoseEstimate();
             lastHeading = heading;
         }
-        drive.setDrivePower(new Pose2d(0.0, 0.0, 0.0));
+        drive.setVelocity(new Pose2d(0.0, 0.0, 0.0));
         double effectiveTrackWidth = drive.getPoseEstimate().getHeading() / (4.0 * Math.PI * totalRevolutions);
 
         telemetry.log().clear();

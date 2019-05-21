@@ -52,12 +52,11 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
 
     // The routes our robot knows how to do
     private enum Routes {
+        DESCEND_ONLY("Descend Only"),
+        FACING_DEPOT("Facing Depot (Gold)"),
+        FACING_CRATER("Facing Crater (Silver)"),
         SAMPLE_FACING_DEPOT("Sample Facing Depot (Gold)"),
-        SAMPLE_FACING_CRATER("Sample Facing Crater (Silver)"),
-        DESCEND_ONLY("Descend Only");
-        //FACING_DEPOT("Facing Depot (Gold)"),
-        //FACING_CRATER("Facing Crater (Silver)"),
-
+        SAMPLE_FACING_CRATER("Sample Facing Crater (Silver)");
 
         final String description;
 
@@ -82,8 +81,10 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
     private int initialDelaySeconds = 0;
 
     // change these constraints to something reasonable for your drive
-    DriveConstraints baseConstraints = new DriveConstraints(60.0, 240.0, Double.NaN,
-            Math.PI / 2, Math.PI / 2, Double.NaN);
+    DriveConstraints baseConstraints = new DriveConstraints(25.0,
+            40.0,
+            Math.PI / 2,
+            Math.PI / 2);
 
     MecanumConstraints mecanumConstraints = mecanumConstraints  = new MecanumConstraints(
             baseConstraints, RoadrunnerMecanumDriveAdapter.TRACK_WIDTH
@@ -241,22 +242,22 @@ public class NewRoverRuckusAutonomous extends RoverRuckusHardware {
                         }
 
                         break;
-                    /*case FACING_DEPOT:
+                    case FACING_DEPOT:
                         selectedState = facingDepot();
 
                         if (tensorFlowThread != null) {
                             tensorFlowThread.shutdownTensorFlow();
                         }
 
-                        break;*/
-                    /*case FACING_CRATER:
+                        break;
+                    case FACING_CRATER:
                         selectedState = facingCrater();
 
                         if (tensorFlowThread != null) {
                             tensorFlowThread.shutdownTensorFlow();
                         }
 
-                        break;*/
+                        break;
                     case SAMPLE_FACING_DEPOT:
                         selectedState = facingDepotWithSampling();
                         break;

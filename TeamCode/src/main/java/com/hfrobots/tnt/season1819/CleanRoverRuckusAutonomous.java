@@ -28,15 +28,12 @@ import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roadrunner.trajectory.constraints.DriveConstraints;
 import com.acmerobotics.roadrunner.trajectory.constraints.MecanumConstraints;
 import com.hfrobots.tnt.corelib.Constants;
-import com.hfrobots.tnt.corelib.control.DebouncedButton;
 import com.hfrobots.tnt.corelib.control.DebouncedGamepadButtons;
-import com.hfrobots.tnt.corelib.control.NinjaGamePad;
-import com.hfrobots.tnt.corelib.control.RangeInputButton;
 import com.hfrobots.tnt.corelib.state.ServoPositionState;
 import com.hfrobots.tnt.corelib.state.State;
+import com.hfrobots.tnt.corelib.state.StateMachine;
 import com.hfrobots.tnt.corelib.state.TimeoutSafetyState;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -47,12 +44,11 @@ import java.util.concurrent.TimeUnit;
 
 import static com.hfrobots.tnt.corelib.Constants.LOG_TAG;
 
-@Autonomous(name="Old RoverRuckus Auto")
-@Disabled
+@Autonomous(name="Clean RoverRuckus Auto")
 @SuppressWarnings("unused")
-public class RoverRuckusAutonomous extends RoverRuckusHardware {
+public class CleanRoverRuckusAutonomous extends RoverRuckusHardware {
 
-    private State currentState = null;
+    private StateMachine stateMachine;
 
     // The routes our robot knows how to do
     private enum Routes {
@@ -94,13 +90,19 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
             baseConstraints, RoadrunnerMecanumDriveAdapter.TRACK_WIDTH
             , RoadrunnerMecanumDriveAdapter.WHEEL_BASE);
 
-    public RoverRuckusAutonomous() {
+    boolean shouldTipBox = false;
+
+    boolean hasTippedBox = false;
+
+    public CleanRoverRuckusAutonomous() {
         imuNeeded = false; // for now...
     }
 
     @Override
     public void init() {
         super.init();
+        stateMachine = new StateMachine(telemetry);
+
         setDefaults();
 
         for (DcMotor motor : mecanumDrive.motors) {
@@ -215,12 +217,20 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         }
     }
 
+    long tipBoxIfNeededDeadline = -1;
+
+    boolean stateMachineSetup = false;
+
     @Override
     public void loop() {
         long cycleStartTimeMs = System.currentTimeMillis();
 
+        if (tipBoxIfNeededDeadline == -1) {
+            tipBoxIfNeededDeadline = cycleStartTimeMs + TimeUnit.SECONDS.toMillis(29);
+        }
+
         try {
-            if (currentState == null) {
+            if (!stateMachineSetup) {
                 /* We have not configured the state machine yet, do so from the options
                  selected during init_loop() */
 
@@ -229,23 +239,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
                 switch (selectedRoute) {
                     case DESCEND_ONLY:
-                        selectedState = descendOnly();
-
-                        if (tensorFlowThread != null) {
-                            tensorFlowThread.shutdownTensorFlow();
-                        }
-
-                        break;
-                    case FACING_DEPOT:
-                        selectedState = facingDepot();
-
-                        if (tensorFlowThread != null) {
-                            tensorFlowThread.shutdownTensorFlow();
-                        }
-
-                        break;
-                    case FACING_CRATER:
-                        selectedState = facingCrater();
+                        setupDescendOnly();
 
                         if (tensorFlowThread != null) {
                             tensorFlowThread.shutdownTensorFlow();
@@ -253,34 +247,35 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
                         break;
                     case SAMPLE_FACING_DEPOT:
-                        selectedState = facingDepotWithSampling();
+                        setupFacingDepotWithSampling();
                         break;
                     case SAMPLE_FACING_CRATER:
-                        selectedState = facingCraterWithSampling();
+                        setupFacingCraterWithSampling();
                         break;
                     default:
                         selectedState = newDoneState("Default done");
                 }
 
                 if (initialDelaySeconds != 0) {
-                    currentState = newDelayState();
-                    currentState.setNextState(selectedState);
-                } else {
-                    currentState = selectedState;
+                    stateMachine.addStartDelay(initialDelaySeconds);
+                }
+
+                stateMachineSetup = true;
+            }
+
+            stateMachine.doOneStateLoop();
+
+            telemetry.update(); // send all telemetry to the drivers' station
+
+            if (System.currentTimeMillis() >= tipBoxIfNeededDeadline) {
+                if (shouldTipBox && !hasTippedBox) {
+                    if (boxTipServo != null) {
+                        boxTipServo.setPosition(ParticleScoringMechanism.scoringPosition);
+                    }
+
+                    hasTippedBox = true;
                 }
             }
-
-            State nextState = currentState.doStuffAndGetNextState();
-
-            if (nextState != currentState) {
-                // We've changed states alert the driving team, log for post-match analysis
-                telemetry.addData("00-State", "From %s to %s", currentState, nextState);
-                Log.d(LOG_TAG, String.format("State transition from %s to %s", currentState.getClass()
-                        + "(" + currentState.getName() + ")", nextState.getClass() + "(" + nextState.getName() + ")"));
-            }
-
-            currentState = nextState;
-            telemetry.update(); // send all telemetry to the drivers' station
         } catch (Throwable t) {
             // Better logging than the FTC SDK provides :(
             Log.e(LOG_TAG, "Exception during state machine", t);
@@ -296,7 +291,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         }
 
         long cycleStopTimeMs = System.currentTimeMillis();
-        Log.d(Constants.LOG_TAG, "Cycle time (ms): " + (cycleStopTimeMs - cycleStartTimeMs));
+        //Log.d(Constants.LOG_TAG, "Cycle time (ms): " + (cycleStopTimeMs - cycleStartTimeMs));
     }
 
     /**
@@ -307,261 +302,59 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         return newDelayState("start delay", initialDelaySeconds);
     }
 
-    protected State descendOnly() {
-        State initialState = new DescenderState(telemetry);
+    protected void setupDescendOnly() {
+        State initialState = new HomeAcDcState("Start home", telemetry);
+        stateMachine.addSequential(initialState);
+
+        State descenderState = new DescenderState(telemetry);
+        stateMachine.addSequential(descenderState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
-        initialState.setNextState(awayFromLanderOne);
+        stateMachine.addSequential(awayFromLanderOne);
 
         MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
                 telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
-        awayFromLanderOne.setNextState(offTheHook);
+        stateMachine.addSequential(offTheHook);
 
         MecanumStrafeDistanceState awayFromLanderFinal = new MecanumStrafeDistanceState(
                 "away from lander Final", telemetry, mecanumDrive, 1.5,
                 TimeUnit.SECONDS.toMillis(5));
-        offTheHook.setNextState(awayFromLanderFinal);
-        awayFromLanderFinal.setNextState(newDoneState("done"));
+        stateMachine.addSequential(awayFromLanderFinal);
 
-        return initialState;
+        stateMachine.addSequential(newDoneState("done"));
+
     }
 
-    protected State facingDepot() {
+    protected void setupFacingCraterWithSampling() {
+        shouldTipBox = true;
+
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
-        State initialState = new DescenderState(telemetry);
+        State initialState = new HomeAcDcState("Start home", telemetry);
+        stateMachine.addSequential(initialState);
 
-        MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
-                "away from lander one", telemetry, mecanumDrive, 1.0,
-                TimeUnit.SECONDS.toMillis(5));
-        initialState.setNextState(awayFromLanderOne);
-
-        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
-                telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
-        awayFromLanderOne.setNextState(offTheHook);
-
-        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
-                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14,
-                TimeUnit.SECONDS.toMillis(5));
-        offTheHook.setNextState(awayFromLander);
-
-        // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
-        // go back to our old style drive/strafe distance states! (slightly different motor
-        // setup required, done in the state itself)
-
-        // --------------------------------------------------------------
-        // move forward 34.5 inches (subtract 4" from this for "from landing")
-        // turn (counter - mm) clockwise 45 degrees
-        // --------------------------------------------------------------
-
-        // Remember, right hand rule, turns go CCW for + angles
-        double turnInDegrees = 45; // note - not alliance specific!
-
-        Trajectory toAlignWithWallTrajectory = new TrajectoryBuilder(
-                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4), new ConstantInterpolator(0))
-                .turnTo(Math.toRadians(turnInDegrees)).build();
-
-        TrajectoryFollowerState toAlignWithWallState = new TrajectoryFollowerState(
-                "To align with wall",
-                telemetry,
-                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-                toAlignWithWallTrajectory,
-                baseConstraints,
-                mecanumConstraints,
-                hardwareMap);
-        awayFromLander.setNextState(toAlignWithWallState);
-
-        // --------------------------------------------------------------
-        // strafe right 9.7 inches (I'd round to 10 or so...MM)
-        // move backward 45.4 inches
-        // --------------------------------------------------------------
-
-        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(10, -49.4), new ConstantInterpolator(0)).build(); // to crater
-
-        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
-                "To wall, then depot",
-                telemetry,
-                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-                toWallThenDepotTrajectory,
-                baseConstraints,
-                mecanumConstraints,
-                hardwareMap);
-        toAlignWithWallState.setNextState(toWallThenDepotState);
-
-        // --------------------------------------------------------------
-        // (drop off team marker)
-        // --------------------------------------------------------------
-
-        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
-        toWallThenDepotState.setNextState(dropTeamMarker);
-
-        State waitForDrop = newDelayState("wait-for-drop", 2);
-        dropTeamMarker.setNextState(waitForDrop);
-
-        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo, /* MM TEAM_MARKER_STOWED_STATE */ TEAM_MARKER_DUMP_POS);
-        waitForDrop.setNextState(storeTeamMarkerMech);
-
-        // --------------------------------------------------------------
-        // move forward 68.25 inches
-        // (parked at crater)
-        // --------------------------------------------------------------
-
-        Trajectory toCraterTrajectory = new TrajectoryBuilder(
-                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 62.3),
-                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
-
-        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
-                "To crater",
-                telemetry,
-                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-                toCraterTrajectory,
-                baseConstraints,
-                mecanumConstraints,
-                hardwareMap);
-        storeTeamMarkerMech.setNextState(toCraterState);
-
-        // FIXME: Probably need a bit more power to end up breaking crater plane
-
-        toCraterState.setNextState(newDoneState("Done!"));
-
-        return initialState;
-    }
-
-    protected State facingCrater() {
-        // FIXME: After league meet, we should not copy-and-paste the descent,
-        //        it should come from a shared method
-
-        State initialState = new DescenderState(telemetry);
-
-        MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
-                "away from lander one", telemetry, mecanumDrive, 1.0,
-                TimeUnit.SECONDS.toMillis(5));
-        initialState.setNextState(awayFromLanderOne);
-
-        MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
-                telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
-        awayFromLanderOne.setNextState(offTheHook);
-
-        MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
-                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14,
-                TimeUnit.SECONDS.toMillis(5));
-        offTheHook.setNextState(awayFromLander);
-
-        // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
-        // go back to our old style drive/strafe distance states! (slightly different motor
-        // setup required, done in the state itself)
-
-        // --------------------------------------------------------------
-        // move forward 34.5 inches (subtract 4" from this for "from landing")
-        // turn (counter - mm) clockwise 135 degrees
-        // --------------------------------------------------------------
-
-        // Remember, right hand rule, turns go CCW for + angles
-        double turnInDegrees = 135 + 90; // note - not alliance specific!
-
-        Trajectory toAlignWithWallTrajectory = new TrajectoryBuilder(
-                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4), new ConstantInterpolator(0))
-                .turnTo(Math.toRadians(turnInDegrees)).build();
-
-        TrajectoryFollowerState toAlignWithWallState = new TrajectoryFollowerState(
-                "To align with wall",
-                telemetry,
-                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-                toAlignWithWallTrajectory,
-                baseConstraints,
-                mecanumConstraints,
-                hardwareMap);
-        awayFromLander.setNextState(toAlignWithWallState);
-
-        // --------------------------------------------------------------
-        // strafe LEFT 9.7 inches (I'd round to 10 or so...MM)
-        // move backward 45.4 inches
-        // --------------------------------------------------------------
-
-        Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(-10, -49.4), new ConstantInterpolator(0)).build(); // to crater
-
-        TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
-                "To wall, then depot",
-                telemetry,
-                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-                toWallThenDepotTrajectory,
-                baseConstraints,
-                mecanumConstraints,
-                hardwareMap);
-        toAlignWithWallState.setNextState(toWallThenDepotState);
-
-        // --------------------------------------------------------------
-        // (drop off team marker)
-        // --------------------------------------------------------------
-
-        State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
-        toWallThenDepotState.setNextState(dropTeamMarker);
-
-        State waitForDrop = newDelayState("wait-for-drop", 2);
-        dropTeamMarker.setNextState(waitForDrop);
-
-        State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo,TEAM_MARKER_STOWED_STATE);
-        waitForDrop.setNextState(storeTeamMarkerMech);
-
-        // --------------------------------------------------------------
-        // move forward 68.25 inches
-        // (parked at crater)
-        // --------------------------------------------------------------
-
-        Trajectory toCraterTrajectory = new TrajectoryBuilder(
-                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 62.3),
-                        new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
-
-        TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
-                "To crater",
-                telemetry,
-                TimeUnit.SECONDS.toMillis(30 /* FIXME */),
-                toCraterTrajectory,
-                baseConstraints,
-                mecanumConstraints,
-                hardwareMap);
-        waitForDrop.setNextState(toCraterState);
-
-        // FIXME: Probably need a bit more power to end up breaking crater plane
-
-        toCraterState.setNextState(newDoneState("Done!"));
-
-        return initialState;
-    }
-
-    protected State facingCraterWithSampling() {
-        // FIXME: After league meet, we should not copy-and-paste the descent,
-        //        it should come from a shared method
-
-        State initialState = new StartTensorFlowDetectionState(telemetry);
+        State tensorFlowDetectionState = new StartTensorFlowDetectionState(telemetry);
+        stateMachine.addSequential(tensorFlowDetectionState);
 
         State descendState = new DescenderState(telemetry);
-        initialState.setNextState(descendState);
+        stateMachine.addSequential(descendState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
-        descendState.setNextState(awayFromLanderOne);
+        stateMachine.addSequential(awayFromLanderOne);
 
         MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
                 telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
-        awayFromLanderOne.setNextState(offTheHook);
+        stateMachine.addSequential(offTheHook);
 
         MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
-                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14 + 1.0,
+                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14 /*+ 1.0*/,
                 TimeUnit.SECONDS.toMillis(5));
-        offTheHook.setNextState(awayFromLander);
+        stateMachine.addSequential(awayFromLander);
 
         // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
         // go back to our old style drive/strafe distance states! (slightly different motor
@@ -574,19 +367,21 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         double turnInDegrees = 135 + 90; // note - not alliance specific!
 
-        Trajectory sampleLeftThenAlignWithWallTrajectory =
+        NewMineralTrajectoryState.MineralTrajectorySegments sampleLeftThenAlignWithWallTrajectory =
                 createSampleLeftThenAlignWithWallTrajectory(turnInDegrees);
 
-        Trajectory sampleCenterThenAlignWithWallTrajectory =
+        NewMineralTrajectoryState.MineralTrajectorySegments sampleCenterThenAlignWithWallTrajectory =
                 createSampleCenterThenAlignWithWallTrajectory(turnInDegrees);
 
-        Trajectory sampleRightThenAlignWithWallTrajectory =
+        NewMineralTrajectoryState.MineralTrajectorySegments sampleRightThenAlignWithWallTrajectory =
                 createSampleRightThenAlignWithWallTrajectory(turnInDegrees);
 
-        TrajectoryFollowerState sampleThenAlignWithWallState = new MineralTrajectoryState(
+        NewMineralTrajectoryState sampleThenAlignWithWallState = new NewMineralTrajectoryState(
                 "Sample, then align with wall",
                 telemetry,
                 TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                m3ArmServo,
+                m3FlagServo,
                 sampleLeftThenAlignWithWallTrajectory,
                 sampleCenterThenAlignWithWallTrajectory,
                 sampleRightThenAlignWithWallTrajectory,
@@ -595,8 +390,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 mecanumConstraints,
                 hardwareMap);
 
-        awayFromLander.setNextState(sampleThenAlignWithWallState);
-
+        stateMachine.addSequential(sampleThenAlignWithWallState);
 
         // --------------------------------------------------------------
         // strafe LEFT 9.7 inches (I'd round to 10 or so...MM)
@@ -604,8 +398,8 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         // --------------------------------------------------------------
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(-10, -49.4), new ConstantInterpolator(0)).build(); // to crater
+                .lineTo(TntPose2d.toVector2d(-12, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(-5 - 1, -49.4), new ConstantInterpolator(0)).build(); // to crater
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -615,20 +409,20 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 baseConstraints,
                 mecanumConstraints,
                 hardwareMap);
-        sampleThenAlignWithWallState.setNextState(toWallThenDepotState);
+        stateMachine.addSequential(toWallThenDepotState);
 
         // --------------------------------------------------------------
         // (drop off team marker)
         // --------------------------------------------------------------
 
         State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
-        toWallThenDepotState.setNextState(dropTeamMarker);
+        stateMachine.addSequential(dropTeamMarker);
 
         State waitForDrop = newDelayState("wait-for-drop", 2);
-        dropTeamMarker.setNextState(waitForDrop);
+        stateMachine.addSequential(waitForDrop);
 
         State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo,TEAM_MARKER_STOWED_STATE);
-        waitForDrop.setNextState(storeTeamMarkerMech);
+        stateMachine.addSequential(storeTeamMarkerMech);
 
         // --------------------------------------------------------------
         // move forward 68.25 inches
@@ -637,7 +431,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(-10, 62.3),
+                .lineTo(TntPose2d.toVector2d(-8 + 2, 62.3 + 3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -648,39 +442,46 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 baseConstraints,
                 mecanumConstraints,
                 hardwareMap);
-        waitForDrop.setNextState(toCraterState);
+        stateMachine.addSequential(toCraterState);
 
         // FIXME: Probably need a bit more power to end up breaking crater plane
 
-        toCraterState.setNextState(newDoneState("Done!"));
+        ServoPositionState tipBoxState = createTipMineralScorerToBreakCraterPlane();
+        stateMachine.addSequential(tipBoxState);
 
-        return initialState;
+        stateMachine.addSequential(newDoneState("Done!"));
     }
 
     protected Queue<TensorflowThread.GOLD_MINERAL_POSITION> tfResultsMailbox = new LinkedBlockingQueue<>();
 
-    protected State facingDepotWithSampling() {
+    protected void setupFacingDepotWithSampling() {
+        shouldTipBox = true;
+
         // FIXME: After league meet, we should not copy-and-paste the descent,
         //        it should come from a shared method
 
-        State initialState = new StartTensorFlowDetectionState(telemetry);
+        State initialState = new HomeAcDcState("Start home", telemetry);
+        stateMachine.addSequential(initialState);
+
+        State tensorFlowDetectionState = new StartTensorFlowDetectionState(telemetry);
+        stateMachine.addSequential(tensorFlowDetectionState);
 
         State descendState = new DescenderState(telemetry);
-        initialState.setNextState(descendState);
+        stateMachine.addSequential(descendState);
 
         MecanumStrafeDistanceState awayFromLanderOne = new MecanumStrafeDistanceState(
                 "away from lander one", telemetry, mecanumDrive, 1.0,
                 TimeUnit.SECONDS.toMillis(5));
-        descendState.setNextState(awayFromLanderOne);
+        stateMachine.addSequential(awayFromLanderOne);
 
         MecanumDriveDistanceState offTheHook = new MecanumDriveDistanceState("off the hook",
                 telemetry, mecanumDrive, 1.5, TimeUnit.SECONDS.toMillis(5));
-        awayFromLanderOne.setNextState(offTheHook);
+        stateMachine.addSequential(offTheHook);
 
         MecanumStrafeDistanceState awayFromLander = new MecanumStrafeDistanceState(
-                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14 + 1.0,
+                "away from lander Final", telemetry, mecanumDrive, 1.5 + 14 /*+ 1.0*/,
                 TimeUnit.SECONDS.toMillis(5));
-        offTheHook.setNextState(awayFromLander);
+        stateMachine.addSequential(awayFromLander);
 
         // WARNING: From this point, once we start using RoadRunner trajectories, we cannot
         // go back to our old style drive/strafe distance states! (slightly different motor
@@ -693,19 +494,22 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         double turnInDegrees = 45; // note - not alliance specific!
 
-        Trajectory sampleLeftThenAlignWithWallTrajectory =
+
+        NewMineralTrajectoryState.MineralTrajectorySegments sampleLeftThenAlignWithWallTrajectory =
                 createSampleLeftThenAlignWithWallTrajectory(turnInDegrees);
 
-        Trajectory sampleCenterThenAlignWithWallTrajectory =
+        NewMineralTrajectoryState.MineralTrajectorySegments sampleCenterThenAlignWithWallTrajectory =
                 createSampleCenterThenAlignWithWallTrajectory(turnInDegrees);
 
-        Trajectory sampleRightThenAlignWithWallTrajectory =
+        NewMineralTrajectoryState.MineralTrajectorySegments sampleRightThenAlignWithWallTrajectory =
                 createSampleRightThenAlignWithWallTrajectory(turnInDegrees);
 
-        TrajectoryFollowerState sampleThenAlignWithWallState = new MineralTrajectoryState(
+        NewMineralTrajectoryState sampleThenAlignWithWallState = new NewMineralTrajectoryState(
                 "Sample then align with wall",
                 telemetry,
                 TimeUnit.SECONDS.toMillis(30 /* FIXME */),
+                m3ArmServo,
+                m3FlagServo,
                 sampleLeftThenAlignWithWallTrajectory,
                 sampleCenterThenAlignWithWallTrajectory,
                 sampleRightThenAlignWithWallTrajectory,
@@ -714,7 +518,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 mecanumConstraints,
                 hardwareMap);
 
-        awayFromLander.setNextState(sampleThenAlignWithWallState);
+        stateMachine.addSequential(sampleThenAlignWithWallState);
 
         // --------------------------------------------------------------
         // strafe right 9.7 inches (I'd round to 10 or so...MM)
@@ -722,8 +526,8 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         // --------------------------------------------------------------
 
         Trajectory toWallThenDepotTrajectory = new TrajectoryBuilder(TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 0), new ConstantInterpolator(0)) // strafe
-                .lineTo(TntPose2d.toVector2d(10, -49.4), new ConstantInterpolator(0)).build(); // to crater
+                .lineTo(TntPose2d.toVector2d(12, 0), new ConstantInterpolator(0)) // strafe
+                .lineTo(TntPose2d.toVector2d(5, -49.4), new ConstantInterpolator(0)).build(); // to depot
 
         TrajectoryFollowerState toWallThenDepotState = new TrajectoryFollowerState(
                 "To wall, then depot",
@@ -733,20 +537,20 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 baseConstraints,
                 mecanumConstraints,
                 hardwareMap);
-        sampleThenAlignWithWallState.setNextState(toWallThenDepotState);
+        stateMachine.addSequential(toWallThenDepotState);
 
         // --------------------------------------------------------------
         // (drop off team marker)
         // --------------------------------------------------------------
 
         State dropTeamMarker = new ServoPositionState("drop tm", telemetry, teamMarkerServo, TEAM_MARKER_DUMP_POS);
-        toWallThenDepotState.setNextState(dropTeamMarker);
+        stateMachine.addSequential(dropTeamMarker);
 
         State waitForDrop = newDelayState("wait-for-drop", 2);
-        dropTeamMarker.setNextState(waitForDrop);
+        stateMachine.addSequential(waitForDrop);
 
         State storeTeamMarkerMech = new ServoPositionState("store-tm", telemetry, teamMarkerServo, /* MM TEAM_MARKER_STOWED_STATE */ TEAM_MARKER_DUMP_POS);
-        waitForDrop.setNextState(storeTeamMarkerMech);
+        stateMachine.addSequential(storeTeamMarkerMech);
 
         // --------------------------------------------------------------
         // move forward 68.25 inches
@@ -755,7 +559,7 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
 
         Trajectory toCraterTrajectory = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(10, 62.3),
+                .lineTo(TntPose2d.toVector2d(8 - 2, 62.3 + 3 + 3),
                         new ConstantInterpolator(0)).build(); // Always a constant interpolator to hold heading
 
         TrajectoryFollowerState toCraterState = new TrajectoryFollowerState(
@@ -766,53 +570,99 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
                 baseConstraints,
                 mecanumConstraints,
                 hardwareMap);
-        storeTeamMarkerMech.setNextState(toCraterState);
+        stateMachine.addSequential(toCraterState);
 
         // FIXME: Probably need a bit more power to end up breaking crater plane
 
-        toCraterState.setNextState(newDoneState("Done!"));
+        ServoPositionState tipBoxState = createTipMineralScorerToBreakCraterPlane();
+        stateMachine.addSequential(tipBoxState);
 
-        return initialState;
+        stateMachine.addSequential(newDoneState("Done!"));
     }
 
+    // Left - 10 inches backwards
+    // Center  15.5 inches backwards
+    // Right - 15.5 inches backwards
+
+    // through 9 "
+    private final static double THROUGH_MINERAL_DISTANCE = 12;
+
+    // come forward 1" more
 
     @NonNull
-    private Trajectory createSampleLeftThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
-        // forward 4.5, turn 21 degrees CW
-        return new TrajectoryBuilder(
+    private NewMineralTrajectoryState.MineralTrajectorySegments createSampleLeftThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
+        Trajectory pastGoldMineral = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(0, 8.0), new ConstantInterpolator(0)) // get to mineral
-                .turnTo(Math.toRadians(-85)) // turn towards mineral
-                .turnTo(Math.toRadians(0)) // turn back
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 6.0 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .lineTo(TntPose2d.toVector2d(0, 8.0 - 10 + THROUGH_MINERAL_DISTANCE), new ConstantInterpolator(0)) // get to mineral
+                .build();
+
+        Trajectory throughGoldMineral = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints)
+                .lineTo(TntPose2d.toVector2d(0, - (THROUGH_MINERAL_DISTANCE + 2)), new ConstantInterpolator(0)) // FIXME M3 Changes
+                .build();
+
+        // Really should be this, but later:
+        // .lineTo(TntPose2d.toVector2d(0, 34.5 - 6.0 /* distance traveled to mineral */), new ConstantInterpolator(0))
+        //        .turnTo(Math.toRadians(turnToStrafeInDegrees))
+
+        Trajectory toTurnAndStrafe  = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints)
+                .lineTo(TntPose2d.toVector2d(0, 22 + THROUGH_MINERAL_DISTANCE + 2), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(turnToStrafeInDegrees))
                 .build();
+
+        return new NewMineralTrajectoryState.MineralTrajectorySegments(pastGoldMineral, throughGoldMineral, toTurnAndStrafe);
     }
 
     @NonNull
-    private Trajectory createSampleCenterThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
-        // forward 1.75, turn 21 degrees CCW
-        return new TrajectoryBuilder(
+    private NewMineralTrajectoryState.MineralTrajectorySegments createSampleCenterThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
+        Trajectory pastGoldMineral =  new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(0, -3 /* FIXME: how far and in what direction do we drive? */), new ConstantInterpolator(0)) // get to mineral
-                .turnTo(Math.toRadians(85)) // turn towards mineral
-                .turnTo(Math.toRadians(0)) // turn back
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 3 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .lineTo(TntPose2d.toVector2d(0, -3 - 15.5 /* FIXME: how far and in what direction do we drive? */), new ConstantInterpolator(0)) // get to mineral
+
+                .build();
+
+        Trajectory throughGoldMineral = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints)
+                .lineTo(TntPose2d.toVector2d(0, THROUGH_MINERAL_DISTANCE), new ConstantInterpolator(0))
+                .build();
+
+        // Really should be this, but later:
+        //.lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 3 /* distance traveled to mineral */), new ConstantInterpolator(0))
+        //        .turnTo(Math.toRadians(turnToStrafeInDegrees))
+
+        Trajectory toTurnAndStrafe  = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints)
+                .lineTo(TntPose2d.toVector2d(0, 38.5), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(turnToStrafeInDegrees))
                 .build();
+
+        return new NewMineralTrajectoryState.MineralTrajectorySegments(pastGoldMineral, throughGoldMineral, toTurnAndStrafe);
     }
 
     @NonNull
-    private Trajectory createSampleRightThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
-        // backwards 12.5, turn 21 degrees CCW
-        return new TrajectoryBuilder(
+    private NewMineralTrajectoryState.MineralTrajectorySegments createSampleRightThenAlignWithWallTrajectory(double turnToStrafeInDegrees) {
+        Trajectory pastGoldMineral = new TrajectoryBuilder(
                 TntPose2d.toPose2d(0, 0, 0), mecanumConstraints) // Always starting from 0, 0, 0
-                .lineTo(TntPose2d.toVector2d(0, -19), new ConstantInterpolator(0)) // get to mineral
-                .turnTo(Math.toRadians(75)) // turn towards mineral
-                .turnTo(Math.toRadians(0)) // turn back
-                .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 5 /* distance traveled to mineral */), new ConstantInterpolator(0))
+                .lineTo(TntPose2d.toVector2d(0, -35), new ConstantInterpolator(0)) // get to mineral
+                .build();
+
+        Trajectory throughGoldMineral = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints)
+                .lineTo(TntPose2d.toVector2d(0, THROUGH_MINERAL_DISTANCE), new ConstantInterpolator(0)) // FIXME M3 Changes
+                .build();
+
+        // Really should be this, but later:
+        // .lineTo(TntPose2d.toVector2d(0, 34.5 - 4 + 5 /* distance traveled to mineral */), new ConstantInterpolator(0))
+        //        .turnTo(Math.toRadians(turnToStrafeInDegrees))
+
+        Trajectory toTurnAndStrafe  = new TrajectoryBuilder(
+                TntPose2d.toPose2d(0, 0, 0), mecanumConstraints)
+                .lineTo(TntPose2d.toVector2d(0, 54.5), new ConstantInterpolator(0))
                 .turnTo(Math.toRadians(turnToStrafeInDegrees))
                 .build();
+
+        return new NewMineralTrajectoryState.MineralTrajectorySegments(pastGoldMineral, throughGoldMineral, toTurnAndStrafe);
     }
 
     class DescenderState extends TimeoutSafetyState {
@@ -869,7 +719,6 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
     private TensorflowThread tensorFlowThread;
 
     class StartTensorFlowDetectionState extends TimeoutSafetyState {
-
         protected StartTensorFlowDetectionState(Telemetry telemetry) {
             super("Start TensorFlow", telemetry, TimeUnit.SECONDS.toMillis(7));
         }
@@ -893,5 +742,54 @@ public class RoverRuckusAutonomous extends RoverRuckusHardware {
         public void liveConfigure(DebouncedGamepadButtons buttons) {
 
         }
+    }
+
+    class HomeAcDcState extends TimeoutSafetyState {
+        private boolean startedHoming = false;
+
+        public HomeAcDcState(String name, Telemetry telemetry) {
+            super(name, telemetry, 1000 /* FIXME: What timeout do we want? */);
+        }
+
+        @Override
+        public State doStuffAndGetNextState() {
+            if (isTimedOut()) {
+                Log.d(LOG_TAG, "timed out, moving on to auto");
+
+                ascenderDescender.stopMoving();
+
+                return nextState;
+            }
+
+            if (ascenderDescender.isLowerLimitReached()) {
+                Log.d(LOG_TAG, "reached lower limit, I have homed");
+
+                ascenderDescender.stopMoving();
+                return nextState;
+            } else if (!startedHoming) {
+                Log.d(LOG_TAG, "not homed, started homing now");
+
+                ascenderDescender.home();
+
+                startedHoming = true;
+            }
+
+            ascenderDescender.doPeriodicTask();
+
+            return this;
+        }
+
+        @Override
+        public void liveConfigure(DebouncedGamepadButtons buttons) {
+
+        }
+    }
+
+    private ServoPositionState createTipMineralScorerToBreakCraterPlane() {
+        // Create a new servo state, that uses the mineral scoring mechanism servo, and
+        // tips it to the scoring position which is ParticleScoringMechanism.scoringPosition
+
+        return new ServoPositionState("Yeet", telemetry, boxTipServo,
+                particleScoringMechanism.scoringPosition);
     }
 }

@@ -614,23 +614,13 @@ public abstract class RoverRuckusHardware extends OpMode {
         driverRightStickX = driversGamepad.getRightStickX();
         driverRightStickY = driversGamepad.getRightStickY();
 
-        driveStrafe = ParametricScaledRangeInput.builder()
-                .rawInput(new LowPassFilteredRangeInput(driverLeftStickX, lowPassFilterFactor))
-                .throttleDeadband(throttleDeadband)
-                .throttleGain(throttleGain)
-                .throttleExponent(throttleExponent).build();
+        driveStrafe = new ParametricScaledRangeInput(
+                new LowPassFilteredRangeInput(driverLeftStickX, lowPassFilterFactor),
+                throttleDeadband, throttleGain, throttleExponent);
 
-        driveStrafe = ParametricScaledRangeInput.builder()
-                .rawInput(new LowPassFilteredRangeInput(driverLeftStickX, lowPassFilterFactor))
-                .throttleDeadband(throttleDeadband)
-                .throttleGain(throttleGain)
-                .throttleExponent(throttleExponent).build();
-
-        driveForwardReverse = ParametricScaledRangeInput.builder()
-                .rawInput(new LowPassFilteredRangeInput(driverLeftStickY, lowPassFilterFactor))
-                .throttleDeadband(throttleDeadband)
-                .throttleGain(throttleGain)
-                .throttleExponent(throttleExponent).build();
+        driveForwardReverse = new ParametricScaledRangeInput(
+                new LowPassFilteredRangeInput(driverLeftStickY, lowPassFilterFactor),
+            throttleDeadband, throttleGain, throttleExponent);
 
         driveRotate = new LowPassFilteredRangeInput(driverRightStickX, lowPassFilterFactor);
 
